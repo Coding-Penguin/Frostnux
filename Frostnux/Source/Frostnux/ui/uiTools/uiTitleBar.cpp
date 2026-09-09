@@ -149,7 +149,7 @@ namespace Frostnux
 
 			float VersionX, VersionY;
 			VersionX = width / 2.0f - TextRenderer::Get().GetTextWidth(s_Version) / 2.0f;
-			VersionY = (35.0f - TextRenderer::Get().GetTextHeight()) / 2.0f;
+			VersionY = (40.0f - TextRenderer::Get().GetTextHeight()) / 2.0f;
 			float color = 0.0f;
 			if (ThemeManager::IsDarkTheme())
 			{

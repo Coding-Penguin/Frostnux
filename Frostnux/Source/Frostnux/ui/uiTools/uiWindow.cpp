@@ -19,6 +19,7 @@ namespace Frostnux {
 	std::unordered_map<DockRegion, uiWindow*> uiWindow::s_DockedWindows;
 	std::vector<uiWindow*> uiWindow::s_FloatingWindows;
 	uiWindow* uiWindow::s_DraggingWindow = nullptr;
+	uiWindow* uiWindow::s_FocusedFloatingWindow = nullptr;
 	DockRegion uiWindow::s_PreviewRegion = DockRegion::None;
 	float uiWindow::s_MainX = 0, uiWindow::s_MainY = 0, uiWindow::s_MainW = 0, uiWindow::s_MainH = 0;
 	float uiWindow::s_DragStartX = 0, uiWindow::s_DragStartY = 0;
@@ -208,7 +209,7 @@ namespace Frostnux {
 			glEnd();
 		}
 
-		int segmentsPerSide = std::max(70, (int)(std::max(m_RectWidth, m_RectHeight) / 5.0f));
+		int segmentsPerSide = std::max(100, (int)(std::max(m_RectWidth, m_RectHeight) / 5.0f));
 		DrawHighlightedRectBorder(m_RectX, m_RectY, m_RectWidth, m_RectHeight, segmentsPerSide);
 
 		int scissorX = (int)m_RectX;
@@ -390,6 +391,16 @@ namespace Frostnux {
 
 				if (inTitleBar && e.GetMouseButton() == GLFW_MOUSE_BUTTON_LEFT)
 				{
+					if (m_IsFloating)
+					{
+						auto it = std::find(s_FloatingWindows.begin(), s_FloatingWindows.end(), this);
+						if (it != s_FloatingWindows.end())
+						{
+							s_FloatingWindows.erase(it);
+							s_FloatingWindows.push_back(this);
+						}
+						s_FocusedFloatingWindow = this;
+					}
 					StartDrag(mx, my);
 					return true;
 				}
@@ -1006,6 +1017,17 @@ namespace Frostnux {
 		if (!m_IsDraggingForDock) return;
 		m_IsDraggingForDock = false;
 		s_DraggingWindow = nullptr;
+
+		float mx = m_RectX + m_RectWidth / 2;
+		float my = m_RectY + m_RectHeight / 2;
+		for (uiWindow* win : s_FloatingWindows)
+		{
+			if (win == this) continue;
+			if (mx >= win->m_RectX && mx <= win->m_RectX + win->m_RectWidth && my >= win->m_RectY && my <= win->m_RectY + 30)
+			{
+				break;
+			}
+		}
 	}
 
 	DockRegion uiWindow::DetectDockTarget(float mx, float my)

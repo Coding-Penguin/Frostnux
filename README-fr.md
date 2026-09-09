@@ -34,7 +34,7 @@
 ## Qu'est-ce que Frostnux
 Frostnux est un petit environnement de développement intégré développé par un élève au lycée, qui vise à offrir une alternative pour le développement de code,
 
-avec la version actuelle 2026.2.1 et qui supporte le langage C++.
+avec la version actuelle 2026.3.1 et qui supporte le langage C++.
 
 ## Licence
 

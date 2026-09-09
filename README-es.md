@@ -34,7 +34,7 @@
 ## ¿Qué es Frostnux?
 Frostnux es un entorno integrado de desarrollo (IDE) desarrollado en casa por un estudiante de secundaria, con el objetivo de ofrecer otra opción para el desarrollo de código,
 
-La versión actual es 2026.2.1 y soporta el lenguaje C++.
+La versión actual es 2026.3.1 y soporta el lenguaje C++.
 
 ## Licencia
 

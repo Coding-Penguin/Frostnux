@@ -161,6 +161,8 @@ namespace Frostnux {
 		static bool s_ShowDockPanel;
 		static DockRegion s_HighlightedButton;
 
+		static uiWindow* s_FocusedFloatingWindow;
+
 		DockRegion m_DockRegion = DockRegion::None;
 		bool m_AutoHide = false;
 		bool m_IsFloating = false;

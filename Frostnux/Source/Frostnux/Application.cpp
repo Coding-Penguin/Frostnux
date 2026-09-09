@@ -78,7 +78,7 @@ namespace Frostnux {
 		if (!s_FontLoaded)
 		{
 			FX_CORE_INFO("Loading font...");
-			TextRenderer::Get().LoadFont("Resources/Fonts/OpenSans-Regular.ttf", s_FontSize);
+			TextRenderer::Get().LoadFont("Resources/Fonts/SourceHanSansSC-Normal.otf", s_FontSize);
 			s_FontLoaded = true;
 			FX_CORE_INFO("Font loaded successfully.");
 		}
