@@ -1,4 +1,4 @@
-workspace "Frostnux IDE"
+workspace "Frostnux"
    architecture "x64"
    configurations { "Debug", "Release", "Dist" }
    startproject "Sandbox"

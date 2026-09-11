@@ -1,6 +1,6 @@
 <div align = "center">
 
-<img alt="значок" src="./App/Resources/Images/Frostnux.png" style = "width: 20%; height: auto;">
+<img alt="значок" src="./Sandbox/Resources/Images/Frostnux.png" style = "width: 20%; height: auto;">
 
 </div>
 <div align = "center">
@@ -15,8 +15,6 @@
 
 [English](./README.md)
 [中文](./README-zh.md)
-[français](./README-fr.md)
-[español](./README-es.md)
 </div>
 <div align = "center">
 <strong> Нулевое кованье, бит в остроту </strong>

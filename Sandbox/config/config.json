@@ -1,0 +1,22 @@
+{
+    "IsMaximize": false,
+    "WindowHeight": 1000,
+    "WindowWidth": 1720,
+    "channelIndex": 1,
+    "fileExplorerExpandedState": {
+        "H:/Programming/Projects/CppProject/HighPrecisionComputing": true,
+        "H:/Programming/Projects/CppProject/HighPrecisionComputing/HighPrecisionComputing": true,
+        "H:/Programming/Projects/CppProject/HighPrecisionComputing/HighPrecisionComputing/src": true
+    },
+    "fileExplorerScrollY": 0.0,
+    "fontSize": 20,
+    "openFiles": [
+        "H:/Programming/Projects/CppProject/HighPrecisionComputing/HighPrecisionComputing/src/HighPrecisionComputing.h",
+        "H:/Programming/Projects/CppProject/HighPrecisionComputing/HighPrecisionComputing/src/HighPrecisionComputing.cpp"
+    ],
+    "recentFiles": [
+        "H:/Programming/Projects/CppProject/HighPrecisionComputing/HighPrecisionComputing/src/HighPrecisionComputing.cpp",
+        "H:/Programming/Projects/CppProject/HighPrecisionComputing/HighPrecisionComputing/src/HighPrecisionComputing.h"
+    ],
+    "themeIndex": 3
+}

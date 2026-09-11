@@ -38,7 +38,16 @@ namespace Frostnux {
 
 		SettingsManager::Get().Load();
 
-		ThemeManager::SetTheme((Theme)settings.themeIndex);
+		if (settings.themeIndex < 0 || settings.themeIndex >= ThemeManager::GetThemeCount())
+		{
+			FX_CORE_WARN("Invalid theme index in settings: {}. Defaulting to Dark theme.", settings.themeIndex);
+			ThemeManager::SetTheme(Theme::Dark);
+			SettingsManager::Get().SetThemeIndex((int)Theme::Dark);
+		}
+		else
+		{
+			ThemeManager::SetTheme((Theme)settings.themeIndex);
+		}
 		ChannelManager::SetChannel((Channel)settings.channelIndex);
 		LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
 

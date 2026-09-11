@@ -35,13 +35,3 @@ Frostnux::Application* Frostnux::CreateApplication()
 {
 	return new SandboxApp();
 }
-
-int main()
-{
-	Frostnux::Application* app = Frostnux::CreateApplication();
-
-	app->Run();
-
-	delete app;
-	return 0;
-}

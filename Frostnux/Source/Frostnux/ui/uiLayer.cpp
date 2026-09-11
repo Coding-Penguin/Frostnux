@@ -108,12 +108,9 @@ namespace Frostnux {
 					FX_CORE_ERROR("TabManager is null!");
 				}
 			});
-		auto* output = new uiWindow("Output");
 		auto* notifications = new uiWindow("Notifications");
 		m_Windows.push_back(fileExplorer);
-		m_Windows.push_back(output);
 		uiWindow::DockWindow(fileExplorer, DockRegion::Left);
-		uiWindow::DockWindow(output, DockRegion::Bottom);
 		for (auto* win : m_Windows)
 		{
 			win->OnAttach();

@@ -1,6 +1,6 @@
 <div align = "center">
 
-<img alt="icon" src="./App/Resources/Images/Frostnux.png" style = "width: 20%; height: auto;">
+<img alt="icon" src="./Sandbox/Resources/Images/Frostnux.png" style = "width: 20%; height: auto;">
 
 </div>
 <div align = "center">
@@ -14,8 +14,6 @@
 
 [中文](./README-zh.md)
 [русский](./README-ru.md)
-[français](./README-fr.md)
-[español](./README-es.md)
 </div>
 <div align = "center">
 <strong> Forged at zero. Bladed in bits. </strong>

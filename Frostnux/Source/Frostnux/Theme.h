@@ -57,6 +57,7 @@ namespace Frostnux
 				return "Moonlight";
 			}
 		}
+		static int GetThemeCount() { return 6; }
 	private:
 		ThemeManager() = default;
 

@@ -13,3 +13,7 @@
 // Codes
 #include "Frostnux/KeyCodes.h"
 #include "Frostnux/MouseButtonCodes.h"
+
+// ---------- EntryPoint ----------
+#include "Frostnux/EntryPoint.h"
+// --------------------------------

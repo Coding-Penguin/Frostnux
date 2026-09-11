@@ -1,6 +1,6 @@
 <div align = "center">
 
-<img alt="图标" src="./App/Resources/Images/Frostnux.png" style = "width: 20%; height: auto;">
+<img alt="图标" src="./Sandbox/Resources/Images/Frostnux.png" style = "width: 20%; height: auto;">
 
 </div>
 <div align = "center">
@@ -15,8 +15,6 @@
 
 [English](./README.md)
 [русский](./README-ru.md)
-[français](./README-fr.md)
-[español](./README-es.md)
 </div>
 <div align = "center">
 <strong> 零度锻造，比特成锋 </strong>
