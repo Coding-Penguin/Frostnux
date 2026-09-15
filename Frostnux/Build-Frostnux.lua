@@ -17,7 +17,6 @@ project "Frostnux"
         "vendor/Glad/include",
         "vendor/glm",
         "vendor/stb_image",
-        "vendor/miniaudio",
         "vendor/spdlog/include",
 		"vendor/json/include",
         "vendor"

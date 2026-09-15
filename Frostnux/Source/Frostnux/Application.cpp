@@ -52,7 +52,7 @@ namespace Frostnux {
 		LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
 
 		FX_CORE_INFO("Frostnux is running on channel: {}, theme: {}, language: {}, version: {}",
-			((ChannelManager::GetChannel() == Channel::Current) ? "Current" : "Preview"),
+			((ChannelManager::GetChannel() == Channel::Stable) ? "Stable" : "Preview"),
 			ThemeManager::GetThemeName(),
 			LanguageManager::GetLanguageName(),
 			s_Version);
@@ -100,7 +100,7 @@ namespace Frostnux {
 		m_MainWindow.reset();
 
 		FX_INFO("Application destructor called.");
-		FX_CORE_WARN("Shutting down Frostnux Studio...");
+		FX_CORE_WARN("Shutting down Frostnux...");
 	}
 
 	void Application::PushLayer(Layer* layer)

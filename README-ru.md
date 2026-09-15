@@ -17,7 +17,7 @@
 [中文](./README-zh.md)
 </div>
 <div align = "center">
-<strong> Нулевое кованье, бит в остроту </strong>
+<strong> Выковано при нуле. Заточено в битах. </strong>
 </div>
 
 ## Скриншот работы

@@ -1,7 +1,7 @@
 {
 	"Name": "Frostnux",
 	"Preview": "Preview",
-	"Current": "Current",
+	"Stable": "Stable",
 	"Language": "English",
 	"LanguageCode": "en-US",
 
@@ -18,7 +18,7 @@
 	"NewFile": "New File",
 	"OpenFile": "Open File",
 	"SaveFile": "Save File",
-  "SaveAs": "Save As",
+	"SaveAs": "Save As",
 	"SaveAllFiles": "Save All Files",
 
 	"Undo": "Undo",
@@ -39,5 +39,5 @@
 
 	"Ready": "Ready",
 	"Building...": "Building...",
-  "Saving File...": "Saving File..."
+	"Saving File...": "Saving File..."
 }

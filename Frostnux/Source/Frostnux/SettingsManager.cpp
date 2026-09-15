@@ -25,9 +25,9 @@ namespace Frostnux {
 		{
 			nlohmann::json j;
 			file >> j;
-			m_Settings.languageIndex = j.value("languageIndex", 0);
+			m_Settings.languageIndex = j.value("languageIndex", 1);
 			m_Settings.themeIndex = j.value("themeIndex", 3);
-			m_Settings.channelIndex = j.value("channelIndex", 1);
+			m_Settings.channelIndex = j.value("channelIndex", 0);
 			m_Settings.fontSize = j.value("fontSize", 20);
 			m_Settings.recentFiles = j.value("recentFiles", std::vector<std::string>{});
 			m_Settings.openFiles = j.value("openFiles", std::vector<std::string>{});
@@ -49,6 +49,7 @@ namespace Frostnux {
 		nlohmann::json j;
 		j["themeIndex"] = m_Settings.themeIndex;
 		j["channelIndex"] = m_Settings.channelIndex;
+		j["languageIndex"] = m_Settings.languageIndex;
 		j["fontSize"] = m_Settings.fontSize;
 		j["recentFiles"] = m_Settings.recentFiles;
 		j["openFiles"] = m_Settings.openFiles;
@@ -88,6 +89,12 @@ namespace Frostnux {
 	void SettingsManager::SetThemeIndex(int index)
 	{
 		m_Settings.themeIndex = index;
+		Save();
+	}
+
+	void SettingsManager::SetLanguageIndex(int index)
+	{
+		m_Settings.languageIndex = index;
 		Save();
 	}
 

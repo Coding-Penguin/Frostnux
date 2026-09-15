@@ -93,7 +93,12 @@ namespace Frostnux {
 		m_ShortcutBar->AddGroup(buildGroup, true);
 		m_ShortcutBar->AddGroup(bookmarkGroup, false);
 
-		uiWindow::InitDockSystem(0.0f, 130.0f, width, height - 160.0f);
+		float offsetY = 100.0f;
+		if (ChannelManager::GetChannel() == Channel::Preview)
+		{
+			offsetY = 130.0f;
+		}
+		uiWindow::InitDockSystem(0.0f, offsetY, width, height - offsetY - 35.0f);
 
 		auto* properties = new PropertiesWindow();
 		auto* fileExplorer = new FileExplorer(s_RootPath, properties);

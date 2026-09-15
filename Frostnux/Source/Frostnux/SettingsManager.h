@@ -11,9 +11,9 @@ namespace Frostnux {
 		std::vector<std::string> openFiles;
 		std::unordered_map<std::string, bool> fileExplorerExpandedState;
 
-		int languageIndex = 0;
+		int languageIndex = 1;
 		int themeIndex = 3;
-		int channelIndex = 1;
+		int channelIndex = 0;
 		int fontSize = 20;
 		float fileExplorerScrollY = 0.0f;
 		unsigned int WindowWidth = 1720, WindowHeight = 1000;
@@ -33,6 +33,7 @@ namespace Frostnux {
 		void AddRecentFile(const std::string& filepath);
 		void SetOpenFiles(const std::vector<std::string>& files);
 		void SetThemeIndex(int index);
+		void SetLanguageIndex(int index);
 		void SetChannel(int index);
 		void SetFontSize(int size);
 		void SetMaximize(bool isMaximized);

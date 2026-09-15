@@ -26,10 +26,10 @@ namespace Frostnux
 
 		glBegin(GL_TRIANGLE_FAN);
 		glVertex2f(mx, my);
-		int segments = 2048; // Number of segments to approximate the circle
+		int segments = 1024; // Number of segments to approximate the circle
 		for (int i = 0; i <= segments; ++i)
 		{
-			float angle = 2.0f * 3.14159265f * i / segments;
+			double angle = 2.0 * 3.141592653589793238462643383 * i / segments;
 			float x = mx + cos(angle) * m_Radius;
 			float y = my + sin(angle) * m_Radius;
 			glVertex2f(x, y);

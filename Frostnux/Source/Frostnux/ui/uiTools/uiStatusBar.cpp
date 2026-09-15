@@ -90,7 +90,7 @@ namespace Frostnux
 		}
 		else
 		{
-			m_RightText = j.value("Current", "Current");
+			m_RightText = j.value("Stable", "Stable");
 		}
 		DrawText();
 	}

@@ -64,6 +64,16 @@ namespace Frostnux {
 		{
 			group.buttons.clear();
 		}
+
+		if (ChannelManager::GetChannel() == Channel::Preview)
+		{
+			m_OffsetY = 80.0f;
+		}
+		else
+		{
+			m_OffsetY = 50.0f;
+		}
+
 		float x = 10.0f;
 		float y = m_OffsetY + (m_BarHeight - m_ButtonHeight) / 2.0f;
 		float width = m_ButtonWidth;

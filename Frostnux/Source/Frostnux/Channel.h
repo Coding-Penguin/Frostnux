@@ -5,7 +5,7 @@ namespace Frostnux
 
 	enum class Channel
 	{
-		Current = 0,
+		Stable = 0,
 		Preview
 	};
 
