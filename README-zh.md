@@ -14,7 +14,7 @@
 <div align = "center">
 
 [English](./README.md)
-[русский](./README-ru.md)
+[Pусский](./README-ru.md)
 </div>
 <div align = "center">
 <strong> 零度锻造，比特成锋 </strong>
@@ -30,9 +30,9 @@
 </div>
 
 ## Frostnux 是什么
-Frostnux 是一名初中生居家自研的一款小型集成开发环境, 旨在为代码开发提供另一种可能,
+Frostnux 是一名初中生居家自研的一款小型IDE, 旨在为代码开发提供另一种可能,
 
-目前版本为 2026.3.1, 支持语言C++
+目前版本为 2026.3.2, 支持语言C++
 
 ## 许可证
 

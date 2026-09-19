@@ -9,7 +9,7 @@ namespace Frostnux {
 	class PropertiesWindow : public uiWindow
 	{
 	public:
-		PropertiesWindow();
+		PropertiesWindow(const std::string& name);
 		virtual ~PropertiesWindow();
 
 		void SetFileProperties(const std::string& filepath);

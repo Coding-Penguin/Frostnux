@@ -13,10 +13,10 @@ namespace Frostnux {
 
 		int languageIndex = 1;
 		int themeIndex = 3;
-		int channelIndex = 0;
+		int channelIndex = 1;
 		int fontSize = 20;
 		float fileExplorerScrollY = 0.0f;
-		unsigned int WindowWidth = 1720, WindowHeight = 1000;
+		unsigned int WindowWidth = 1920, WindowHeight = 1080;
 		bool IsMaximize = false;
 	};
 

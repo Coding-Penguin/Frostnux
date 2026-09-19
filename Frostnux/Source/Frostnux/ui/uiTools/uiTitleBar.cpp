@@ -12,7 +12,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
-#include "Search.h"
+#include "Frostnux/FontManager.h"
 
 namespace Frostnux
 {
@@ -62,56 +62,80 @@ namespace Frostnux
 		// File
 		float buttonWidth = TextRenderer::Get().GetTextWidth(Names[0]) + 30.0f;
 		auto Filebtn = std::make_unique<uiButton>(Names[0], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Filebtn->SetCallback([=]() { FX_INFO("Clicked \"File\""); });
+		Filebtn->SetCallback([=]()
+			{
+				FX_INFO("Clicked \"File\"");
+			});
 		m_Buttons.push_back(std::move(Filebtn));
 		x += buttonWidth + 10;
 
 		// Edit
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[1]) + 30.0f;
 		auto Editbtn = std::make_unique<uiButton>(Names[1], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Editbtn->SetCallback([=]() { FX_INFO("Clicked \"Edit\""); });
+		Editbtn->SetCallback([=]()
+			{
+				FX_INFO("Clicked \"Edit\"");
+			});
 		m_Buttons.push_back(std::move(Editbtn));
 		x += buttonWidth + 10;
 
 		// View
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[2]) + 30.0f;
 		auto Viewbtn = std::make_unique<uiButton>(Names[2], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Viewbtn->SetCallback([=]() { FX_INFO("Clicked \"View\""); });
+		Viewbtn->SetCallback([=]()
+			{
+				FX_INFO("Clicked \"View\"");
+			});
 		m_Buttons.push_back(std::move(Viewbtn));
 		x += buttonWidth + 10;
 
 		// Project
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[3]) + 30.0f;
 		auto Projectbtn = std::make_unique<uiButton>(Names[3], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Projectbtn->SetCallback([=]() { FX_INFO("Clicked \"Project\""); });
+		Projectbtn->SetCallback([=]()
+			{
+				FX_INFO("Clicked \"Project\"");
+			});
 		m_Buttons.push_back(std::move(Projectbtn));
 		x += buttonWidth + 10;
 
 		// Build
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[4]) + 30.0f;
 		auto Buildbtn = std::make_unique<uiButton>(Names[4], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Buildbtn->SetCallback([=]() { FX_INFO("Clicked \"Build\""); });
+		Buildbtn->SetCallback([=]()
+			{
+				FX_INFO("Clicked \"Build\"");
+			});
 		m_Buttons.push_back(std::move(Buildbtn));
 		x += buttonWidth + 10;
 
 		// Debug
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[5]) + 30.0f;
 		auto Debugbtn = std::make_unique<uiButton>(Names[5], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Debugbtn->SetCallback([=]() { FX_INFO("Clicked \"Debug\""); });
+		Debugbtn->SetCallback([=]()
+			{
+				FX_INFO("Clicked \"Debug\"");
+			});
 		m_Buttons.push_back(std::move(Debugbtn));
 		x += buttonWidth + 10;
 
 		// Tools
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[6]) + 30.0f;
 		auto Toolsbtn = std::make_unique<uiButton>(Names[6], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Toolsbtn->SetCallback([=]() { FX_INFO("Clicked \"Tools\""); });
+		Toolsbtn->SetCallback([=]()
+			{
+				FX_INFO("Clicked \"Tools\"");
+			});
 		m_Buttons.push_back(std::move(Toolsbtn));
 		x += buttonWidth + 10;
 
 		// Help
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[7]) + 30.0f;
 		auto Helpbtn = std::make_unique<uiButton>(Names[7], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Helpbtn->SetCallback([=]() { FX_INFO("Clicked \"Help\""); });
+		Helpbtn->SetCallback([=]()
+			{
+				FX_INFO("Clicked \"Help\"");
+			});
 		m_Buttons.push_back(std::move(Helpbtn));
 		x += buttonWidth + 10;
 
@@ -124,7 +148,10 @@ namespace Frostnux
 		auto addSearchButton = [&](const std::string& text, float width)
 			{
 				auto btn = std::make_unique<uiButton>(text, x, y, width, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-				btn->SetCallback([=]() { FX_INFO("Clicked \"Search\"."); });
+				btn->SetCallback([=]()
+					{
+						FX_INFO("Clicked \"Search\".");
+					});
 				m_Buttons.push_back(std::move(btn));
 			};
 		addSearchButton(Names[8], buttonWidth);

@@ -39,5 +39,10 @@
 
 	"Ready": "Ready",
 	"Building...": "Building...",
-	"Saving File...": "Saving File..."
+	"Saving File...": "Saving File...",
+
+	"FileExplorer": "File Explorer",
+	"Properties": "Properties",
+	"Notifications": "Notifications",
+	"Output": "Output"
 }

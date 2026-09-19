@@ -100,8 +100,8 @@ namespace Frostnux {
 		}
 		uiWindow::InitDockSystem(0.0f, offsetY, width, height - offsetY - 35.0f);
 
-		auto* properties = new PropertiesWindow();
-		auto* fileExplorer = new FileExplorer(s_RootPath, properties);
+		auto* properties = new PropertiesWindow(j.value("Properties", "Properties"));
+		auto* fileExplorer = new FileExplorer(j.value("FileExplorer", "FileExplorer"), s_RootPath, properties);
 		fileExplorer->SetFileOpenCallback([this](const std::string& path)
 			{
 				if (this->m_TabManager)
@@ -113,9 +113,12 @@ namespace Frostnux {
 					FX_CORE_ERROR("TabManager is null!");
 				}
 			});
-		auto* notifications = new uiWindow("Notifications");
+		auto* notifications = new uiWindow(j.value("Notifications", "Notifications"));
+
 		m_Windows.push_back(fileExplorer);
+
 		uiWindow::DockWindow(fileExplorer, DockRegion::Left);
+
 		for (auto* win : m_Windows)
 		{
 			win->OnAttach();
@@ -180,7 +183,6 @@ namespace Frostnux {
 		if (m_StatusBar)
 		{
 			m_StatusBar->OnUpdate(deltaTime);
-			m_StatusBar->SetStatusText("Ready");
 		}
 
 		DockRegion preview = uiWindow::GetPreviewRegion();

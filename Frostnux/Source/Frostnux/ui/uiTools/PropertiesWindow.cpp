@@ -7,8 +7,8 @@
 
 namespace Frostnux {
 
-	PropertiesWindow::PropertiesWindow()
-		: uiWindow("Properties")
+	PropertiesWindow::PropertiesWindow(const std::string& name)
+		: uiWindow(name)
 	{
 		m_Properties =
 		{

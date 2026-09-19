@@ -39,5 +39,10 @@
 
 	"Ready": "Готово",
 	"Building...": "Сборка...",
-	"Saving File...": "Сохранение файла..."
+	"Saving File...": "Сохранение файла...",
+
+	"FileExplorer": "Проводник файлов",
+	"Properties": "Свойства",
+	"Notifications": "Уведомления",
+	"Output": "Вывод"
 }

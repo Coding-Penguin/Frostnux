@@ -35,7 +35,7 @@ namespace Frostnux {
 	class FileExplorer : public uiWindow
 	{
 	public:
-		FileExplorer(const std::string& rootPath, PropertiesWindow* properties);
+		FileExplorer(const std::string& name, const std::string& rootPath, PropertiesWindow* properties);
 		virtual ~FileExplorer();
 
 		virtual void OnUpdate(float deltaTime) override;

@@ -1,0 +1,48 @@
+{
+  "Name": "Dérüllő",
+  "Preview": "Előnézet",
+  "Stable": "stabil",
+  "Language": "Hungarian",
+  "LanguageCode": "hu-HU",
+
+  "File": "Fájl",
+  "Edit": "Szerkesztés",
+  "View": "Megtekintés",
+  "Project": "Projekt",
+  "Build": "Fordítás",
+  "Debug": "Hibakeresés",
+  "Tools": "Eszközök",
+  "Help": "Segítség",
+  "Search": "Keresés",
+
+  "NewFile": "Új Fájl",
+  "OpenFile": "Megnyitás Fájl",
+  "SaveFile": "Mentése Fájl",
+  "SaveAs": "Más néven mentés",
+  "SaveAllFiles": "Minden fájl mentése",
+
+  "Undo": "Mégsem",
+  "Redo": "Újra",
+  "Cut": "Vágás",
+  "Copy": "Másolás",
+  "Paste": "Illesítés",
+
+  "Rebuild": "Újrafordítás",
+  "Clean": "Tisztítás",
+  "Run": "Futtatás",
+
+  "FindBookmark": "Keres könyvjelzőt",
+  "AddBookmark": "Helyez könyvjelzőt",
+  "DeleteBookmark": "Törlés könyvjelzőt",
+  "NextBookmark": "Következő könyvjelzőt",
+  "ClearBookmarks": "Törölje ki az összes könyvjelzőt",
+
+  "Ready": "Készen áll",
+  "Building...": "Fordítás alatt...",
+  "Saving File...": "Fájl mentése folyamatban...",
+
+  "FileExplorer": "Fájloszkóztár",
+  "Properties": "Tulajdonság",
+  "Notifications": "Értesítések",
+  "Output": "Kimenet"
+}

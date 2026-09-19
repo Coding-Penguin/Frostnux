@@ -27,12 +27,12 @@ namespace Frostnux {
 			file >> j;
 			m_Settings.languageIndex = j.value("languageIndex", 1);
 			m_Settings.themeIndex = j.value("themeIndex", 3);
-			m_Settings.channelIndex = j.value("channelIndex", 0);
+			m_Settings.channelIndex = j.value("channelIndex", 1);
 			m_Settings.fontSize = j.value("fontSize", 20);
 			m_Settings.recentFiles = j.value("recentFiles", std::vector<std::string>{});
 			m_Settings.openFiles = j.value("openFiles", std::vector<std::string>{});
-			m_Settings.WindowWidth = j.value("WindowWidth", 1720);
-			m_Settings.WindowHeight = j.value("WindowHeight", 1000);
+			m_Settings.WindowWidth = j.value("WindowWidth", 1920);
+			m_Settings.WindowHeight = j.value("WindowHeight", 1080);
 			m_Settings.fileExplorerExpandedState = j["fileExplorerExpandedState"].get<std::unordered_map<std::string, bool>>();
 			m_Settings.fileExplorerScrollY = j.value("fileExplorerScrollY", 0.0f);
 			m_Settings.IsMaximize = j.value("IsMaximize", false);

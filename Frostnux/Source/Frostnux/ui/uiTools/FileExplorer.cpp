@@ -9,8 +9,8 @@
 
 namespace Frostnux {
 
-	FileExplorer::FileExplorer(const std::string& rootPath, PropertiesWindow* properties)
-		: uiWindow("Solution Explorer"), m_RootPath(rootPath), m_Properties(properties)
+	FileExplorer::FileExplorer(const std::string& name, const std::string& rootPath, PropertiesWindow* properties)
+		: uiWindow(name), m_RootPath(rootPath), m_Properties(properties)
 	{
 		m_LineHeight = s_FontSize * 1.5f;
 		SetSize(0, 110, 250, 600);

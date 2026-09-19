@@ -39,5 +39,10 @@
 
 	"Ready": "就绪",
 	"Building...": "正在编译...",
-	"Saving File...": "正在保存文件..."
+	"Saving File...": "正在保存文件...",
+
+	"FileExplorer": "文件资源管理器",
+	"Properties": "属性",
+	"Notifications": "通知",
+  "Output": "输出"
 }
