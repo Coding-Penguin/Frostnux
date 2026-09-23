@@ -4,10 +4,6 @@
 #include <stb_truetype.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "Frostnux/Log.h"
-#include <fstream>
-#include <vector>
-#include <cstring>
 
 namespace Frostnux {
 
@@ -16,14 +12,34 @@ namespace Frostnux {
 		if (index >= text.size()) return 0;
 
 		const unsigned char c0 = static_cast<unsigned char>(text[index]);
-		if (c0 < 0x80u) { ++index; return c0; }
+		if (c0 < 0x80u)
+		{
+			++index;
+			return c0;
+		}
 
 		unsigned int cp = 0;
 		int extra = 0;
-		if ((c0 & 0xE0u) == 0xC0u) { cp = c0 & 0x1Fu; extra = 1; }
-		else if ((c0 & 0xF0u) == 0xE0u) { cp = c0 & 0x0Fu; extra = 2; }
-		else if ((c0 & 0xF8u) == 0xF0u) { cp = c0 & 0x07u; extra = 3; }
-		else { ++index; return 0xFFFDu; }
+		if ((c0 & 0xE0u) == 0xC0u)
+		{
+			cp = c0 & 0x1Fu;
+			extra = 1;
+		}
+		else if ((c0 & 0xF0u) == 0xE0u)
+		{
+			cp = c0 & 0x0Fu;
+			extra = 2;
+		}
+		else if ((c0 & 0xF8u) == 0xF0u)
+		{
+			cp = c0 & 0x07u;
+			extra = 3;
+		}
+		else
+		{
+			++index;
+			return 0xFFFDu;
+		}
 
 		++index;
 		for (int k = 0; k < extra; ++k)
@@ -328,6 +344,81 @@ namespace Frostnux {
 		m_Ascent = m_Descent = m_LineGap = 0;
 
 		m_Initialized = false;
+	}
+	
+	float TextRenderer::GetTextWidthUTF32(std::u32string_view text) const
+	{
+		if (!m_Initialized) return 0.0f;
+		float width = 0.0f;
+		for (char32_t cp : text)
+			width += GetAdvance(static_cast<unsigned int>(cp));
+		return width;
+	}
+
+	void TextRenderer::DrawTextUTF32(std::u32string_view text, float x, float y,
+		float r, float g, float b, float a)
+	{
+		if (!m_Initialized || m_TextureID == 0) return;
+		if (text.empty()) return;
+
+		for (char32_t cp : text)
+		{
+			if (cp == U'\t' || cp == U'\n' || cp == U'\r') continue;
+			GetOrCreateGlyph(static_cast<unsigned int>(cp));
+		}
+
+		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_TEXTURE_BIT);
+		glPushMatrix();
+
+		glEnable(GL_TEXTURE_2D);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glBindTexture(GL_TEXTURE_2D, m_TextureID);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		glColor4f(r, g, b, a);
+
+		float curX = x;
+		float curY = y;
+
+		glBegin(GL_QUADS);
+		for (char32_t cp : text)
+		{
+			if (cp == U'\t')
+			{
+				curX += GetCharWidth('\t');
+				continue;
+			}
+			if (cp == U'\r')
+			{
+				continue;
+			}
+			if (cp == U'\n')
+			{
+				curX = x;
+				curY += GetLineHeight(); continue;
+			}
+
+			auto it = m_Chars.find(static_cast<unsigned int>(cp));
+			if (it == m_Chars.end()) continue;
+			const CharInfo& ci = it->second;
+
+			if (ci.width > 0.0f && ci.height > 0.0f)
+			{
+				const float xpos = curX + ci.xoff;
+				const float ypos = curY + ci.yoff;
+
+				glTexCoord2f(ci.x0, ci.y0); glVertex2f(xpos, ypos);
+				glTexCoord2f(ci.x1, ci.y0); glVertex2f(xpos + ci.width, ypos);
+				glTexCoord2f(ci.x1, ci.y1); glVertex2f(xpos + ci.width, ypos + ci.height);
+				glTexCoord2f(ci.x0, ci.y1); glVertex2f(xpos, ypos + ci.height);
+			}
+
+			curX += ci.advance;
+		}
+		glEnd();
+
+		glPopMatrix();
+		glPopAttrib();
 	}
 
 }

@@ -1,44 +1,44 @@
 #pragma once
 
-#include <iostream>
-#include <memory>
-#include <utility>
-#include <algorithm>
-#include <functional>
-#include <string>
-#include <sstream>
-#include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <functional>
 #include <filesystem>
-#include <map>
-#include <set>
+#include <algorithm>
+#include <iostream>
+#include <utility>
+#include <sstream>
+#include <cstdint>
+#include <fstream>
+#include <iomanip>
+#include <codecvt>
+#include <memory>
+#include <string>
+#include <vector>
 #include <thread>
 #include <chrono>
-#include <cstdint>
+#include <format>
+#include <locale>
 #include <array>
 #include <stack>
 #include <queue>
-#include <list>
-#include <fstream>
 #include <mutex>
-#include <iomanip>
-#include <format>
-#include <codecvt>
-#include <locale>
 #include <tuple>
+#include <list>
+#include <map>
+#include <set>
 
+#include "Frostnux/SettingsManager.h"
+#include "Frostnux/Language.h"
+#include "Frostnux/Channel.h"
+#include "Frostnux/Theme.h"
 #include "Frostnux/Core.h"
 #include "Frostnux/Log.h"
-#include "Frostnux/Theme.h"
-#include "Frostnux/Channel.h"
-#include "Frostnux/Language.h"
 
 #include "Frostnux/KeyCodes.h"
 #include "Frostnux/MouseButtonCodes.h"
 
 #include "Global.h"
-#include "Frostnux/SettingsManager.h"
 
 #ifdef FX_PLATFORM_WINDOWS
 #include <Windows.h>

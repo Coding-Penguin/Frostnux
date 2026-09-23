@@ -1,8 +1,8 @@
 #include <fxpch.h>
 #include "MouseCircle.h"
 #include "Frostnux/Events/MouseEvent.h"
-#include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 namespace Frostnux
 {

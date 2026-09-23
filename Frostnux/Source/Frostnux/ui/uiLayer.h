@@ -2,8 +2,9 @@
 #include "Frostnux/Layer.h"
 #include "uiTools/uiStatusBar.h"
 #include "uiTools/uiShortcutBar.h"
-#include "CodeEditor/EditorTabManager.h"
 #include "uiTools/PropertiesWindow.h"
+#include "CodeEditor/CodeEditor.h"
+#include "CodeEditor/GLRenderer.h"
 #include <vector>
 
 namespace Frostnux {
@@ -12,7 +13,6 @@ namespace Frostnux {
 	class uiTitleBar;
 	class uiButton;
 	class MouseCircle;
-	class CodeEditor;
 
 	class uiLayer : public Layer
 	{
@@ -30,17 +30,14 @@ namespace Frostnux {
 		void AddWindow(uiWindow* window);
 
 		static bool IsPointOverAnyWindow(float x, float y);
-
-		EditorTabManager* GetTabManager() const { return m_TabManager; }
-
-		CodeEditor* GetCodeEditor() const { return m_CodeEditor; }
 	private:
 		std::vector<uiWindow*> m_Windows;
 		uiTitleBar* m_TitleBar = nullptr;
 		uiStatusBar* m_StatusBar = nullptr;
-		CodeEditor* m_CodeEditor = nullptr;
 		uiShortcutBar* m_ShortcutBar = nullptr;
-		EditorTabManager* m_TabManager = nullptr;
+
+		GLRenderer m_EditorRenderer;
+		CodeEditor m_Editor { &m_EditorRenderer };
 	};
 
 }

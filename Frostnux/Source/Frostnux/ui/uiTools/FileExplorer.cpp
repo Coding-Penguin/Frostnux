@@ -6,6 +6,9 @@
 #include <GLFW/glfw3.h>
 #include "Frostnux/Application.h"
 #include "../uiLayer.h"
+#include "Frostnux/Events/Event.h"
+#include "Frostnux/Events/MouseEvent.h"
+#include "Frostnux/Events/KeyEvent.h"
 
 namespace Frostnux {
 
@@ -409,9 +412,9 @@ namespace Frostnux {
 		uiWindow::DrawContent();
 
 		float contentX = GetX() + 10;
-		float contentY = GetY() + 40;
+		float contentY = GetY() + 40 + m_YOffset;
 		float contentW = GetWidth() - 10;
-		float contentH = GetHeight() - 40;
+		float contentH = GetHeight() - 40 - m_YOffset;
 
 		Application& app = Application::Get();
 		int winHeight = app.GetWindow().GetHeight();

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include <stb_truetype.h>
+#include <string_view>
 
 namespace Frostnux {
 
@@ -26,6 +27,12 @@ namespace Frostnux {
 		bool IsInitialized() const { return m_Initialized; }
 
 		float GetCharWidth(char c) const;
+
+		float GetTextWidthUTF32(std::u32string_view text) const;
+		void  DrawTextUTF32(std::u32string_view text, float x, float y, float r, float g, float b, float a);
+
+		float GetAdvance(unsigned int codepoint) const;
+		float GetLineHeight() const;
 	private:
 		struct CharInfo
 		{
@@ -38,8 +45,6 @@ namespace Frostnux {
 
 		const CharInfo* BakeGlyph(unsigned int codepoint);
 		const CharInfo* GetOrCreateGlyph(unsigned int codepoint);
-		float GetAdvance(unsigned int codepoint) const;
-		float GetLineHeight() const;
 
 		bool m_Initialized = false;
 		unsigned int m_TextureID = 0;

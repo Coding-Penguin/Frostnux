@@ -1,8 +1,8 @@
 #include <fxpch.h>
 #include "uiShortcutBar.h"
 #include "Frostnux/Application.h"
-#include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include "Frostnux/Log.h"
 #include "Frostnux/Events/Event.h"
 #include "MouseCircle.h"

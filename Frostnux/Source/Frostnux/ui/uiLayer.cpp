@@ -3,9 +3,8 @@
 #include "uiTools/ui.h"
 #include "Frostnux/Log.h"
 #include "Frostnux/Application.h"
-#include <GLFW/glfw3.h>
 #include <glad/glad.h>
-#include "CodeEditor/CodeEditor.h"
+#include <GLFW/glfw3.h>
 #include "Frostnux/SettingsManager.h"
 
 namespace Frostnux {
@@ -28,20 +27,15 @@ namespace Frostnux {
 		delete m_TitleBar;
 		delete m_StatusBar;
 		delete m_ShortcutBar;
-		delete m_CodeEditor;
 	}
 
 	void uiLayer::OnAttach()
 	{
-		FX_CORE_INFO("uiLayer attached.");
-
 		auto& app = Application::Get();
 		int width = app.GetWindow().GetWidth();
 		int height = app.GetWindow().GetHeight();
 
 		auto& settings = SettingsManager::Get().GetSettings();
-
-		m_CodeEditor = new CodeEditor("");
 
 		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
 		std::ifstream file(path);
@@ -104,14 +98,7 @@ namespace Frostnux {
 		auto* fileExplorer = new FileExplorer(j.value("FileExplorer", "FileExplorer"), s_RootPath, properties);
 		fileExplorer->SetFileOpenCallback([this](const std::string& path)
 			{
-				if (this->m_TabManager)
-				{
-					this->m_TabManager->OpenFile(path);
-				}
-				else
-				{
-					FX_CORE_ERROR("TabManager is null!");
-				}
+				FX_CORE_INFO("Open File: {}", path);
 			});
 		auto* notifications = new uiWindow(j.value("Notifications", "Notifications"));
 
@@ -124,18 +111,8 @@ namespace Frostnux {
 			win->OnAttach();
 		}
 
-		m_TabManager = new EditorTabManager();
-		int topOffset = 130;
-		int bottomOffset = 40;
-		float tabX = 0;
-		float tabY = topOffset;
-		float tabW = width;
-		float tabH = height - topOffset - bottomOffset;
-		m_TabManager->SetBounds(tabX, tabY, tabW, tabH);
-		for (const auto& filepath : settings.openFiles)
-		{
-			m_TabManager->OpenFile(filepath, true);
-		}
+		auto& tab = m_Editor.addTab("Untitled.cpp");
+		tab.invalidateHighlight();
 	}
 
 	void uiLayer::OnDetach() 
@@ -145,7 +122,6 @@ namespace Frostnux {
 		if (m_TitleBar) m_TitleBar->OnDetach();
 		if (m_StatusBar) m_StatusBar->OnDetach();
 		if (m_ShortcutBar) m_ShortcutBar->OnDetach();
-		delete m_CodeEditor;
 	}
 
 	void uiLayer::OnUpdate(float deltaTime)
@@ -175,6 +151,9 @@ namespace Frostnux {
 		float leftW = uiWindow::GetDynamicLeftWidth();
 		float rightW = uiWindow::GetDynamicRightWidth();
 		float bottomH = uiWindow::GetDynamicBottomHeight();
+
+		m_Editor.update(deltaTime, glfwGetTime());
+		m_Editor.render(centerX, centerY, centerW, centerH);
 
 		MouseCircle::Get().OnUpdate(deltaTime);
 
@@ -232,20 +211,6 @@ namespace Frostnux {
 			m_ShortcutBar->Draw();
 		}
 
-		if (m_CodeEditor)
-		{
-			m_CodeEditor->SetViewBounds(centerX, centerY + 30, centerW, centerH - 30);
-			m_CodeEditor->OnUpdate(deltaTime);
-		}
-
-		if (m_TabManager)
-		{
-			m_TabManager->SetBounds(centerX, centerY, centerW, centerH);
-
-			m_TabManager->OnUpdate(deltaTime);
-			m_TabManager->Draw();
-		}
-
 		for (auto* win : m_Windows)
 		{
 			win->OnUpdate(deltaTime);
@@ -258,9 +223,6 @@ namespace Frostnux {
 	{
 		MouseCircle::Get().OnEvent(event);
 
-		if (m_TabManager && m_TabManager->OnEvent(event))
-			return true;
-
 		if (m_TitleBar && m_TitleBar->OnEvent(event))
 			return true;
 
@@ -272,8 +234,9 @@ namespace Frostnux {
 			if (win->OnEvent(event))
 				return true;
 		}
-
-		if (m_CodeEditor) return m_CodeEditor->OnEvent(event);
+		
+		if (m_Editor.OnEvent(event))
+			return true;
 
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)
@@ -289,8 +252,6 @@ namespace Frostnux {
 			float centerW = mainW - leftW - rightW;
 			float centerH = mainH - bottomH;
 			float yOffset = 110.0f;
-
-			EditorView::Get().SetBounds(leftW, yOffset, centerW, centerH);
 
 			uiWindow::InitDockSystem(0.0f, 130.0f, width, height - 160.0f);
 

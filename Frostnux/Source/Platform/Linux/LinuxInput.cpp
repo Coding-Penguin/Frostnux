@@ -1,5 +1,6 @@
 #include <fxpch.h>
 #include "LinuxInput.h"
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Frostnux/Application.h"
 

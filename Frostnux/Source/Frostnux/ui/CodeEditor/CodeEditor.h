@@ -1,98 +1,115 @@
 #pragma once
-#include "../uiTools/uiWindow.h"
-#include "TextBuffer.h"
-#include "Cursor.h"
-#include "HighLight.h"
-#include "EditorView.h"
+#include "Tab.h"
+
+#include "Frostnux/Events/Event.h"
 #include "Frostnux/Events/KeyEvent.h"
-#include "AutoComplete.h"
-#include <GLFW/glfw3.h>
+#include "Frostnux/Events/MouseEvent.h"
+
+#include <vector>
+#include <memory>
+#include <string_view>
 
 namespace Frostnux {
+
+	class Renderer
+	{
+	public:
+		virtual ~Renderer() = default;
+
+		virtual void drawText(std::u32string_view text,
+			float x, float y, float scale, Color color) = 0;
+
+		virtual void drawRect(float x, float y, float w, float h, Color color) = 0;
+
+		[[nodiscard]] virtual float measureText(std::u32string_view text,
+			float scale) const = 0;
+
+		[[nodiscard]] virtual float lineHeight(float scale) const = 0;
+	};
 
 	class CodeEditor
 	{
 	public:
-		static CodeEditor& Get();
+		explicit CodeEditor(Renderer* r) : m_Renderer(r) {}
+		~CodeEditor() = default;
 
-		CodeEditor();
-		CodeEditor(const std::string& path);
-		virtual ~CodeEditor();
+		CodeEditor(const CodeEditor&) = delete;
+		CodeEditor& operator=(const CodeEditor&) = delete;
 
-		virtual void OnUpdate(float deltaTime);
-		virtual bool OnEvent(Event& event);
+		bool OnEvent(Event& e);
 
-		void LoadFile(const std::string& path);
-		void SaveFile(const std::string& path);
-		std::string GetText() const;
+		Tab& addTab(const std::string& path = {});
+		void closeTab(int idx);
+		void switchTab(int dir);
+		Tab* activeTab();
+		[[nodiscard]] int activeIndex() const { return m_Active; }
+		[[nodiscard]] int tabCount()    const { return static_cast<int>(m_Tabs.size()); }
 
-		void SetSyntaxMode(const CodeLanguage& mode);
+		void update(double dt, double now);
+		void render(float x, float y, float w, float h);
 
-		void Copy();
-		void Cut();
-		void Paste();
-		bool HasSelection() const { return m_Cursor.HasSelection(); }
-		std::string GetSelectedText() const;
-		void DeleteSelection();
-
-		void SetViewBounds(float x, float y, float w, float h) { m_View->SetBounds(x, y, w, h); }
-		std::string GetFilePath() const { return m_Buffer.GetFilePath(); }
-
-		std::string GetFileExtension(const std::string& path) const;
-
-		void SetText(const std::string& text);
-
-		static EditorView* GetView();
-
-		void SaveFile();
-		void SaveFileAs(const std::string& path);
-		static bool IsModified() { return m_IsModified; }
+		[[nodiscard]] EditorTheme& theme() { return m_Theme; }
+		[[nodiscard]] const EditorTheme& theme() const { return m_Theme; }
 	private:
-		static CodeEditor instance;
+		bool onKeyPressed(KeyPressedEvent& e);
+		bool onChar(CharEvent& e);
+		bool onMouseButtonPressed(MouseButtonPressedEvent& e);
+		bool onMouseButtonReleased(MouseButtonReleasedEvent& e);
+		bool onMouseMoved(MouseMovedEvent& e);
+		bool onMouseScrolled(MouseScrolledEvent& e);
 
-		TextBuffer m_Buffer;
-		Cursor m_Cursor;
-		Highlight m_Highlighter;
-		static EditorView* m_View;
+		void layout(float x, float y, float w, float h);
+		void syncBars(Tab& t);
+		void applyScrollFromBars(Tab& t);
+		void ensureCursorVisible(Tab& t);
 
-		GLFWcursor* m_ArrowCursor;
-		GLFWcursor* m_IBeamCursor;
+		void applyEdit(Tab& t, Position from, Position to, std::u32string_view text);
+		void insertText(Tab& t, std::u32string_view text);
+		void deleteSelection(Tab& t);
+		void backspace(Tab& t);
+		void deleteForward(Tab& t);
+		void newline(Tab& t);
+		void tabKey(Tab& t, bool shift);
+		void moveCursor(Tab& t, Position p, bool selecting);
+		void moveLeft(Tab& t, bool selecting, bool byWord);
+		void moveRight(Tab& t, bool selecting, bool byWord);
+		void moveUp(Tab& t, bool selecting);
+		void moveDown(Tab& t, bool selecting);
+		void moveHome(Tab& t, bool selecting, bool docStart);
+		void moveEnd(Tab& t, bool selecting, bool docEnd);
+		void movePageUp(Tab& t, bool selecting);
+		void movePageDown(Tab& t, bool selecting);
+		void doUndo(Tab& t);
+		void doRedo(Tab& t);
 
-		bool m_MouseDragSelecting = false;
-		CursorPosition m_MouseDragStart;
+		[[nodiscard]] Position pixelToPosition(Tab& t, float x, float y) const;
+		[[nodiscard]] float    colToX(const Tab& t, int line, int col) const;
+		[[nodiscard]] int      xToCol(const Tab& t, int line, float x) const;
 
-		struct UndoAction
-		{
-			enum Type { Insert, Delete, InsertNewline, DeleteNewline };
-			std::string data;
-			Type type;
+		void drawTabBar();
+		void drawGutter(Tab& t, float textTop, float textH);
+		void drawTextLines(Tab& t, float textX, float textY, float textW, float textH);
+		void drawSelection(Tab& t, float textX, float textY, float textW, float textH);
+		void drawCurrentLine(Tab& t, float textX, float textY, float textW);
+		void drawCursor(Tab& t, float textX, float textY, float textH);
+		void drawScrollBars(Tab& t);
 
-			int line, col;
-			int endLine, endCol;
-		};
-		std::stack<UndoAction> m_UndoStack;
-		std::stack<UndoAction> m_RedoStack;
+		Renderer*	m_Renderer = nullptr;
+		EditorTheme	m_Theme;
 
-		static bool m_IsModified;
+		std::vector<std::unique_ptr<Tab>> m_Tabs;
+		int		m_Active = -1;
 
-		AutoComplete m_AutoComplete;
-		void InsertAutoCompleteText(const std::string& text);
+		float m_vpX = 0, m_vpY = 0, m_vpW = 0, m_vpH = 0;
 
-		void RecordAction(const UndoAction& action);
-		void Undo();
-		void Redo();
-		void ClearRedoStack();
+		float m_TabBarH = 32.0f;
+		float m_LineHeight = 20.0f;
+		float m_GutterWidth = 60.0f;
+		float m_ScrollBarSize = 14.0f;
+		float m_CharScale = 1.0f;
 
-		void RecordInsert(int line, int col, char ch);
-		void RecordDelete(int line, int col, char ch);
-		void RecordInsertNewline(int line, int col);
-		void RecordDeleteNewline(int line, int col, const std::string& nextLineContent);
-
-		void ProcessKeyEvent(KeyPressedEvent& e);
-		void ProcessCharEvent(CharEvent& e);
-		void ProcessMouseButton(MouseButtonPressedEvent& e);
-
-		void ReplaceSelection(const std::string& text);
+		bool m_CursorVisible = true;
+		bool m_Dragging = false;
 	};
 
 }

@@ -33,7 +33,7 @@
 ## What Frostnux Is
 Frostnux is a small IDE developed by a middle school student at home, aiming to provide another possibility for code development,
 
-The current version is 2026.3.3 and supports language C++
+The current version is 2026.3.4 and supports language C++
 
 ## License
 

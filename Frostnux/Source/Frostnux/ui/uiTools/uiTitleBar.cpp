@@ -8,9 +8,9 @@
 #ifdef FX_PLATFORM_WINDOWS
 #define GLFW_EXPOSE_NATIVE_WIN32
 #endif
+#include <glad/glad.h>
 #include <GLFW/glfw3native.h>
 #include <GLFW/glfw3.h>
-#include <glad/glad.h>
 
 #include "Frostnux/FontManager.h"
 

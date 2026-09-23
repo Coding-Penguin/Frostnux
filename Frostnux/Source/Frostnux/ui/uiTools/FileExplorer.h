@@ -74,6 +74,7 @@ namespace Frostnux {
 		const FileNode* m_LastClickedNode = nullptr;
 
 		float m_ContentX = 0.0f, m_ContentY = 0.0f, m_ContentW = 0.0f, m_ContentH = 0.0f;
+		float m_YOffset = 0.0f;
 
 		std::unique_ptr<PhotoRenderer> m_Folder_Close_Icon;
 		std::unique_ptr<PhotoRenderer> m_Folder_Open_Icon;

@@ -2,8 +2,8 @@
 #include "uiButton.h"
 #include "MouseCircle.h"
 #include "TextRenderer.h"
-#include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 namespace Frostnux {
 

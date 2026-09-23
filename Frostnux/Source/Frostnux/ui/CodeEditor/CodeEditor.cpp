@@ -1,766 +1,791 @@
-#include <fxpch.h>
+#include "fxpch.h"
 #include "CodeEditor.h"
-#include "Frostnux/Log.h"
-#include <fstream>
-#include <sstream>
-#include "Frostnux/Application.h"
-#include "EditorView.h"
-
-#include <GLFW/glfw3.h>
+#include "TextBuffer.h"
 
 namespace Frostnux {
 
-	EditorView* CodeEditor::m_View = nullptr;
-	bool CodeEditor::m_IsModified = false;
-
-	CodeEditor::CodeEditor()
+	Tab& CodeEditor::addTab(const std::string& path)
 	{
-		m_Buffer.LoadFromString("");
-		m_Cursor.MoveTo(0, 0);
-		m_Highlighter.SetLanguage(CodeLanguage::Text);
-
-		m_View = &EditorView::Get();
-
-		GLFWwindow* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-		m_ArrowCursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-		m_IBeamCursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
-	}
-
-	CodeEditor::CodeEditor(const std::string& path)
-	{
-		m_Buffer.LoadFromFile(path);
-		m_Cursor.MoveTo(0, 0);
-
-		m_View = &EditorView::Get();
-
-		GLFWwindow* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-		m_ArrowCursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-		m_IBeamCursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
-	}
-
-	CodeEditor::~CodeEditor()
-	{
-		glfwDestroyCursor(m_ArrowCursor);
-		glfwDestroyCursor(m_IBeamCursor);
-	}
-
-	void CodeEditor::OnUpdate(float deltaTime)
-	{
-		m_View->Render(m_Buffer, m_Cursor, m_Highlighter, deltaTime);
-		if (m_AutoComplete.IsActive())
+		auto t = std::make_unique<Tab>();
+		if (!path.empty())
 		{
-			CursorPosition pos = m_Cursor.GetPosition();
-			float cursorX = m_View->GetX() + m_View->GetLineNumberWidth() - m_View->GetScrollX();
-			const std::string& line = m_Buffer.GetLine(pos.line);
-			std::string prefix = line.substr(0, pos.col);
-			cursorX += TextRenderer::Get().GetTextWidth(prefix);
-			float cursorY = m_View->GetY() + (pos.line * m_View->GetLineHeight()) - m_View->GetScrollY();
-			m_AutoComplete.SetPopupPosition(cursorX, cursorY + m_View->GetLineHeight());
+			t->path = path;
+			const size_t slash = path.find_last_of("/\\");
+			const std::string base =
+				(slash == std::string::npos) ? path : path.substr(slash + 1);
+			t->title = utf8_to_u32(base);
+		}
+		Tab& ref = *t;
+		m_Tabs.push_back(std::move(t));
+		m_Active = static_cast<int>(m_Tabs.size()) - 1;
+		return ref;
+	}
+
+	void CodeEditor::closeTab(int idx)
+	{
+		if (idx < 0 || idx >= static_cast<int>(m_Tabs.size())) return;
+		m_Tabs.erase(m_Tabs.begin() + idx);
+		if (m_Tabs.empty()) m_Active = -1;
+		else m_Active = std::min(m_Active, static_cast<int>(m_Tabs.size()) - 1);
+	}
+
+	void CodeEditor::switchTab(int dir)
+	{
+		if (m_Tabs.empty()) return;
+		const int n = static_cast<int>(m_Tabs.size());
+		m_Active = ((m_Active + dir) % n + n) % n;
+	}
+
+	Tab* CodeEditor::activeTab()
+	{
+		if (m_Active < 0 || m_Active >= static_cast<int>(m_Tabs.size())) return nullptr;
+		return m_Tabs[m_Active].get();
+	}
+
+	bool CodeEditor::OnEvent(Event& e)
+	{
+		EventDispatcher d(e);
+
+		d.Dispatch<KeyPressedEvent>([this](KeyPressedEvent& ev) { return onKeyPressed(ev); });
+		d.Dispatch<CharEvent>([this](CharEvent& ev) { return onChar(ev); });
+		d.Dispatch<MouseButtonPressedEvent>([this](MouseButtonPressedEvent& ev) { return onMouseButtonPressed(ev); });
+		d.Dispatch<MouseButtonReleasedEvent>([this](MouseButtonReleasedEvent& ev) { return onMouseButtonReleased(ev); });
+		d.Dispatch<MouseMovedEvent>([this](MouseMovedEvent& ev) { return onMouseMoved(ev); });
+		d.Dispatch<MouseScrolledEvent>([this](MouseScrolledEvent& ev) { return onMouseScrolled(ev); });
+
+		return e.m_Handled;
+	}
+
+	bool CodeEditor::onKeyPressed(KeyPressedEvent& e)
+	{
+		Tab* tp = activeTab();
+		if (!tp) return false;
+		Tab& t = *tp;
+
+		const int  key = e.GetKeyCode();
+		const int  mods = e.GetMods();
+		const bool ctrl = (mods & FX_KEY_CONTROL) != 0;
+		const bool shift = (mods & FX_KEY_SHIFT) != 0;
+
+		if (ctrl)
+		{
+			switch (key)
+			{
+			case FX_KEY_Z:  if (shift) doRedo(t); else doUndo(t); return true;
+			case FX_KEY_Y:  doRedo(t);                            return true;
+			case FX_KEY_A:
+			{
+				Position s{ 0, 0 };
+				Position en{ t.buffer.lineCount() - 1, static_cast<int>(t.buffer.line(t.buffer.lineCount() - 1).size()) };
+				t.selection.set(s, en);
+				return true;
+			}
+			case FX_KEY_HOME:  moveHome(t, shift, true);  return true;
+			case FX_KEY_END:   moveEnd(t, shift, true);  return true;
+			case FX_KEY_LEFT:  moveLeft(t, shift, true);  return true;
+			case FX_KEY_RIGHT: moveRight(t, shift, true);  return true;
+			case FX_KEY_TAB:   switchTab(shift ? -1 : 1);  return true;
+			case FX_KEY_W:     closeTab(m_Active);          return true;
+
+			case FX_KEY_C:
+			case FX_KEY_V:
+			case FX_KEY_X:
+				return true;
+
+			default: break;
+			}
 		}
 
-		m_View->Render(m_Buffer, m_Cursor, m_Highlighter, deltaTime);
-
-		if (m_AutoComplete.IsActive())
+		switch (key)
 		{
-			m_AutoComplete.Draw(m_View->GetX(), m_View->GetY(), m_View->GetScrollX(), m_View->GetScrollY(), m_View->GetLineHeight());
+		case FX_KEY_LEFT:      moveLeft(t, shift, false); return true;
+		case FX_KEY_RIGHT:     moveRight(t, shift, false); return true;
+		case FX_KEY_UP:        moveUp(t, shift);        return true;
+		case FX_KEY_DOWN:      moveDown(t, shift);        return true;
+		case FX_KEY_HOME:      moveHome(t, shift, false); return true;
+		case FX_KEY_END:       moveEnd(t, shift, false); return true;
+		case FX_KEY_PAGE_UP:   movePageUp(t, shift);     return true;
+		case FX_KEY_PAGE_DOWN: movePageDown(t, shift);     return true;
+
+		case FX_KEY_BACKSPACE: backspace(t);               return true;
+		case FX_KEY_DELETE:    deleteForward(t);           return true;
+		case FX_KEY_ENTER:     newline(t);                 return true;
+		case FX_KEY_TAB:       tabKey(t, shift);           return true;
+
+		case FX_KEY_ESCAPE:
+			t.selection.clear(t.selection.active());
+			return true;
+
+		default: return false;
 		}
 	}
 
-	bool CodeEditor::OnEvent(Event& event)
+	bool CodeEditor::onChar(CharEvent& e)
 	{
-		if (event.GetEventType() == EventType::KeyPressed)
+		Tab* t = activeTab();
+		if (!t) return false;
+		const unsigned int cp = e.GetCharCode();
+		if (cp == 0 || cp < 32) return false;
+		insertText(*t, std::u32string(1, static_cast<char32_t>(cp)));
+		return true;
+	}
+
+	bool CodeEditor::onMouseButtonPressed(MouseButtonPressedEvent& e)
+	{
+		if (e.GetMouseButton() != 0) return false;
+
+		const float x = e.GetMouseX();
+		const float y = e.GetMouseY();
+		if (!Rect{ m_vpX, m_vpY, m_vpW, m_vpH }.contains(x, y)) return false;
+
+		if (y < m_vpY + m_TabBarH)
 		{
-			ProcessKeyEvent((KeyPressedEvent&)event);
+			float tx = m_vpX + 8.0f;
+			for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i)
+			{
+				const float w = m_Renderer->measureText(m_Tabs[i]->title, m_CharScale) + 32.0f;
+				if (x >= tx && x <= tx + w) { m_Active = i; return true; }
+				tx += w;
+			}
 			return true;
 		}
-		if (event.GetEventType() == EventType::Char)
+
+		Tab* tp = activeTab();
+		if (!tp) return false;
+		Tab& t = *tp;
+
+		if (t.vbar.hitTest(x, y)) { t.vbar.onMouseDown(x, y); applyScrollFromBars(t); return true; }
+		if (t.hbar.hitTest(x, y)) { t.hbar.onMouseDown(x, y); applyScrollFromBars(t); return true; }
+
+		const Position p = pixelToPosition(t, x, y);
+		t.selection.set(p, p);
+		t.desiredCol = p.col;
+		m_Dragging = true;
+		return true;
+	}
+
+	bool CodeEditor::onMouseButtonReleased(MouseButtonReleasedEvent& e)
+	{
+		if (e.GetMouseButton() != 0) return false;
+		Tab* t = activeTab();
+		if (t) { t->vbar.onMouseUp(); t->hbar.onMouseUp(); }
+		const bool was = m_Dragging;
+		m_Dragging = false;
+		return was;
+	}
+
+	bool CodeEditor::onMouseMoved(MouseMovedEvent& e)
+	{
+		Tab* tp = activeTab();
+		if (!tp) return false;
+		Tab& t = *tp;
+
+		const float x = e.GetX();
+		const float y = e.GetY();
+
+		if (t.vbar.onMouseMove(x, y)) { applyScrollFromBars(t); return true; }
+		if (t.hbar.onMouseMove(x, y)) { applyScrollFromBars(t); return true; }
+
+		if (m_Dragging)
 		{
-			ProcessCharEvent((CharEvent&)event);
+			const Position p = pixelToPosition(t, x, y);
+			t.selection.setActive(p);
+			t.desiredCol = p.col;
+			ensureCursorVisible(t);
 			return true;
-		}
-		if (event.GetEventType() == EventType::MouseButtonPressed)
-		{
-			MouseButtonPressedEvent& e = (MouseButtonPressedEvent&)event;
-			float mx = e.GetMouseX(), my = e.GetMouseY();
-			if (m_View->OnMouseButton(e, mx, my))
-			{
-				return true;
-			}
-
-			if (e.GetMouseButton() == GLFW_MOUSE_BUTTON_LEFT)
-			{
-				bool inContent = (mx >= m_View->GetX() && mx <= m_View->GetX() + m_View->GetWidth() && my >= m_View->GetY() && my <= m_View->GetY() + m_View->GetHeight());
-				if (inContent)
-				{
-					CursorPosition pos = m_View->ScreenToTextPosition(mx, my, m_Buffer);
-					m_Cursor.SetPosition(pos.line, pos.col);
-					m_Cursor.StartSelection();
-					m_MouseDragSelecting = true;
-					m_MouseDragStart = pos;
-					return true;
-				}
-			}
-			return false;
-		}
-		if (event.GetEventType() == EventType::MouseMoved)
-		{
-			MouseMovedEvent& e = (MouseMovedEvent&)event;
-			float mx = e.GetX(), my = e.GetY();
-			if (m_View->OnMouseMove(e, mx, my))
-			{
-				return true;
-			}
-
-			float viewX = m_View->GetX();
-			float viewY = m_View->GetY();
-			float viewW = m_View->GetWidth();
-			float viewH = m_View->GetHeight();
-
-			bool inContent = (mx >= viewX && mx <= viewX + viewW && my >= viewY && my <= viewY + viewH);
-
-			GLFWwindow* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-			if (inContent)
-			{
-				glfwSetCursor(window, m_IBeamCursor);
-			}
-			else
-			{
-				glfwSetCursor(window, m_ArrowCursor);
-			}
-
-			if (m_MouseDragSelecting)
-			{
-				CursorPosition pos = m_View->ScreenToTextPosition(mx, my, m_Buffer);
-				m_Cursor.SetPosition(pos.line, pos.col);
-				return true;
-			}
-
-			return false;
-		}
-		if (event.GetEventType() == EventType::MouseButtonReleased)
-		{
-			MouseButtonReleasedEvent& e = (MouseButtonReleasedEvent&)event;
-			m_View->OnMouseRelease();
-			if (e.GetMouseButton() == GLFW_MOUSE_BUTTON_LEFT && m_MouseDragSelecting)
-			{
-				m_MouseDragSelecting = false;
-				return true;
-			}
-		}
-		if (event.GetEventType() == EventType::MouseScrolled)
-		{
-			MouseScrolledEvent& e = (MouseScrolledEvent&)event;
-			float mx = e.GetMouseX(), my = e.GetMouseY();
-			float viewX = m_View->GetX();
-			float viewY = m_View->GetY();
-			float viewW = m_View->GetWidth();
-			float viewH = m_View->GetHeight();
-
-			if (mx >= viewX && mx <= viewX + viewW &&
-				my >= viewY && my <= viewY + viewH)
-			{
-				m_View->HandleScroll(e.GetXOffset() * 50.0f, -e.GetYOffset() * 50.0f);
-				return true;
-			}
-			return false;
 		}
 		return false;
 	}
 
-	void CodeEditor::LoadFile(const std::string& path)
-	{
-		std::ifstream file(path);
-		if (!file.is_open())
-		{
-			FX_CORE_ERROR("Failed to open file: {}", path);
-			return;
-		}
-		std::stringstream buffer;
-		buffer << file.rdbuf();
-		SetText(buffer.str());
+	bool CodeEditor::onMouseScrolled(MouseScrolledEvent& e) {
+		Tab* tp = activeTab();
+		if (!tp) return false;
+		Tab& t = *tp;
 
-		std::string extension = GetFileExtension(path);
-		if (extension == "cpp" || extension == "c" || extension == "h")
-		{
-			m_Highlighter.SetLanguage(CodeLanguage::CPP);
-		}
-		else if (extension == "py")
-		{
-			m_Highlighter.SetLanguage(CodeLanguage::Python);
-		}
-		else if (extension == "java")
-		{
-			m_Highlighter.SetLanguage(CodeLanguage::Java);
-		}
-		else if (extension == "cs")
-		{
-			m_Highlighter.SetLanguage(CodeLanguage::CSharp);
-		}
-		else if (extension == "md")
-		{
-			m_Highlighter.SetLanguage(CodeLanguage::Markdown);
-		}
-		else if (extension == "json")
-		{
-			m_Highlighter.SetLanguage(CodeLanguage::JSON);
-		}
-		else if (extension == "lua")
-		{
-			m_Highlighter.SetLanguage(CodeLanguage::Lua);
-		}
+		const float mx = e.GetMouseX();
+		const float my = e.GetMouseY();
+		if (!Rect{ m_vpX, m_vpY, m_vpW, m_vpH }.contains(mx, my)) return false;
 
-		FX_CORE_INFO("Loaded file: {}", path);
+		t.scrollY -= static_cast<double>(e.GetYOffset()) * 3.0 * m_LineHeight;
+		t.scrollX -= static_cast<double>(e.GetXOffset()) * 3.0 * 40.0;
+		t.scrollY = std::max(0.0, t.scrollY);
+		t.scrollX = std::max(0.0, t.scrollX);
+		syncBars(t);
+		return true;
 	}
 
-	void CodeEditor::SaveFile(const std::string& path)
+	void CodeEditor::applyEdit(Tab& t, Position from, Position to,
+		std::u32string_view text)
 	{
-		std::ofstream file(path);
-		if (!file.is_open())
-		{
-			FX_CORE_ERROR("Failed to save file: {}", path);
-			return;
-		}
-		file << GetText();
-		file.close();
-		FX_CORE_INFO("Saved file: {}", path);
+		from = t.buffer.clamp(from);
+		to = t.buffer.clamp(to);
+		if (to < from) std::swap(from, to);
+
+		Edit ed;
+		ed.from = from;
+		ed.to = to;
+		ed.removed = t.buffer.getText(from, to);
+		ed.inserted = std::u32string(text);
+
+		t.buffer.erase(from, to);
+		t.buffer.insert(from, text);
+
+		const Position after = t.buffer.advance(from, text);
+		t.selection.clear(after);
+		t.desiredCol = after.col;
+		t.dirty = true;
+		t.longestDirty = true;
+
+		t.undo.push(std::move(ed));
+		t.highlighter.markDirty(from.line, after.line);
 	}
 
-	std::string CodeEditor::GetText() const
+	void CodeEditor::insertText(Tab& t, std::u32string_view text)
 	{
-		return m_Buffer.GetString();
-	}
-
-	void CodeEditor::SetSyntaxMode(const CodeLanguage& mode)
-	{
-		m_Highlighter.SetLanguage(mode);
-	}
-
-	void CodeEditor::ProcessKeyEvent(KeyPressedEvent& e)
-	{
-		int key = e.GetKeyCode();
-		int mods = e.GetMods();
-
-		if (m_AutoComplete.OnKeyEvent(e))
-		{
-			int key = e.GetKeyCode();
-			if (key == FX_KEY_ENTER || key == FX_KEY_TAB)
-			{
-				std::string selected = m_AutoComplete.GetSelectedText();
-				if (!selected.empty())
-				{
-					InsertAutoCompleteText(selected);
-				}
-				m_AutoComplete.Cancel();
-			}
-			return;
-		}
-
-		if ((mods & GLFW_MOD_CONTROL) && key == FX_KEY_C)
-		{
-			Copy();
-			return;
-		}
-		if ((mods & GLFW_MOD_CONTROL) && key == FX_KEY_X)
-		{
-			Cut();
-			return;
-		}
-		if ((mods & GLFW_MOD_CONTROL) && key == FX_KEY_V)
-		{
-			Paste();
-			return;
-		}
-		if ((mods & GLFW_MOD_CONTROL) && key == FX_KEY_Z)
-		{
-			Undo();
-			return;
-		}
-		if ((mods & GLFW_MOD_CONTROL) && key == FX_KEY_Y)
-		{
-			Redo();
-			return;
-		}
-		if ((mods & GLFW_MOD_CONTROL) && key == FX_KEY_A)
-		{
-			m_Cursor.SetPosition(0, 0);
-			m_Cursor.StartSelection();
-			m_Cursor.SetPosition(m_Buffer.GetLineCount() - 1, m_Buffer.GetLineLength(m_Buffer.GetLineCount() - 1));
-			return;
-		}
-		if ((mods & GLFW_MOD_CONTROL) && key == GLFW_KEY_S)
-		{
-			SaveFile();
-			return;
-		}
-
-		if (key == FX_KEY_LEFT)
-		{
-			m_Cursor.Move(0, -1, m_Buffer, (mods & GLFW_MOD_SHIFT) != 0);
-		}
-		else if (key == FX_KEY_RIGHT)
-		{
-			m_Cursor.Move(0, 1, m_Buffer, (mods & GLFW_MOD_SHIFT) != 0);
-		}
-		else if (key == FX_KEY_UP)
-		{
-			m_Cursor.Move(-1, 0, m_Buffer, (mods & GLFW_MOD_SHIFT) != 0);
-		}
-		else if (key == FX_KEY_DOWN)
-		{
-			m_Cursor.Move(1, 0, m_Buffer, (mods & GLFW_MOD_SHIFT) != 0);
-		}
-		else if (key == FX_KEY_HOME)
-		{
-			if (mods & GLFW_MOD_CONTROL)
-				m_Cursor.MoveToTop();
-			else
-				m_Cursor.MoveToLineStart(m_Buffer);
-		}
-		else if (key == FX_KEY_END)
-		{
-			if (mods & GLFW_MOD_CONTROL)
-				m_Cursor.MoveToBottom(m_Buffer);
-			else
-				m_Cursor.MoveToLineEnd(m_Buffer);
-		}
-		else if (key == FX_KEY_BACKSPACE)
-		{
-			m_IsModified = true;
-			CursorPosition pos = m_Cursor.GetPosition();
-			if (m_Cursor.HasSelection())
-			{
-				DeleteSelection();
-			}
-			else
-			{
-				if (pos.col > 0)
-				{
-					char deleted = m_Buffer.GetLine(pos.line)[pos.col - 1];
-					RecordDelete(pos.line, pos.col - 1, deleted);
-					m_Buffer.DeleteChar(pos.line, pos.col - 1);
-					m_Cursor.Move(0, -1, m_Buffer, mods & GLFW_MOD_SHIFT);
-				}
-				else if (pos.line > 0)
-				{
-					std::string nextLine = m_Buffer.GetLine(pos.line);
-					RecordDeleteNewline(pos.line - 1, m_Buffer.GetLineLength(pos.line - 1), nextLine);
-					int prevLine = pos.line - 1;
-					int prevCol = m_Buffer.GetLineLength(prevLine);
-					std::string currentLine = m_Buffer.GetLine(pos.line);
-					m_Buffer.DeleteRange(prevLine, prevCol, pos.line, 0);
-					m_Buffer.SetLine(prevLine, m_Buffer.GetLine(prevLine) + currentLine);
-					m_Cursor.MoveTo(prevLine, prevCol);
-				}
-			}
-		}
-		else if (key == FX_KEY_DELETE)
-		{
-			m_IsModified = true;
-			CursorPosition pos = m_Cursor.GetPosition();
-			if (pos.col < m_Buffer.GetLineLength(pos.line))
-			{
-				char deleted = m_Buffer.GetLine(pos.line)[pos.col];
-				RecordDelete(pos.line, pos.col, deleted);
-				m_Buffer.DeleteChar(pos.line, pos.col);
-			}
-			else if (pos.line + 1 < m_Buffer.GetLineCount())
-			{
-				std::string nextLine = m_Buffer.GetLine(pos.line + 1);
-				RecordDeleteNewline(pos.line, pos.col, nextLine);
-				m_Buffer.SetLine(pos.line, m_Buffer.GetLine(pos.line) + nextLine);
-				m_Buffer.DeleteRange(pos.line + 1, 0, pos.line + 2, 0);
-			}
-		}
-		else if (key == FX_KEY_ENTER)
-		{
-			m_IsModified = true;
-			m_Cursor.EndSelection();
-			CursorPosition pos = m_Cursor.GetPosition();
-			std::string currentLine = m_Buffer.GetLine(pos.line);
-			RecordInsertNewline(pos.line, pos.col);
-
-			int indentSize = 0;
-			while (indentSize < (int)currentLine.size() && (currentLine[indentSize] == ' ' || currentLine[indentSize] == '\t'))
-			{
-				indentSize++;
-			}
-			std::string indent = currentLine.substr(0, indentSize);
-
-			bool shouldIncrease = false;
-			if (pos.col == (int)currentLine.size() && !currentLine.empty() && currentLine.back() == '{')
-			{
-				shouldIncrease = true;
-			}
-
-			std::string leftPart = currentLine.substr(0, pos.col);
-			std::string rightPart = currentLine.substr(pos.col);
-			m_Buffer.SetLine(pos.line, leftPart);
-
-			std::string newIndent = indent;
-			if (shouldIncrease)
-			{
-				newIndent += "    ";
-			}
-			std::string newLine = newIndent + rightPart;
-			m_Buffer.InsertLine(pos.line + 1, newLine);
-
-			m_Cursor.MoveTo(pos.line + 1, (int)newIndent.size());
-		}
-		else if (key == FX_KEY_TAB)
-		{
-			m_IsModified = true;
-			for (int i = 0; i < 4; ++i)
-				ProcessCharEvent(*new CharEvent(' '));
+		if (text.empty()) return;
+		if (!t.selection.empty())
+			applyEdit(t, t.selection.start(), t.selection.end(), text);
+		else {
+			const Position p = t.selection.active();
+			applyEdit(t, p, p, text);
 		}
 	}
 
-	void CodeEditor::ProcessCharEvent(CharEvent& e)
+	void CodeEditor::deleteSelection(Tab& t)
 	{
-		unsigned int ch = e.GetCharCode();
-		if (ch >= 32 && ch <= 126)
+		if (t.selection.empty()) return;
+		applyEdit(t, t.selection.start(), t.selection.end(), U"");
+	}
+
+	void CodeEditor::backspace(Tab& t)
+	{
+		if (!t.selection.empty()) { deleteSelection(t); return; }
+		const Position p = t.selection.active();
+		if (p.line == 0 && p.col == 0) return;
+
+		Position start;
+		if (p.col == 0)
+			start = Position{ p.line - 1, static_cast<int>(t.buffer.line(p.line - 1).size()) };
+		else
+			start = Position{ p.line, p.col - 1 };
+		applyEdit(t, start, p, U"");
+	}
+
+	void CodeEditor::deleteForward(Tab& t)
+	{
+		if (!t.selection.empty()) { deleteSelection(t); return; }
+		const Position p = t.selection.active();
+		const auto l = t.buffer.line(p.line);
+
+		Position end;
+		if (p.col < static_cast<int>(l.size()))      end = Position{ p.line, p.col + 1 };
+		else if (p.line + 1 < t.buffer.lineCount())  end = Position{ p.line + 1, 0 };
+		else return;
+		applyEdit(t, p, end, U"");
+	}
+
+	void CodeEditor::newline(Tab& t)
+	{
+		const auto l = t.buffer.line(t.selection.active().line);
+		std::u32string indent;
+		for (char32_t c : l)
 		{
-			m_IsModified = true;
-			if (m_Cursor.HasSelection()) 
-			{
-				DeleteSelection();
-			}
-			CursorPosition pos = m_Cursor.GetPosition();
-			RecordInsert(pos.line, pos.col, (char)ch);
-			if (ch == '(' || ch == '[' || ch == '{')
-			{
-				char right = (ch == '(' ? ')' : (ch == '[' ? ']' : '}'));
-				const std::string& line = m_Buffer.GetLine(pos.line);
-				bool nextIsMatching = (pos.col < (int)line.size() && line[pos.col] == right);
-				m_Buffer.InsertChar(pos.line, pos.col, (char)ch);
-				if (!nextIsMatching)
-				{
-					m_Buffer.InsertChar(pos.line, pos.col + 1, right);
-				}
-				m_Cursor.SetPosition(pos.line, pos.col + 1);
-			}
-			else
-			{
-				m_Buffer.InsertChar(pos.line, pos.col, (char)ch);
-				m_Cursor.Move(0, 1, m_Buffer, false);
-			}
-			if (std::isalpha(ch) || ch == '_')
-			{
-				m_AutoComplete.Trigger(m_Buffer, m_Cursor);
-			}
-			else
-			{
-				m_AutoComplete.Cancel();
-			}
-			m_Cursor.EndSelection();
+			if (c == U' ' || c == U'\t') indent += c;
+			else break;
 		}
+		std::u32string text = U"\n";
+		text += indent;
+		insertText(t, text);
 	}
 
-	void CodeEditor::ProcessMouseButton(MouseButtonPressedEvent& e)
+	void CodeEditor::tabKey(Tab& t, bool)
 	{
-		if (e.GetMouseButton() != FX_MOUSE_BUTTON_LEFT) return;
-		float mx = e.GetMouseX();
-		float my = e.GetMouseY();
-		CursorPosition pos = m_View->ScreenToTextPosition(mx, my, m_Buffer);
-		m_Cursor.SetPosition(pos.line, pos.col);
+		insertText(t, U"    ");
 	}
 
-	std::string CodeEditor::GetSelectedText() const
+	void CodeEditor::moveCursor(Tab& t, Position p, bool selecting)
 	{
-		if (!m_Cursor.HasSelection()) return "";
-		int startLine, startCol, endLine, endCol;
-		m_Cursor.GetSelectionRange(startLine, startCol, endLine, endCol);
-		if (startLine == endLine)
+		p = t.buffer.clamp(p);
+		if (selecting) t.selection.setActive(p);
+		else           t.selection.clear(p);
+		t.desiredCol = p.col;
+		ensureCursorVisible(t);
+	}
+
+	void CodeEditor::moveLeft(Tab& t, bool selecting, bool byWord)
+	{
+		Position p = t.selection.active();
+		if (!selecting && !t.selection.empty())
 		{
-			const std::string& line = m_Buffer.GetLine(startLine);
-			return line.substr(startCol, endCol - startCol);
+			moveCursor(t, t.selection.start(), false);
+			return;
+		}
+		if (p.col > 0)
+		{
+			if (byWord)
+			{
+				const auto l = t.buffer.line(p.line);
+				int c = p.col;
+				while (c > 0 && !isWordChar(l[c - 1])) --c;
+				while (c > 0 && isWordChar(l[c - 1])) --c;
+				p.col = c;
+			}
+			else --p.col;
+		}
+		else if (p.line > 0)
+		{
+			--p.line;
+			p.col = static_cast<int>(t.buffer.line(p.line).size());
+		}
+		moveCursor(t, p, selecting);
+	}
+
+	void CodeEditor::moveRight(Tab& t, bool selecting, bool byWord)
+	{
+		Position p = t.selection.active();
+		if (!selecting && !t.selection.empty())
+		{
+			moveCursor(t, t.selection.end(), false);
+			return;
+		}
+		const auto l = t.buffer.line(p.line);
+		if (p.col < static_cast<int>(l.size()))
+		{
+			if (byWord)
+			{
+				int c = p.col;
+				const int n = static_cast<int>(l.size());
+				while (c < n && isWordChar(l[c])) ++c;
+				while (c < n && !isWordChar(l[c])) ++c;
+				p.col = c;
+			}
+			else ++p.col;
+		}
+		else if (p.line + 1 < t.buffer.lineCount())
+		{
+			++p.line;
+			p.col = 0;
+		}
+		moveCursor(t, p, selecting);
+	}
+
+	void CodeEditor::moveUp(Tab& t, bool selecting)
+	{
+		Position p = t.selection.active();
+		if (p.line > 0)
+		{
+			--p.line;
+			const int len = static_cast<int>(t.buffer.line(p.line).size());
+			p.col = std::min(t.desiredCol, len);
+		}
+		moveCursor(t, p, selecting);
+		t.desiredCol = std::min(t.desiredCol,
+			static_cast<int>(t.buffer.line(t.selection.active().line).size()));
+	}
+
+	void CodeEditor::moveDown(Tab& t, bool selecting)
+	{
+		Position p = t.selection.active();
+		if (p.line + 1 < t.buffer.lineCount())
+		{
+			++p.line;
+			const int len = static_cast<int>(t.buffer.line(p.line).size());
+			p.col = std::min(t.desiredCol, len);
+		}
+		moveCursor(t, p, selecting);
+		t.desiredCol = std::min(t.desiredCol,
+			static_cast<int>(t.buffer.line(t.selection.active().line).size()));
+	}
+
+	void CodeEditor::moveHome(Tab& t, bool selecting, bool docStart)
+	{
+		Position p = t.selection.active();
+		if (docStart) p = Position{ 0, 0 };
+		else          p.col = 0;
+		moveCursor(t, p, selecting);
+	}
+
+	void CodeEditor::moveEnd(Tab& t, bool selecting, bool docEnd)
+	{
+		Position p = t.selection.active();
+		if (docEnd)
+		{
+			p.line = t.buffer.lineCount() - 1;
+			p.col = static_cast<int>(t.buffer.line(p.line).size());
 		}
 		else
 		{
-			std::string result;
+			p.col = static_cast<int>(t.buffer.line(p.line).size());
+		}
+		moveCursor(t, p, selecting);
+	}
 
-			const std::string& firstLine = m_Buffer.GetLine(startLine);
-			result += firstLine.substr(startCol);
+	void CodeEditor::movePageUp(Tab& t, bool selecting)
+	{
+		Position p = t.selection.active();
+		const int lines = std::max(1, static_cast<int>((m_vpH - m_TabBarH) / m_LineHeight));
+		p.line = std::max(0, p.line - lines);
+		p.col = std::min(p.col, static_cast<int>(t.buffer.line(p.line).size()));
+		moveCursor(t, p, selecting);
+	}
 
-			for (int l = startLine + 1; l < endLine; ++l)
+	void CodeEditor::movePageDown(Tab& t, bool selecting)
+	{
+		Position p = t.selection.active();
+		const int lines = std::max(1, static_cast<int>((m_vpH - m_TabBarH) / m_LineHeight));
+		p.line = std::min(t.buffer.lineCount() - 1, p.line + lines);
+		p.col = std::min(p.col, static_cast<int>(t.buffer.line(p.line).size()));
+		moveCursor(t, p, selecting);
+	}
+
+	void CodeEditor::doUndo(Tab& t)
+	{
+		if (!t.undo.canUndo()) return;
+		Edit ed = t.undo.popUndo();
+
+		const Position from = ed.from;
+		const Position to = t.buffer.advance(from, ed.inserted);
+
+		t.buffer.erase(from, to);
+		t.buffer.insert(from, ed.removed);
+
+		t.selection.clear(from);
+		t.desiredCol = from.col;
+		t.dirty = true;
+		t.longestDirty = true;
+
+		const int endLine = from.line + static_cast<int>(ed.removed.size()) + 1;
+		t.highlighter.markDirty(from.line, endLine);
+	}
+
+	void CodeEditor::doRedo(Tab& t)
+	{
+		if (!t.undo.canRedo()) return;
+		Edit ed = t.undo.popRedo();
+
+		const Position from = ed.from;
+		const Position to = t.buffer.advance(from, ed.removed);
+
+		t.buffer.erase(from, to);
+		t.buffer.insert(from, ed.inserted);
+
+		const Position after = t.buffer.advance(from, ed.inserted);
+		t.selection.clear(after);
+		t.desiredCol = after.col;
+		t.dirty = true;
+		t.longestDirty = true;
+
+		t.highlighter.markDirty(from.line, after.line);
+	}
+
+	void CodeEditor::layout(float x, float y, float w, float h)
+	{
+		m_vpX = x; m_vpY = y; m_vpW = w; m_vpH = h;
+		m_LineHeight = m_Renderer->lineHeight(m_CharScale);
+
+		Tab* t = activeTab();
+		if (!t) return;
+
+		const float editorY = y + m_TabBarH;
+		const float editorH = h - m_TabBarH;
+		const float textW = w - m_GutterWidth - m_ScrollBarSize;
+		const float textH = editorH - m_ScrollBarSize;
+
+		t->vbar.layout(x + w - m_ScrollBarSize, editorY, m_ScrollBarSize, textH);
+		t->hbar.layout(x + m_GutterWidth, y + m_TabBarH + textH, textW, m_ScrollBarSize);
+	}
+
+	void CodeEditor::syncBars(Tab& t)
+	{
+		const double contentH = static_cast<double>(t.buffer.lineCount()) * m_LineHeight;
+		const double viewH = std::max(0.0, static_cast<double>(m_vpH - m_TabBarH - m_ScrollBarSize));
+		t.vbar.setContent(contentH, viewH);
+		t.vbar.setValue(t.scrollY);
+
+		if (t.longestDirty)
+		{
+			double maxW = 0.0;
+			for (int i = 0; i < t.buffer.lineCount(); ++i)
 			{
-				result += '\n';
-				result += m_Buffer.GetLine(l);
+				const double w = m_Renderer->measureText(t.buffer.line(i), m_CharScale);
+				if (w > maxW) maxW = w;
+			}
+			t.longestWidth = maxW;
+			t.longestDirty = false;
+		}
+		const double contentW = t.longestWidth;
+		const double viewW = std::max(0.0, static_cast<double>(m_vpW - m_GutterWidth - m_ScrollBarSize));
+		t.hbar.setContent(contentW, viewW);
+		t.hbar.setValue(t.scrollX);
+	}
+
+	void CodeEditor::applyScrollFromBars(Tab& t)
+	{
+		t.scrollY = t.vbar.value();
+		t.scrollX = t.hbar.value();
+	}
+
+	void CodeEditor::ensureCursorVisible(Tab& t)
+	{
+		const float viewH = m_vpH - m_TabBarH - m_ScrollBarSize;
+		const float viewW = m_vpW - m_GutterWidth - m_ScrollBarSize;
+		if (viewH <= 0.0f || viewW <= 0.0f) return;
+
+		const Position c = t.selection.active();
+
+		const double cursorY = static_cast<double>(c.line) * m_LineHeight;
+		if (cursorY < t.scrollY) t.scrollY = cursorY;
+		else if (cursorY + m_LineHeight > t.scrollY + viewH)
+			t.scrollY = cursorY + m_LineHeight - viewH;
+
+		const float cursorX = colToX(t, c.line, c.col);
+		const float caretW = m_LineHeight * 0.6f;
+		if (cursorX < t.scrollX) t.scrollX = cursorX;
+		else if (cursorX + caretW > t.scrollX + viewW)
+			t.scrollX = cursorX + caretW - viewW;
+
+		t.scrollY = std::max(0.0, t.scrollY);
+		t.scrollX = std::max(0.0, t.scrollX);
+		syncBars(t);
+	}
+
+	float CodeEditor::colToX(const Tab& t, int line, int col) const
+	{
+		auto l = t.buffer.line(line);
+		col = std::clamp(col, 0, static_cast<int>(l.size()));
+		if (col == 0) return 0.0f;
+		return m_Renderer->measureText(l.substr(0, static_cast<size_t>(col)), m_CharScale);
+	}
+
+	int CodeEditor::xToCol(const Tab& t, int line, float x) const
+	{
+		if (x <= 0.0f) return 0;
+		auto l = t.buffer.line(line);
+		float acc = 0.0f;
+		for (int i = 0; i < static_cast<int>(l.size()); ++i)
+		{
+			const float w = m_Renderer->measureText(l.substr(i, 1), m_CharScale);
+			if (acc + w * 0.5f > x) return i;
+			acc += w;
+		}
+		return static_cast<int>(l.size());
+	}
+
+	Position CodeEditor::pixelToPosition(Tab& t, float x, float y) const
+	{
+		const float textTop = m_vpY + m_TabBarH;
+		const float localY = y - textTop + static_cast<float>(t.scrollY);
+
+		int line = static_cast<int>(localY / m_LineHeight);
+		if (line < 0) line = 0;
+		if (line >= t.buffer.lineCount()) line = t.buffer.lineCount() - 1;
+
+		const float textX = m_vpX + m_GutterWidth;
+		const float localX = x - textX + static_cast<float>(t.scrollX);
+
+		const int col = xToCol(t, line, localX);
+		return Position{ line, col };
+	}
+
+	void CodeEditor::update(double, double now)
+	{
+		m_CursorVisible = (std::fmod(now, 1.0) < 0.5);
+		for (auto& t : m_Tabs)
+		{
+			t->highlighter.update(t->buffer);
+			syncBars(*t);
+		}
+	}
+
+	void CodeEditor::render(float x, float y, float w, float h)
+	{
+		if (!m_Renderer) return;
+		layout(x, y, w, h);
+
+		m_Renderer->drawRect(x, y, w, h, m_Theme.bg);
+		drawTabBar();
+
+		Tab* t = activeTab();
+		if (!t) return;
+
+		const float editorY = y + m_TabBarH;
+		const float editorH = h - m_TabBarH;
+		const float textX = x + m_GutterWidth;
+		const float textY = editorY;
+		const float textW = w - m_GutterWidth - m_ScrollBarSize;
+		const float textH = editorH - m_ScrollBarSize;
+
+		drawCurrentLine(*t, textX, textY, textW);
+		drawSelection(*t, textX, textY, textW, textH);
+		drawTextLines(*t, textX, textY, textW, textH);
+		drawGutter(*t, textY, textH);
+		drawCursor(*t, textX, textY, textH);
+		drawScrollBars(*t);
+	}
+
+	void CodeEditor::drawTabBar()
+	{
+		m_Renderer->drawRect(m_vpX, m_vpY, m_vpW, m_TabBarH, m_Theme.tabBg);
+
+		float tx = m_vpX + 8.0f;
+		for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i)
+		{
+			Tab& tab = *m_Tabs[i];
+			const float w = m_Renderer->measureText(tab.title, m_CharScale) + 32.0f;
+			const Color bg = (i == m_Active) ? m_Theme.tabActive : m_Theme.tabBg;
+			m_Renderer->drawRect(tx, m_vpY, w, m_TabBarH, bg);
+
+			std::u32string title = tab.title;
+			if (tab.dirty) title += U" *";
+			m_Renderer->drawText(title, tx + 12.0f, m_vpY + 7.0f, m_CharScale, m_Theme.text);
+			tx += w;
+		}
+	}
+
+	void CodeEditor::drawCurrentLine(Tab& t, float textX, float textY, float textW)
+	{
+		const int curLine = t.selection.active().line;
+		const float y = textY + static_cast<float>(curLine) * m_LineHeight - static_cast<float>(t.scrollY);
+		if (y + m_LineHeight < textY) return;
+		if (y > textY + m_vpH)        return;
+		m_Renderer->drawRect(textX, y, textW, m_LineHeight, m_Theme.currentLine);
+	}
+
+	void CodeEditor::drawSelection(Tab& t, float textX, float textY,
+		float textW, float textH) {
+		(void)textW;
+		if (t.selection.empty()) return;
+
+		const Position s = t.selection.start();
+		const Position e = t.selection.end();
+
+		for (int line = s.line; line <= e.line; ++line)
+		{
+			const float y = textY + static_cast<float>(line) * m_LineHeight
+				- static_cast<float>(t.scrollY);
+			if (y + m_LineHeight < textY) continue;
+			if (y > textY + textH)       break;
+
+			const int lineLen = static_cast<int>(t.buffer.line(line).size());
+			const int colStart = (line == s.line) ? s.col : 0;
+			const bool addTrailingSpace = (line != e.line);
+
+			int colEnd;
+			if (line == e.line) colEnd = e.col;
+			else                colEnd = lineLen;
+
+			const float x0 = textX + colToX(t, line, colStart)
+				- static_cast<float>(t.scrollX);
+
+			float x1;
+			if (addTrailingSpace)
+				x1 = textX + colToX(t, line, lineLen)
+				+ m_Renderer->measureText(U" ", m_CharScale)
+				- static_cast<float>(t.scrollX);
+			else
+				x1 = textX + colToX(t, line, colEnd)
+				- static_cast<float>(t.scrollX);
+
+			if (x1 > x0)
+				m_Renderer->drawRect(x0, y, x1 - x0, m_LineHeight, m_Theme.selection);
+		}
+	}
+
+	void CodeEditor::drawTextLines(Tab& t, float textX, float textY,
+		float textW, float textH)
+	{
+		(void)textW;
+
+		const int first = std::max(0, static_cast<int>(t.scrollY / m_LineHeight));
+		const int visLines = static_cast<int>(textH / m_LineHeight) + 2;
+		const int last = std::min(t.buffer.lineCount() - 1, first + visLines);
+
+		for (int line = first; line <= last; ++line)
+		{
+			const float y = textY + static_cast<float>(line) * m_LineHeight
+				- static_cast<float>(t.scrollY);
+			float x = textX - static_cast<float>(t.scrollX);
+
+			const auto& tokens = t.highlighter.tokens(line);
+			const auto  text = t.buffer.line(line);
+
+			int cursor = 0;
+			for (const auto& tok : tokens)
+			{
+				if (tok.start > cursor)
+				{
+					const auto chunk = text.substr(cursor, tok.start - cursor);
+					m_Renderer->drawText(chunk, x, y, m_CharScale, m_Theme.text);
+					x += m_Renderer->measureText(chunk, m_CharScale);
+				}
+				const auto chunk = text.substr(tok.start, tok.end - tok.start);
+				m_Renderer->drawText(chunk, x, y, m_CharScale, m_Theme.of(tok.type));
+				x += m_Renderer->measureText(chunk, m_CharScale);
+				cursor = tok.end;
 			}
 
-			result += '\n';
-			const std::string& lastLine = m_Buffer.GetLine(endLine);
-			result += lastLine.substr(0, endCol);
-			return result;
+			if (cursor < static_cast<int>(text.size()))
+				m_Renderer->drawText(text.substr(cursor), x, y, m_CharScale, m_Theme.text);
 		}
 	}
 
-	void CodeEditor::Copy()
+	void CodeEditor::drawGutter(Tab& t, float textTop, float textH)
 	{
-		bool hasSel = m_Cursor.HasSelection();
-		std::string text = GetSelectedText();
-		if (!text.empty())
+		m_Renderer->drawRect(m_vpX, textTop, m_GutterWidth, textH, m_Theme.gutterBg);
+
+		const int first = std::max(0, static_cast<int>(t.scrollY / m_LineHeight));
+		const int visLines = static_cast<int>(textH / m_LineHeight) + 2;
+		const int last = std::min(t.buffer.lineCount() - 1, first + visLines);
+
+		for (int line = first; line <= last; ++line)
 		{
-			GLFWwindow* win = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-			glfwSetClipboardString(win, text.c_str());
+			const float y = textTop + static_cast<float>(line) * m_LineHeight - static_cast<float>(t.scrollY);
+			const std::u32string num = utf8_to_u32(std::to_string(line + 1));
+			const float w = m_Renderer->measureText(num, m_CharScale);
+			m_Renderer->drawText(num, m_vpX + m_GutterWidth - w - 8.0f, y, m_CharScale, m_Theme.gutterText);
 		}
 	}
 
-	void CodeEditor::Cut()
+	void CodeEditor::drawCursor(Tab& t, float textX, float textY, float textH)
 	{
-		Copy();
-		DeleteSelection();
+		if (!m_CursorVisible) return;
+		const Position c = t.selection.active();
+		const float y = textY + static_cast<float>(c.line) * m_LineHeight
+			- static_cast<float>(t.scrollY);
+		if (y + m_LineHeight < textY) return;
+		if (y > textY + textH)       return;
+
+		const float x = textX + colToX(t, c.line, c.col) - static_cast<float>(t.scrollX);
+		m_Renderer->drawRect(x, y, 2.0f, m_LineHeight, m_Theme.cursor);
 	}
 
-	void CodeEditor::Paste()
+	void CodeEditor::drawScrollBars(Tab& t)
 	{
-		m_IsModified = true;
-		GLFWwindow* win = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-		const char* clipText = glfwGetClipboardString(win);
-		FX_CORE_INFO("Paste: clipboard text = '{}'", clipText ? clipText : "(null)");
-		if (clipText)
-		{
-			ReplaceSelection(clipText);
-		}
-	}
+		m_Renderer->drawRect(
+			static_cast<float>(t.vbar.trackX()),
+			static_cast<float>(t.vbar.trackY()),
+			static_cast<float>(t.vbar.trackW()),
+			static_cast<float>(t.vbar.trackH()),
+			m_Theme.scrollTrack);
+		m_Renderer->drawRect(
+			static_cast<float>(t.vbar.trackX()),
+			static_cast<float>(t.vbar.trackY() + t.vbar.thumbPos()),
+			static_cast<float>(t.vbar.trackW()),
+			static_cast<float>(t.vbar.thumbLen()),
+			m_Theme.scrollThumb);
 
-	void CodeEditor::DeleteSelection()
-	{
-		if (!m_Cursor.HasSelection()) return;
-		int startLine, startCol, endLine, endCol;
-		m_Cursor.GetSelectionRange(startLine, startCol, endLine, endCol);
-		if (startLine == endLine)
-		{
-			m_Buffer.DeleteRange(startLine, startCol, startLine, endCol);
-			m_Cursor.SetPosition(startLine, startCol);
-		}
-		else
-		{
-			m_Buffer.DeleteRange(startLine, startCol, endLine, endCol);
-			m_Cursor.SetPosition(startLine, startCol);
-		}
-		m_Cursor.EndSelection();
-	}
-
-	void CodeEditor::ReplaceSelection(const std::string& text)
-	{
-		DeleteSelection();
-
-		std::istringstream stream(text);
-		std::string line;
-		std::vector<std::string> lines;
-		while (std::getline(stream, line))
-		{
-			lines.push_back(line);
-		}
-		if (lines.empty()) return;
-		CursorPosition pos = m_Cursor.GetPosition();
-
-		for (char c : lines[0])
-		{
-			m_Buffer.InsertChar(pos.line, pos.col, c);
-			pos.col++;
-		}
-		m_Cursor.SetPosition(pos.line, pos.col);
-
-		for (size_t i = 1; i < lines.size(); ++i)
-		{
-			m_Buffer.InsertNewline(pos.line, pos.col);
-			m_Cursor.MoveTo(pos.line + 1, 0);
-			pos = m_Cursor.GetPosition();
-			for (char c : lines[i])
-			{
-				m_Buffer.InsertChar(pos.line, pos.col, c);
-				pos.col++;
-			}
-			m_Cursor.SetPosition(pos.line, pos.col);
-		}
-	}
-
-	void CodeEditor::ClearRedoStack()
-	{
-		while (!m_RedoStack.empty()) m_RedoStack.pop();
-	}
-
-	void CodeEditor::RecordAction(const UndoAction& action)
-	{
-		m_UndoStack.push(action);
-		ClearRedoStack();
-	}
-
-	void CodeEditor::RecordInsert(int line, int col, char ch)
-	{
-		UndoAction action;
-		action.type = UndoAction::Insert;
-		action.line = line;
-		action.col = col;
-		action.data = std::string(1, ch);
-		RecordAction(action);
-	}
-
-	void CodeEditor::RecordDelete(int line, int col, char ch)
-	{
-		UndoAction action;
-		action.type = UndoAction::Delete;
-		action.line = line;
-		action.col = col;
-		action.data = std::string(1, ch);
-		RecordAction(action);
-	}
-
-	void CodeEditor::RecordInsertNewline(int line, int col)
-	{
-		UndoAction action;
-		action.type = UndoAction::InsertNewline;
-		action.line = line;
-		action.col = col;
-		RecordAction(action);
-	}
-
-	void CodeEditor::RecordDeleteNewline(int line, int col, const std::string& nextLineContent)
-	{
-		UndoAction action;
-		action.type = UndoAction::DeleteNewline;
-		action.line = line;
-		action.col = col;
-		action.data = nextLineContent;
-		RecordAction(action);
-	}
-
-	void CodeEditor::Undo()
-	{
-		if (m_UndoStack.empty()) return;
-		UndoAction action = m_UndoStack.top();
-		m_UndoStack.pop();
-
-		switch (action.type)
-		{
-		case UndoAction::Insert:
-			m_Buffer.DeleteChar(action.line, action.col);
-			m_Cursor.SetPosition(action.line, action.col);
-			break;
-		case UndoAction::Delete:
-			m_Buffer.InsertChar(action.line, action.col, action.data[0]);
-			m_Cursor.SetPosition(action.line, action.col + 1);
-			break;
-		case UndoAction::InsertNewline:
-		{
-			std::string nextLine = m_Buffer.GetLine(action.line + 1);
-			m_Buffer.SetLine(action.line, m_Buffer.GetLine(action.line) + nextLine);
-			m_Buffer.DeleteLine(action.line + 1);
-			m_Cursor.SetPosition(action.line, action.col);
-		}
-		break;
-		case UndoAction::DeleteNewline:
-		{
-			std::string currentLine = m_Buffer.GetLine(action.line);
-			std::string left = currentLine.substr(0, action.col);
-			std::string right = currentLine.substr(action.col);
-			m_Buffer.SetLine(action.line, left);
-			m_Buffer.InsertLine(action.line + 1, right);
-			m_Cursor.SetPosition(action.line + 1, 0);
-		}
-		break;
-		}
-		m_RedoStack.push(action);
-	}
-
-	void CodeEditor::Redo() 
-	{
-		if (m_RedoStack.empty()) return;
-		UndoAction action = m_RedoStack.top();
-		m_RedoStack.pop();
-
-		switch (action.type)
-		{
-		case UndoAction::Insert:
-			m_Buffer.InsertChar(action.line, action.col, action.data[0]);
-			m_Cursor.SetPosition(action.line, action.col + 1);
-			break;
-		case UndoAction::Delete:
-			m_Buffer.DeleteChar(action.line, action.col);
-			m_Cursor.SetPosition(action.line, action.col);
-			break;
-		case UndoAction::InsertNewline:
-			m_Buffer.InsertNewline(action.line, action.col);
-			m_Cursor.SetPosition(action.line + 1, 0);
-			break;
-		case UndoAction::DeleteNewline:
-		{
-			std::string nextLine = m_Buffer.GetLine(action.line + 1);
-			m_Buffer.SetLine(action.line, m_Buffer.GetLine(action.line) + nextLine);
-			m_Buffer.DeleteLine(action.line + 1);
-			m_Cursor.SetPosition(action.line, action.col);
-		}
-		break;
-		}
-		m_UndoStack.push(action);
-	}
-
-	std::string CodeEditor::GetFileExtension(const std::string& path) const
-	{
-		size_t pos = path.find_last_of('.');
-		if (pos != std::string::npos)
-		{
-			return path.substr(pos + 1);
-		}
-		return "";
-	}
-
-	void CodeEditor::SetText(const std::string& text)
-	{
-		m_Buffer.LoadFromString(text);
-		m_Cursor.MoveTo(0, 0);
-		m_View->HandleScroll(0, 0);
-		m_View->EnsureCursorVisible(m_Cursor, m_Buffer);
-	}
-
-	EditorView* CodeEditor::GetView()
-	{
-		return m_View;
-	}
-
-	void CodeEditor::InsertAutoCompleteText(const std::string& text)
-	{
-		CursorPosition pos = m_Cursor.GetPosition();
-		std::string prefix = m_AutoComplete.GetWordPrefix(m_Buffer, m_Cursor);
-
-		int startCol = pos.col - prefix.size();
-		if (startCol < 0) startCol = 0;
-
-		m_Buffer.DeleteRange(pos.line, startCol, pos.line, pos.col);
-
-		for (char c : text)
-		{
-			m_Buffer.InsertChar(pos.line, startCol, c);
-			startCol++;
-		}
-		m_Cursor.SetPosition(pos.line, startCol);
-	}
-
-	void CodeEditor::SaveFile()
-	{
-		if (m_Buffer.GetFilePath().empty())
-		{
-			FX_CORE_WARN("No file path set, use SaveFileAs");
-			return;
-		}
-		SaveFileAs(m_Buffer.GetFilePath());
-	}
-
-	void CodeEditor::SaveFileAs(const std::string& path)
-	{
-		std::ofstream file(path);
-		if (!file.is_open())
-		{
-			FX_CORE_ERROR("Failed to save file: {}", path);
-			return;
-		}
-		file << GetText();
-		file.close();
-
-		m_IsModified = false;
-
-		FX_CORE_INFO("Saved file: {}", path);
+		m_Renderer->drawRect(
+			static_cast<float>(t.hbar.trackX()),
+			static_cast<float>(t.hbar.trackY()),
+			static_cast<float>(t.hbar.trackW()),
+			static_cast<float>(t.hbar.trackH()),
+			m_Theme.scrollTrack);
+		m_Renderer->drawRect(
+			static_cast<float>(t.hbar.trackX() + t.hbar.thumbPos()),
+			static_cast<float>(t.hbar.trackY()),
+			static_cast<float>(t.hbar.thumbLen()),
+			static_cast<float>(t.hbar.trackH()),
+			m_Theme.scrollThumb);
 	}
 
 }

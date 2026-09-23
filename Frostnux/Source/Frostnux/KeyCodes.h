@@ -125,3 +125,6 @@
 #define FX_KEY_RIGHT_SUPER        347
 #define FX_KEY_MENU               348
 #define FX_KEY_LAST               FX_KEY_MENU
+
+#define FX_KEY_SHIFT              0x0001
+#define FX_KEY_CONTROL            0x0002

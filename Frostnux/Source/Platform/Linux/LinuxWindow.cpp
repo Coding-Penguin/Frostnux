@@ -7,9 +7,9 @@
 #define _NET_WM_WINDOW_TYPE_UTILITY
 #define _NET_WM_WINDOW_TYPE_TOOLBAR
 #endif
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#include <glad/glad.h>
 
 #ifdef FX_PLATFORM_LINUX
 	#include <X11/Xlib.h>

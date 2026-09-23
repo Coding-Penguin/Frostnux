@@ -7,9 +7,9 @@
 #include "Window.h"
 #include "ui/uiTools/uiWindow.h"
 
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#include <glad/glad.h>
 
 #ifdef FX_PLATFORM_WINDOWS
 #include "Platform/Windows/WindowsWindow.h"

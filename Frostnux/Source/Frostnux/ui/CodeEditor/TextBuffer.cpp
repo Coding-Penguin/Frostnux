@@ -1,136 +1,159 @@
-#include <fxpch.h>
+#include "fxpch.h"
 #include "TextBuffer.h"
-#include <sstream>
-#include <algorithm>
 
 namespace Frostnux {
 
-	TextBuffer::TextBuffer()
+	char32_t TextBuffer::at(Position p) const
 	{
-		m_Lines.emplace_back();
+		if (p.line < 0 || p.line >= lineCount()) return 0;
+		auto l = line(p.line);
+		if (p.col < 0 || p.col >= (int)l.size()) return 0;
+		return l[p.col];
 	}
 
-	void TextBuffer::LoadFromFile(const std::string& filePath)
+	Position TextBuffer::clamp(Position p) const
 	{
-		m_FilePath = filePath;
-		m_Lines.clear();
-		std::ifstream file(filePath);
-		if (!file.is_open())
+		p.line = std::clamp(p.line, 0, lineCount() - 1);
+		int len = (int)lines_[p.line].size();
+		p.col = std::clamp(p.col, 0, len);
+		return p;
+	}
+
+	Position TextBuffer::advance(Position p, std::u32string_view text) const
+	{
+		p = clamp(p);
+		for (char32_t c : text)
 		{
-			m_Lines.emplace_back();
+			if (c == U'\n') [[unlikely]] { p.line++; p.col = 0; }
+			else { p.col++; }
+		}
+		return clamp(p);
+	}
+
+	std::u32string TextBuffer::getText(Position from, Position to) const
+	{
+		from = clamp(from); to = clamp(to);
+		if (to < from) std::swap(from, to);
+		std::u32string out;
+		if (from.line == to.line)
+		{
+			return std::u32string(line(from.line).substr(from.col, to.col - from.col));
+		}
+		out.reserve(64);
+		out.append(line(from.line).substr(from.col));
+		out += U'\n';
+		for (int i = from.line + 1; i < to.line; ++i)
+		{
+			out.append(line(i));
+			out += U'\n';
+		}
+		out.append(line(to.line).substr(0, to.col));
+		return out;
+	}
+
+	void TextBuffer::insert(Position p, std::u32string_view text)
+	{
+		if (text.empty()) return;
+		p = clamp(p);
+
+		auto firstNl = text.find(U'\n');
+		if (firstNl == std::u32string_view::npos) [[likely]]
+		{
+			lines_[p.line].insert(p.col, text);
 			return;
 		}
-		std::string line;
-		while (std::getline(file, line))
-		{
-			m_Lines.push_back(line);
-		}
-		if (m_Lines.empty())
-		{
-			m_Lines.emplace_back();
-		}
-	}
 
-	std::string TextBuffer::GetString() const
-	{
-		std::string result;
-		for (size_t i = 0; i < m_Lines.size(); ++i)
+		Line head = lines_[p.line].substr(0, p.col);
+		Line tail = lines_[p.line].substr(p.col);
+
+		std::vector<Line> parts;
+		size_t start = 0;
+		while (true)
 		{
-			result += m_Lines[i];
-			if (i != m_Lines.size() - 1)
+			size_t nl = text.find(U'\n', start);
+			if (nl == std::u32string_view::npos)
 			{
-				result += '\n';
+				parts.emplace_back(text.substr(start));
+				break;
 			}
+			parts.emplace_back(text.substr(start, nl - start));
+			start = nl + 1;
 		}
-		return result;
-	}
 
-	void TextBuffer::InsertChar(int line, int col, char c)
-	{
-		if (line < 0 || line >= (int)m_Lines.size()) return;
-		if (col < 0) col = 0;
-		std::string& target = m_Lines[line];
-		if (col > (int)target.size()) col = (int)target.size();
-		target.insert(col, 1, c);
-	}
+		lines_[p.line] = head + parts.front();
 
-	void TextBuffer::DeleteChar(int line, int col)
-	{
-		if (line < 0 || line >= (int)m_Lines.size()) return;
-		std::string& target = m_Lines[line];
-		if (col < 0 || col >= (int)target.size()) return;
-		target.erase(col, 1);
-	}
-
-	void TextBuffer::InsertNewline(int line, int col)
-	{
-		if (line < 0 || line >= (int)m_Lines.size()) return;
-		if (col < 0) col = 0;
-		std::string& current = m_Lines[line];
-		if (col > (int)current.size()) col = (int)current.size();
-
-		std::string left = current.substr(0, col);
-		std::string right = current.substr(col);
-		m_Lines[line] = left;
-		m_Lines.insert(m_Lines.begin() + line + 1, right);
-	}
-
-	void TextBuffer::DeleteRange(int startLine, int startCol, int endLine, int endCol)
-	{
-		if (startLine < 0 || endLine < 0) return;
-		if (startLine > endLine) return;
-		if (startLine == endLine && startCol > endCol) return;
-		if (startLine >= (int)m_Lines.size()) startLine = (int)m_Lines.size() - 1;
-		if (endLine >= (int)m_Lines.size()) endLine = (int)m_Lines.size() - 1;
-		if (startCol < 0) startCol = 0;
-		if (endCol < 0) endCol = 0;
-
-		const std::string& firstLine = m_Lines[startLine];
-		const std::string& lastLine = m_Lines[endLine];
-		if (startCol > (int)firstLine.size()) startCol = (int)firstLine.size();
-		if (endCol > (int)lastLine.size()) endCol = (int)lastLine.size();
-
-		if (startLine == endLine)
+		for (size_t i = 1; i + 1 < parts.size(); ++i)
 		{
-			std::string& line = m_Lines[startLine];
-			line.erase(startCol, endCol - startCol);
+			const int offset = p.line + static_cast<int>(i);
+			lines_.insert(lines_.begin() + offset, std::move(parts[i]));
 		}
-		else
-		{
-			std::string newLine = m_Lines[startLine].substr(0, startCol) +
-				m_Lines[endLine].substr(endCol);
-			m_Lines[startLine] = newLine;
-			m_Lines.erase(m_Lines.begin() + startLine + 1, m_Lines.begin() + endLine + 1);
-		}
+
+		const int lastOffset = p.line + static_cast<int>(parts.size()) - 1;
+		lines_.insert(lines_.begin() + lastOffset, parts.back() + tail);
 	}
 
-	void TextBuffer::InsertLine(int line, const std::string& content)
+	void TextBuffer::erase(Position from, Position to)
 	{
-		if (line < 0 || line >(int)m_Lines.size()) return;
-		m_Lines.insert(m_Lines.begin() + line, content);
+		from = clamp(from); to = clamp(to);
+		if (to < from) std::swap(from, to);
+		if (from == to) return;
+
+		if (from.line == to.line) [[likely]]
+		{
+			lines_[from.line].erase(from.col, to.col - from.col);
+			return;
+		}
+
+		Line head = lines_[from.line].substr(0, from.col);
+		Line tail = lines_[to.line].substr(to.col);
+		lines_[from.line] = head + tail;
+
+		const int firstIdx = from.line + 1;
+		const int lastIdx = to.line + 1;
+		lines_.erase(lines_.begin() + firstIdx, lines_.begin() + lastIdx);
 	}
 
-	void TextBuffer::DeleteLine(int line)
+	void TextBuffer::setText(std::u32string_view text)
 	{
-		if (line >= 0 && line < (int)m_Lines.size())
-		{
-			m_Lines.erase(m_Lines.begin() + line);
-		}
+		lines_.clear();
+		lines_.emplace_back();
+		insert(Position{ 0, 0 }, text);
 	}
 
-	void TextBuffer::LoadFromString(const std::string& text)
+	Position TextBuffer::backspaceAt(Position p, int& outDeleted)
 	{
-		m_Lines.clear();
-		std::stringstream ss(text);
-		std::string line;
-		while (std::getline(ss, line))
+		p = clamp(p);
+		outDeleted = 0;
+		if (p.col > 0) [[likely]]
 		{
-			m_Lines.push_back(line);
+			p.col--;
+			outDeleted = 1;
+			lines_[p.line].erase(p.col, 1);
+			return p;
 		}
-		if (m_Lines.empty())
+		if (p.line == 0) return p;
+		int prevLen = (int)lines_[p.line - 1].size();
+		lines_[p.line - 1] += lines_[p.line];
+		lines_.erase(lines_.begin() + p.line);
+		p.line--;
+		p.col = prevLen;
+		outDeleted = 1;
+		return p;
+	}
+
+	bool TextBuffer::deleteAt(Position p)
+	{
+		p = clamp(p);
+		Line& l = lines_[p.line];
+		if (p.col < (int)l.size())
 		{
-			m_Lines.emplace_back();
+			l.erase(p.col, 1);
+			return true;
 		}
+		if (p.line + 1 >= lineCount()) return false;
+		l += lines_[p.line + 1];
+		lines_.erase(lines_.begin() + p.line + 1);
+		return true;
 	}
 
 }
