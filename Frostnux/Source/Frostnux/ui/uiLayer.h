@@ -5,6 +5,8 @@
 #include "uiTools/PropertiesWindow.h"
 #include "CodeEditor/CodeEditor.h"
 #include "CodeEditor/GLRenderer.h"
+#include "Frostnux/FontManager.h"
+
 #include <vector>
 
 namespace Frostnux {

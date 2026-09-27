@@ -5,6 +5,10 @@
   "Language": "Hungarian",
   "LanguageCode": "hu-HU",
 
+  "Community": "Közösségi kiadás",
+  "Professional": "Professzionális változat",
+  "Enterprise": "Vállalati változat",
+
   "File": "Fájl",
   "Edit": "Szerkesztés",
   "View": "Megtekintés",

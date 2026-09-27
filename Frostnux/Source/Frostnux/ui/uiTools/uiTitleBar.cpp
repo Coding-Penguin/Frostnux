@@ -13,6 +13,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Frostnux/FontManager.h"
+#include "Frostnux/LicenseManager.h"
 
 namespace Frostnux
 {
@@ -170,6 +171,11 @@ namespace Frostnux
 			float width = static_cast<float>(app.GetWindow().GetWidth());
 			auto [r, g, b] = ThemeManager::GetBGColor();
 
+			std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
+			std::ifstream file(path);
+			nlohmann::json j;
+			file >> j;
+
 			glColor4f(std::min(r + 0.01f, 1.0f), std::min(g + 0.01f, 1.0f), std::min(b + 0.03f, 1.0f), 1.0f);
 			glBegin(GL_QUADS);
 			glVertex2f(0.0f, 40.0f);
@@ -183,8 +189,9 @@ namespace Frostnux
 				m_Logo->Draw(5, 5, 80, 80);
 			}
 
+			std::string version = s_Version + " - " + j.value(LicenseManager::GetLicenseName(), LicenseManager::GetLicenseName()) + " [" + j.value("Preview", "Preview") + "]";
 			float VersionX, VersionY;
-			VersionX = width / 2.0f - TextRenderer::Get().GetTextWidth(s_Version) / 2.0f;
+			VersionX = width / 2.0f - TextRenderer::Get().GetTextWidth(version) / 2.0f;
 			VersionY = (40.0f - TextRenderer::Get().GetTextHeight()) / 2.0f;
 			float color = 0.0f;
 			if (ThemeManager::IsDarkTheme())
@@ -195,7 +202,7 @@ namespace Frostnux
 			{
 				color = 0.0f;
 			}
-			TextRenderer::Get().DrawText(s_Version, VersionX, VersionY, color, color, color, 1.0f);
+			TextRenderer::Get().DrawText(version, VersionX, VersionY, color, color, color, 1.0f);
 		}
 
 		for (auto& btn : m_Buttons) 

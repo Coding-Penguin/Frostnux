@@ -19,6 +19,7 @@
 
 #include "Input.h"
 #include "SettingsManager.h"
+#include "LicenseManager.h"
 
 namespace Frostnux {
 
@@ -50,11 +51,12 @@ namespace Frostnux {
 		}
 		ChannelManager::SetChannel((Channel)settings.channelIndex);
 		LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
-
-		FX_CORE_INFO("Frostnux is running on channel: {}, theme: {}, language: {}, version: {}",
+		
+		FX_CORE_INFO("Frostnux is running on channel: {}, theme: {}, language: {}, License: {}, version: {}",
 			((ChannelManager::GetChannel() == Channel::Stable) ? "Stable" : "Preview"),
 			ThemeManager::GetThemeName(),
 			LanguageManager::GetLanguageName(),
+			LicenseManager::GetLicenseName(),
 			s_Version);
 
 		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
@@ -62,7 +64,7 @@ namespace Frostnux {
 		nlohmann::json j;
 		file >> j;
 		std::string Name = j.value("Name", "Frostnux");
-		std::string WindowName = Name + " - " + s_Version;
+		std::string WindowName = Name + " - " + s_Version + " - " + j.value(LicenseManager::GetLicenseName(), LicenseManager::GetLicenseName());
 		if (ChannelManager::GetChannel() == Channel::Preview)
 		{
 			WindowName += " [" + j.value("Preview", "Preview") + "]";

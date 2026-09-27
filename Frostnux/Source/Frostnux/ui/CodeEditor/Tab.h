@@ -11,11 +11,11 @@ namespace Frostnux {
 		void set(Position anchor, Position active) { anchor_ = anchor; active_ = active; }
 		void clear(Position p) { anchor_ = active_ = p; }
 
-		[[nodiscard]] bool		empty()  const { return anchor_ == active_; }
-		[[nodiscard]] Position	start()  const { return std::min(anchor_, active_); }
-		[[nodiscard]] Position	end()    const { return std::max(anchor_, active_); }
-		[[nodiscard]] Position	anchor() const { return anchor_; }
-		[[nodiscard]] Position	active() const { return active_; }
+		[[nodiscard]] bool		empty()		const { return anchor_ == active_; }
+		[[nodiscard]] Position	start()		const { return std::min(anchor_, active_); }
+		[[nodiscard]] Position	end()		const { return std::max(anchor_, active_); }
+		[[nodiscard]] Position	anchor()	const { return anchor_; }
+		[[nodiscard]] Position	active()	const { return active_; }
 
 		void setActive(Position p) { active_ = p; }
 		void setAnchor(Position p) { anchor_ = p; }
@@ -25,10 +25,10 @@ namespace Frostnux {
 
 	struct Edit
 	{
-		Position		 from;
-		Position		 to;
-		std::u32string	 removed;
-		std::u32string	 inserted;
+		Position		from;
+		Position		to;
+		std::u32string	removed;
+		std::u32string	inserted;
 	};
 
 	class UndoStack
@@ -86,8 +86,7 @@ namespace Frostnux {
 
 		[[nodiscard]] bool hitTest(double x, double y) const
 		{
-			return x >= trackX_ && x <= trackX_ + trackW_ &&
-				y >= trackY_ && y <= trackY_ + trackH_;
+			return x >= trackX_ && x <= trackX_ + trackW_ && y >= trackY_ && y <= trackY_ + trackH_;
 		}
 
 		bool onMouseDown(double x, double y)

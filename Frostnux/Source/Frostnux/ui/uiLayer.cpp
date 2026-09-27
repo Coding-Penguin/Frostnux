@@ -110,9 +110,18 @@ namespace Frostnux {
 		{
 			win->OnAttach();
 		}
+		
+		auto& fm = FontManager::Get();
+		const float codeSize = 20.0f;
+
+		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Regular.ttf", codeSize, FontStyle::Regular);
+		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Bold.ttf", codeSize, FontStyle::Bold);
+		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Italic.ttf", codeSize, FontStyle::Italic);
+		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-BoldItalic.ttf", codeSize, FontStyle::BoldItalic);
 
 		auto& tab = m_Editor.addTab("Untitled.cpp");
 		tab.invalidateHighlight();
+		m_EditorRenderer.SetFontName("code");
 	}
 
 	void uiLayer::OnDetach() 
@@ -122,6 +131,7 @@ namespace Frostnux {
 		if (m_TitleBar) m_TitleBar->OnDetach();
 		if (m_StatusBar) m_StatusBar->OnDetach();
 		if (m_ShortcutBar) m_ShortcutBar->OnDetach();
+		FontManager::Get().UnloadAll();
 	}
 
 	void uiLayer::OnUpdate(float deltaTime)

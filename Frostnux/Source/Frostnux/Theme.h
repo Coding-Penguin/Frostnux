@@ -3,7 +3,7 @@
 namespace Frostnux
 {
 
-	enum class Theme // 6 items
+	enum class Theme
 	{
 		// Light
 		Light = 0,

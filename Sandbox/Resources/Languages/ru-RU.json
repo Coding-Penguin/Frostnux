@@ -5,6 +5,10 @@
 	"Language": "Русский",
 	"LanguageCode": "ru-RU",
 
+	"Community": "Сообщественная версия",
+	"Professional": "Профессиональная версия",
+	"Enterprise": "Корпоративная версия",
+
 	"File": "Файл",
 	"Edit": "Редактировать",
 	"View": "Вид",

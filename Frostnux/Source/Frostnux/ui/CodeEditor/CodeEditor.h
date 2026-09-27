@@ -16,8 +16,7 @@ namespace Frostnux {
 	public:
 		virtual ~Renderer() = default;
 
-		virtual void drawText(std::u32string_view text,
-			float x, float y, float scale, Color color) = 0;
+		virtual void drawText(std::u32string_view text, float x, float y, float scale, Color color, FontStyle style = FontStyle::Regular) = 0;
 
 		virtual void drawRect(float x, float y, float w, float h, Color color) = 0;
 

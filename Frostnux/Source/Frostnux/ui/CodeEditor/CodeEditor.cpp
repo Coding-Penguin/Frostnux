@@ -1,6 +1,7 @@
 #include "fxpch.h"
 #include "CodeEditor.h"
 #include "TextBuffer.h"
+#include <glad/glad.h>
 
 namespace Frostnux {
 
@@ -719,7 +720,7 @@ namespace Frostnux {
 					x += m_Renderer->measureText(chunk, m_CharScale);
 				}
 				const auto chunk = text.substr(tok.start, tok.end - tok.start);
-				m_Renderer->drawText(chunk, x, y, m_CharScale, m_Theme.of(tok.type));
+				m_Renderer->drawText(chunk, x, y, m_CharScale, m_Theme.of(tok.type), m_Theme.fontOf(tok.type));
 				x += m_Renderer->measureText(chunk, m_CharScale);
 				cursor = tok.end;
 			}

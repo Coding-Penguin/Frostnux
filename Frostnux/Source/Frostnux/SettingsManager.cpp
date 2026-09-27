@@ -12,12 +12,12 @@ namespace Frostnux {
 
 	void SettingsManager::Load()
 	{
-		std::ifstream file("config/config.json");
+		std::ifstream file(m_Path);
 		if (!file.is_open())
 		{
 			FX_CORE_WARN("Settings file not found, using defaults.");
 			CreateFolder("config");
-			std::ofstream file("config/config.json");
+			std::ofstream file(m_Path);
 			return;
 		}
 
@@ -28,14 +28,17 @@ namespace Frostnux {
 			m_Settings.languageIndex = j.value("languageIndex", 1);
 			m_Settings.themeIndex = j.value("themeIndex", 3);
 			m_Settings.channelIndex = j.value("channelIndex", 1);
-			m_Settings.fontSize = j.value("fontSize", 20);
+			m_Settings.fontSize = j.value("fontSize", 24);
+			s_FontSize = m_Settings.fontSize;
 			m_Settings.recentFiles = j.value("recentFiles", std::vector<std::string>{});
 			m_Settings.openFiles = j.value("openFiles", std::vector<std::string>{});
+			m_Settings.tokenIndex = j.value("tokenIndex", std::vector<int>{});
 			m_Settings.WindowWidth = j.value("WindowWidth", 1920);
 			m_Settings.WindowHeight = j.value("WindowHeight", 1080);
+			m_Settings.IsMaximize = j.value("IsMaximize", false);
+
 			m_Settings.fileExplorerExpandedState = j["fileExplorerExpandedState"].get<std::unordered_map<std::string, bool>>();
 			m_Settings.fileExplorerScrollY = j.value("fileExplorerScrollY", 0.0f);
-			m_Settings.IsMaximize = j.value("IsMaximize", false);
 		}
 		catch (const std::exception& e)
 		{
@@ -53,16 +56,17 @@ namespace Frostnux {
 		j["fontSize"] = m_Settings.fontSize;
 		j["recentFiles"] = m_Settings.recentFiles;
 		j["openFiles"] = m_Settings.openFiles;
+		j["tokenIndex"] = m_Settings.tokenIndex;
 		j["WindowWidth"] = m_Settings.WindowWidth;
 		j["WindowHeight"] = m_Settings.WindowHeight;
 		j["fileExplorerExpandedState"] = m_Settings.fileExplorerExpandedState;
 		j["fileExplorerScrollY"] = m_Settings.fileExplorerScrollY;
 		j["IsMaximize"] = m_Settings.IsMaximize;
 
-		std::ofstream file("config/config.json");
+		std::ofstream file(m_Path);
 		if (!file)
 		{
-			FX_CORE_ERROR("Failed to save settings to config/config.json");
+			FX_CORE_ERROR("Failed to save settings to {}", m_Path);
 			return;
 		}
 		file << j.dump(4);
@@ -83,6 +87,12 @@ namespace Frostnux {
 	void SettingsManager::SetOpenFiles(const std::vector<std::string>& files)
 	{
 		m_Settings.openFiles = files;
+		Save();
+	}
+
+	void SettingsManager::SetTokenIndex(const std::vector<int> tokenIndex)
+	{
+		m_Settings.tokenIndex = tokenIndex;
 		Save();
 	}
 

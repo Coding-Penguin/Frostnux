@@ -5,6 +5,10 @@
 	"Language": "中文",
 	"LanguageCode": "zh-CN",
 
+	"Community": "社区版",
+	"Professional": "专业版",
+	"Enterprise": "企业版",
+
 	"File": "文件",
 	"Edit": "编辑",
 	"View": "查看",
@@ -44,5 +48,5 @@
 	"FileExplorer": "文件资源管理器",
 	"Properties": "属性",
 	"Notifications": "通知",
-  "Output": "输出"
+	"Output": "输出"
 }

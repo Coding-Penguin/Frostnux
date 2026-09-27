@@ -5,6 +5,10 @@
 	"Language": "English",
 	"LanguageCode": "en-US",
 
+	"Community": "Community",
+	"Professional": "Professional",
+	"Enterprise": "Enterprise",
+
 	"File": "File",
 	"Edit": "Edit",
 	"View": "View",
