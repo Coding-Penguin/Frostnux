@@ -74,18 +74,26 @@ namespace Frostnux {
 		if ((int)states_.size() < n) states_.resize(n);
 
 		if (dirtyFrom_ == INT32_MAX) return;
-		if (dirtyFrom_ >= n) [[unlikely]] { dirtyFrom_ = INT32_MAX; return; }
+		if (dirtyFrom_ >= n) [[unlikely]]
+		{
+			dirtyFrom_ = INT32_MAX;
+			forceAll_ = false;
+			return;
+		}
 
 		int i = dirtyFrom_;
 		LineState st;
 		if (i > 0) st = states_[i - 1];
+
+		const bool force = forceAll_;
+		forceAll_ = false;
 
 		while (i < n)
 		{
 			LineState newEnd;
 			tokenizeLine(buf.line(i), st, tokens_[i], newEnd);
 
-			bool same = (states_[i] == newEnd);
+			const bool same = !force && (states_[i] == newEnd);
 			states_[i] = newEnd;
 			st = newEnd;
 

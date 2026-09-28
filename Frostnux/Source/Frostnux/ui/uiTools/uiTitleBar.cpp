@@ -29,23 +29,13 @@ namespace Frostnux
 	{
 		m_Logo.reset(new PhotoRenderer());
 		m_Logo->LoadFromFile("Resources/Images/Frostnux.png");
-		
+
 		FX_INFO("Logo loaded: {0}", m_Logo->IsLoaded());
 
-		float x = 0, y = 10;
-		if (ChannelManager::GetChannel() == Channel::Preview)
-		{
-			x = 90;
-			y = 40;
-		}
-		else
-		{
-			x = y = 10;
-		}
-
+		float x = 90, y = 40;
 		float buttonHeight = 40.0f;
 
-		std::string Names[] = { "File", "Edit", "View", "Project", "Build", "Debug", "Tools", "Help", "Search"};
+		std::string Names[] = { "File", "Edit", "View", "Project", "Build", "Debug", "Tools", "Help", "Search" };
 		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
 		std::ifstream file(path);
 		nlohmann::json j;
@@ -165,53 +155,50 @@ namespace Frostnux
 
 	void uiTitleBar::OnUpdate(float deltaTime)
 	{
-		if (ChannelManager::GetChannel() == Channel::Preview)
+		auto& app = Application::Get();
+		float width = static_cast<float>(app.GetWindow().GetWidth());
+		auto [r, g, b] = ThemeManager::GetBGColor();
+
+		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
+		std::ifstream file(path);
+		nlohmann::json j;
+		file >> j;
+
+		glColor4f(std::min(r + 0.01f, 1.0f), std::min(g + 0.01f, 1.0f), std::min(b + 0.03f, 1.0f), 1.0f);
+		glBegin(GL_QUADS);
+		glVertex2f(0.0f, 40.0f);
+		glVertex2f(width, 40.0f);
+		glVertex2f(width, 0.0f);
+		glVertex2f(0.0f, 0.0f);
+		glEnd();
+
+		if (m_Logo && m_Logo->IsLoaded())
 		{
-			auto& app = Application::Get();
-			float width = static_cast<float>(app.GetWindow().GetWidth());
-			auto [r, g, b] = ThemeManager::GetBGColor();
-
-			std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
-			std::ifstream file(path);
-			nlohmann::json j;
-			file >> j;
-
-			glColor4f(std::min(r + 0.01f, 1.0f), std::min(g + 0.01f, 1.0f), std::min(b + 0.03f, 1.0f), 1.0f);
-			glBegin(GL_QUADS);
-			glVertex2f(0.0f, 40.0f);
-			glVertex2f(width, 40.0f);
-			glVertex2f(width, 0.0f);
-			glVertex2f(0.0f, 0.0f);
-			glEnd();
-
-			if (m_Logo && m_Logo->IsLoaded())
-			{
-				m_Logo->Draw(5, 5, 80, 80);
-			}
-
-			std::string version = s_Version + " - " + j.value(LicenseManager::GetLicenseName(), LicenseManager::GetLicenseName()) + " [" + j.value("Preview", "Preview") + "]";
-			float VersionX, VersionY;
-			VersionX = width / 2.0f - TextRenderer::Get().GetTextWidth(version) / 2.0f;
-			VersionY = (40.0f - TextRenderer::Get().GetTextHeight()) / 2.0f;
-			float color = 0.0f;
-			if (ThemeManager::IsDarkTheme())
-			{
-				color = 1.0f;
-			}
-			else
-			{
-				color = 0.0f;
-			}
-			TextRenderer::Get().DrawText(version, VersionX, VersionY, color, color, color, 1.0f);
+			m_Logo->Draw(5, 5, 80, 80);
 		}
 
-		for (auto& btn : m_Buttons) 
+		std::string version = s_Version + " - " + j.value(LicenseManager::GetLicenseName(), LicenseManager::GetLicenseName()) + " [" + j.value("Preview", "Preview") + "]";
+		float VersionX, VersionY;
+		VersionX = width / 2.0f - TextRenderer::Get().GetTextWidth(version) / 2.0f;
+		VersionY = (40.0f - TextRenderer::Get().GetTextHeight()) / 2.0f;
+		float color = 0.0f;
+		if (ThemeManager::IsDarkTheme())
+		{
+			color = 1.0f;
+		}
+		else
+		{
+			color = 0.0f;
+		}
+		TextRenderer::Get().DrawText(version, VersionX, VersionY, color, color, color, 1.0f);
+
+		for (auto& btn : m_Buttons)
 		{
 			btn->OnUpdate(0, 0, true);
 		}
 
 		// Draw Separate Line
-		float color = 0.0f;
+		color = 0.0f;
 		if (ThemeManager::IsDarkTheme())
 		{
 			color = 0.9f;
@@ -226,22 +213,16 @@ namespace Frostnux
 		glVertex2f(m_SeparateLineX, m_SeparateLineY + 30);
 		glEnd();
 
-		auto& app = Application::Get();
-		int width = app.GetWindow().GetWidth();
 		UpdateWindowButtonsPosition(width);
 
 		GLFWwindow* win = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
 		m_IsMaximized = glfwGetWindowAttrib(win, GLFW_MAXIMIZED) == GLFW_TRUE;
-
-		if (ChannelManager::GetChannel() == Channel::Preview)
-		{
-			DrawMinimizeButton(m_MinimizeRect.x, m_MinimizeRect.y, m_MinimizeRect.w, m_MinimizeRect.h, m_MinimizeHovered);
-			DrawMaximizeButton(m_MaximizeRect.x, m_MaximizeRect.y, m_MaximizeRect.w, m_MaximizeRect.h, m_MaximizeHovered, m_IsMaximized);
-			DrawCloseButton(m_CloseRect.x, m_CloseRect.y, m_CloseRect.w, m_CloseRect.h, m_CloseHovered);
-		}
+		DrawMinimizeButton(m_MinimizeRect.x, m_MinimizeRect.y, m_MinimizeRect.w, m_MinimizeRect.h, m_MinimizeHovered);
+		DrawMaximizeButton(m_MaximizeRect.x, m_MaximizeRect.y, m_MaximizeRect.w, m_MaximizeRect.h, m_MaximizeHovered, m_IsMaximized);
+		DrawCloseButton(m_CloseRect.x, m_CloseRect.y, m_CloseRect.w, m_CloseRect.h, m_CloseHovered);
 	}
 
-	bool uiTitleBar::OnEvent(Event &event)
+	bool uiTitleBar::OnEvent(Event& event)
 	{
 		for (auto& btn : m_Buttons)
 		{
@@ -254,21 +235,18 @@ namespace Frostnux
 			MouseMovedEvent& e = (MouseMovedEvent&)event;
 			float mx = e.GetX(), my = e.GetY();
 
-			if (ChannelManager::GetChannel() == Channel::Preview)
+			if (m_DraggingMainWindow)
 			{
-				if (m_DraggingMainWindow)
-				{
-					auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-					int windowPosX, windowPosY;
+				auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+				int windowPosX, windowPosY;
 
-					glfwRestoreWindow(window);
-					glfwGetWindowPos(window, &windowPosX, &windowPosY);
+				glfwRestoreWindow(window);
+				glfwGetWindowPos(window, &windowPosX, &windowPosY);
 
-					int newX = static_cast<int>(windowPosX + mx - m_DragStartX);
-					int newY = static_cast<int>(windowPosY + my - m_DragStartY);
-					glfwSetWindowPos(window, newX, newY);
-					return true;
-				}
+				int newX = static_cast<int>(windowPosX + mx - m_DragStartX);
+				int newY = static_cast<int>(windowPosY + my - m_DragStartY);
+				glfwSetWindowPos(window, newX, newY);
+				return true;
 			}
 
 			auto updateHover = [&](ButtonRect& rect, bool& hover)
@@ -286,41 +264,38 @@ namespace Frostnux
 			if (e.GetMouseButton() != GLFW_MOUSE_BUTTON_LEFT) return false;
 			float mx = e.GetMouseX(), my = e.GetMouseY();
 
-			if (ChannelManager::GetChannel() == Channel::Preview)
+			if (mx >= m_MinimizeRect.x && mx <= m_MinimizeRect.x + m_MinimizeRect.w &&
+				my >= m_MinimizeRect.y && my <= m_MinimizeRect.y + m_MinimizeRect.h)
 			{
-				if (mx >= m_MinimizeRect.x && mx <= m_MinimizeRect.x + m_MinimizeRect.w &&
-					my >= m_MinimizeRect.y && my <= m_MinimizeRect.y + m_MinimizeRect.h)
-				{
-					auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-					glfwIconifyWindow(window);
-					return true;
-				}
+				auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+				glfwIconifyWindow(window);
+				return true;
+			}
 
-				if (mx >= m_MaximizeRect.x && mx <= m_MaximizeRect.x + m_MaximizeRect.w &&
-					my >= m_MaximizeRect.y && my <= m_MaximizeRect.y + m_MaximizeRect.h)
+			if (mx >= m_MaximizeRect.x && mx <= m_MaximizeRect.x + m_MaximizeRect.w &&
+				my >= m_MaximizeRect.y && my <= m_MaximizeRect.y + m_MaximizeRect.h)
+			{
+				auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+				if (glfwGetWindowAttrib(window, GLFW_MAXIMIZED))
 				{
-					auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-					if (glfwGetWindowAttrib(window, GLFW_MAXIMIZED))
-					{
-						glfwRestoreWindow(window);
-						SettingsManager::Get().SetMaximize(false);
-					}
-					else
-					{
-						glfwMaximizeWindow(window);
-						SettingsManager::Get().SetMaximize(true);
-					}
-					return true;
+					glfwRestoreWindow(window);
+					SettingsManager::Get().SetMaximize(false);
 				}
+				else
+				{
+					glfwMaximizeWindow(window);
+					SettingsManager::Get().SetMaximize(true);
+				}
+				return true;
+			}
 
-				if (mx >= m_CloseRect.x && mx <= m_CloseRect.x + m_CloseRect.w &&
-					my >= m_CloseRect.y && my <= m_CloseRect.y + m_CloseRect.h)
-				{
-					auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
-					FX_CORE_INFO("Close button clicked!");
-					return true;
-				}
+			if (mx >= m_CloseRect.x && mx <= m_CloseRect.x + m_CloseRect.w &&
+				my >= m_CloseRect.y && my <= m_CloseRect.y + m_CloseRect.h)
+			{
+				auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+				glfwSetWindowShouldClose(window, GLFW_TRUE);
+				FX_CORE_INFO("Close button clicked!");
+				return true;
 			}
 
 			if (my < 50)
@@ -374,7 +349,7 @@ namespace Frostnux
 	}
 
 	void uiTitleBar::UpdateWindowButtonsPosition(int windowWidth)
-	{		
+	{
 		float btnWidth = 45.0f;
 		float btnHeight = 45.0f;
 		float y = 0;

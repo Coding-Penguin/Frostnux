@@ -9,6 +9,8 @@
 #include <memory>
 #include <string_view>
 
+#include "Completion.h"
+
 namespace Frostnux {
 
 	class Renderer
@@ -38,11 +40,12 @@ namespace Frostnux {
 		bool OnEvent(Event& e);
 
 		Tab& addTab(const std::string& path = {});
+		Tab* openFile(const std::string& path);
 		void closeTab(int idx);
 		void switchTab(int dir);
 		Tab* activeTab();
-		[[nodiscard]] int activeIndex() const { return m_Active; }
-		[[nodiscard]] int tabCount()    const { return static_cast<int>(m_Tabs.size()); }
+		[[nodiscard]] int activeIndex()	const { return m_Active; }
+		[[nodiscard]] int tabCount()	const { return static_cast<int>(m_Tabs.size()); }
 
 		void update(double dt, double now);
 		void render(float x, float y, float w, float h);
@@ -97,7 +100,7 @@ namespace Frostnux {
 		EditorTheme	m_Theme;
 
 		std::vector<std::unique_ptr<Tab>> m_Tabs;
-		int		m_Active = -1;
+		int m_Active = -1;
 
 		float m_vpX = 0, m_vpY = 0, m_vpW = 0, m_vpH = 0;
 
@@ -109,6 +112,25 @@ namespace Frostnux {
 
 		bool m_CursorVisible = true;
 		bool m_Dragging = false;
+
+		struct CompletionState
+		{
+			bool active = false;
+			std::vector<CompletionItem> items;
+			int   selected = 0;
+			float popupX = 0;
+			float popupY = 0;
+			int   prefixStartCol = 0;
+		};
+
+		CompletionEngine m_Completion;
+		CompletionState  m_Comp;
+
+		void triggerCompletion(bool force);
+		void cancelCompletion();
+		void moveCompletion(int dir);
+		void acceptCompletion();
+		void drawCompletionPopup(Tab& t, float textX, float textY, float textH);
 	};
 
 }

@@ -87,17 +87,14 @@ namespace Frostnux {
 		m_ShortcutBar->AddGroup(buildGroup, true);
 		m_ShortcutBar->AddGroup(bookmarkGroup, false);
 
-		float offsetY = 100.0f;
-		if (ChannelManager::GetChannel() == Channel::Preview)
-		{
-			offsetY = 130.0f;
-		}
-		uiWindow::InitDockSystem(0.0f, offsetY, width, height - offsetY - 35.0f);
+		uiWindow::InitDockSystem(0.0f, 130.0f, width, height - 130.0f - 35.0f);
 
 		auto* properties = new PropertiesWindow(j.value("Properties", "Properties"));
 		auto* fileExplorer = new FileExplorer(j.value("FileExplorer", "FileExplorer"), s_RootPath, properties);
 		fileExplorer->SetFileOpenCallback([this](const std::string& path)
 			{
+				auto* tab = m_Editor.openFile(path);
+				tab->invalidateHighlight();
 				FX_CORE_INFO("Open File: {}", path);
 			});
 		auto* notifications = new uiWindow(j.value("Notifications", "Notifications"));
@@ -118,10 +115,6 @@ namespace Frostnux {
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Bold.ttf", codeSize, FontStyle::Bold);
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Italic.ttf", codeSize, FontStyle::Italic);
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-BoldItalic.ttf", codeSize, FontStyle::BoldItalic);
-
-		auto& tab = m_Editor.addTab("Untitled.cpp");
-		tab.invalidateHighlight();
-		m_EditorRenderer.SetFontName("code");
 	}
 
 	void uiLayer::OnDetach() 

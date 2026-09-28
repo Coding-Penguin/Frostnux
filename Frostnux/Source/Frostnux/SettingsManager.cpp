@@ -27,7 +27,7 @@ namespace Frostnux {
 			file >> j;
 			m_Settings.languageIndex = j.value("languageIndex", 1);
 			m_Settings.themeIndex = j.value("themeIndex", 3);
-			m_Settings.channelIndex = j.value("channelIndex", 1);
+			m_Settings.channelIndex = j.value("channelIndex", 0);
 			m_Settings.fontSize = j.value("fontSize", 24);
 			s_FontSize = m_Settings.fontSize;
 			m_Settings.recentFiles = j.value("recentFiles", std::vector<std::string>{});

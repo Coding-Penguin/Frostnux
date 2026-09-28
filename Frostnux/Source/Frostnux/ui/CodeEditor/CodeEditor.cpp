@@ -2,6 +2,7 @@
 #include "CodeEditor.h"
 #include "TextBuffer.h"
 #include <glad/glad.h>
+#include <fstream>
 
 namespace Frostnux {
 
@@ -19,7 +20,41 @@ namespace Frostnux {
 		Tab& ref = *t;
 		m_Tabs.push_back(std::move(t));
 		m_Active = static_cast<int>(m_Tabs.size()) - 1;
+		ref.invalidateHighlight();
+		m_Completion.rebuildIndex(ref.buffer);
 		return ref;
+	}
+
+	Tab* CodeEditor::openFile(const std::string& path)
+	{
+		for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i)
+		{
+			if (m_Tabs[i]->path == path)
+			{
+				m_Active = i;
+				return m_Tabs[i].get();
+			}
+		}
+
+		std::ifstream file(path, std::ios::binary | std::ios::ate);
+		if (!file) return nullptr;
+
+		const std::streamsize size = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		std::string content(static_cast<size_t>(size), '\0');
+		if (!file.read(content.data(), size))
+			return nullptr;
+
+		if (content.size() >= 3 && static_cast<unsigned char>(content[0]) == 0xEF && static_cast<unsigned char>(content[1]) == 0xBB && static_cast<unsigned char>(content[2]) == 0xBF)
+		{
+			content.erase(0, 3);
+		}
+
+		Tab& tab = addTab(path);
+		tab.buffer.setText(utf8_to_u32(content));
+		tab.invalidateHighlight();
+		return &tab;
 	}
 
 	void CodeEditor::closeTab(int idx)
@@ -59,6 +94,26 @@ namespace Frostnux {
 
 	bool CodeEditor::onKeyPressed(KeyPressedEvent& e)
 	{
+		if (m_Comp.active)
+		{
+			const int key = e.GetKeyCode();
+			switch (key)
+			{
+			case FX_KEY_UP:    moveCompletion(-1); return true;
+			case FX_KEY_DOWN:  moveCompletion(+1); return true;
+			case FX_KEY_ENTER:
+			case FX_KEY_TAB:   acceptCompletion(); return true;
+			case FX_KEY_ESCAPE:cancelCompletion(); return true;
+			default: break;
+			}
+
+			if (key == FX_KEY_SPACE && (e.GetMods() & FX_KEY_CONTROL))
+			{
+				triggerCompletion(true);
+				return true;
+			}
+		}
+
 		Tab* tp = activeTab();
 		if (!tp) return false;
 		Tab& t = *tp;
@@ -127,7 +182,14 @@ namespace Frostnux {
 		if (!t) return false;
 		const unsigned int cp = e.GetCharCode();
 		if (cp == 0 || cp < 32) return false;
+
 		insertText(*t, std::u32string(1, static_cast<char32_t>(cp)));
+
+		if (CompletionEngine::isIdentifierChar(static_cast<char32_t>(cp)))
+			triggerCompletion(false);
+		else
+			cancelCompletion();
+
 		return true;
 	}
 
@@ -198,7 +260,8 @@ namespace Frostnux {
 		return false;
 	}
 
-	bool CodeEditor::onMouseScrolled(MouseScrolledEvent& e) {
+	bool CodeEditor::onMouseScrolled(MouseScrolledEvent& e)
+	{
 		Tab* tp = activeTab();
 		if (!tp) return false;
 		Tab& t = *tp;
@@ -215,8 +278,7 @@ namespace Frostnux {
 		return true;
 	}
 
-	void CodeEditor::applyEdit(Tab& t, Position from, Position to,
-		std::u32string_view text)
+	void CodeEditor::applyEdit(Tab& t, Position from, Position to, std::u32string_view text)
 	{
 		from = t.buffer.clamp(from);
 		to = t.buffer.clamp(to);
@@ -245,8 +307,11 @@ namespace Frostnux {
 	{
 		if (text.empty()) return;
 		if (!t.selection.empty())
+		{
 			applyEdit(t, t.selection.start(), t.selection.end(), text);
-		else {
+		}
+		else
+		{
 			const Position p = t.selection.active();
 			applyEdit(t, p, p, text);
 		}
@@ -279,8 +344,8 @@ namespace Frostnux {
 		const auto l = t.buffer.line(p.line);
 
 		Position end;
-		if (p.col < static_cast<int>(l.size()))      end = Position{ p.line, p.col + 1 };
-		else if (p.line + 1 < t.buffer.lineCount())  end = Position{ p.line + 1, 0 };
+		if (p.col < static_cast<int>(l.size()))		end = Position{ p.line, p.col + 1 };
+		else if (p.line + 1 < t.buffer.lineCount())	end = Position{ p.line + 1, 0 };
 		else return;
 		applyEdit(t, p, end, U"");
 	}
@@ -307,8 +372,8 @@ namespace Frostnux {
 	void CodeEditor::moveCursor(Tab& t, Position p, bool selecting)
 	{
 		p = t.buffer.clamp(p);
-		if (selecting) t.selection.setActive(p);
-		else           t.selection.clear(p);
+		if (selecting)	t.selection.setActive(p);
+		else			t.selection.clear(p);
 		t.desiredCol = p.col;
 		ensureCursorVisible(t);
 	}
@@ -601,13 +666,14 @@ namespace Frostnux {
 	void CodeEditor::render(float x, float y, float w, float h)
 	{
 		if (!m_Renderer) return;
+
+		Tab* t = activeTab();
+		if (!t) return;
+
 		layout(x, y, w, h);
 
 		m_Renderer->drawRect(x, y, w, h, m_Theme.bg);
 		drawTabBar();
-
-		Tab* t = activeTab();
-		if (!t) return;
 
 		const float editorY = y + m_TabBarH;
 		const float editorH = h - m_TabBarH;
@@ -622,6 +688,7 @@ namespace Frostnux {
 		drawGutter(*t, textY, textH);
 		drawCursor(*t, textX, textY, textH);
 		drawScrollBars(*t);
+		drawCompletionPopup(*t, textX, textY, textH);
 	}
 
 	void CodeEditor::drawTabBar()
@@ -787,6 +854,134 @@ namespace Frostnux {
 			static_cast<float>(t.hbar.thumbLen()),
 			static_cast<float>(t.hbar.trackH()),
 			m_Theme.scrollThumb);
+	}
+
+	void CodeEditor::triggerCompletion(bool force)
+	{
+		Tab* t = activeTab();
+		if (!t) return;
+
+		// 有选区时不弹
+		if (!t->selection.empty()) { cancelCompletion(); return; }
+
+		const Position cur = t->selection.active();
+		std::u32string prefix = CompletionEngine::extractPrefix(t->buffer, cur);
+
+		const size_t minLen = force ? 1 : 2;
+		if (prefix.size() < minLen) { cancelCompletion(); return; }
+
+		auto items = m_Completion.query(prefix, 32);
+		if (items.empty()) { cancelCompletion(); return; }
+
+		// 若只有一个候选且完全等于 prefix，不弹
+		if (items.size() == 1 && items[0].label == prefix)
+		{
+			cancelCompletion();
+			return;
+		}
+
+		m_Comp.active = true;
+		m_Comp.items = std::move(items);
+		m_Comp.selected = 0;
+		m_Comp.prefixStartCol = cur.col - static_cast<int>(prefix.size());
+
+		// 计算 popup 屏幕坐标
+		const float lineY = m_vpY + m_TabBarH
+			+ static_cast<float>(cur.line) * m_LineHeight
+			- static_cast<float>(t->scrollY);
+		const float caretX = m_vpX + m_GutterWidth
+			+ colToX(*t, cur.line, cur.col)
+			- static_cast<float>(t->scrollX);
+
+		m_Comp.popupX = caretX;
+		m_Comp.popupY = lineY + m_LineHeight;
+	}
+
+	void CodeEditor::cancelCompletion()
+	{
+		m_Comp.active = false;
+		m_Comp.items.clear();
+		m_Comp.selected = 0;
+	}
+
+	void CodeEditor::moveCompletion(int dir)
+	{
+		if (!m_Comp.active || m_Comp.items.empty()) return;
+		const int n = static_cast<int>(m_Comp.items.size());
+		m_Comp.selected = ((m_Comp.selected + dir) % n + n) % n;
+	}
+
+	void CodeEditor::acceptCompletion()
+	{
+		Tab* t = activeTab();
+		if (!t || !m_Comp.active || m_Comp.items.empty())
+		{
+			cancelCompletion();
+			return;
+		}
+
+		const auto& item = m_Comp.items[m_Comp.selected];
+		const Position cur = t->selection.active();
+
+		Position from{ cur.line, m_Comp.prefixStartCol };
+		applyEdit(*t, from, cur, item.insertText);
+
+		cancelCompletion();
+	}
+
+	void CodeEditor::drawCompletionPopup(Tab& t, float textX, float textY, float textH)
+	{
+		(void)t; (void)textX; (void)textY; (void)textH;
+		if (!m_Comp.active || m_Comp.items.empty()) return;
+		if (!m_Renderer) return;
+
+		constexpr float rowH = 20.0f;
+		constexpr float padX = 8.0f;
+		constexpr float popupW = 220.0f;
+		constexpr int   maxRows = 10;
+
+		const int n = static_cast<int>(m_Comp.items.size());
+		const int rows = std::min(n, maxRows);
+
+		int first = 0;
+		if (m_Comp.selected >= maxRows)
+			first = m_Comp.selected - maxRows + 1;
+		if (first > n - maxRows) first = std::max(0, n - maxRows);
+
+		const float popupH = rows * rowH + 4.0f;
+
+		float px = m_Comp.popupX;
+		float py = m_Comp.popupY;
+		if (py + popupH > m_vpY + m_vpH)
+			py = m_Comp.popupY - m_LineHeight - popupH;
+
+		Color bg{ 0.15f, 0.15f, 0.17f, 0.97f };
+		Color border{ 0.30f, 0.30f, 0.34f, 1.0f };
+		Color selBg{ 0.22f, 0.36f, 0.55f, 1.0f };
+		Color textColor{ 0.90f, 0.90f, 0.90f, 1.0f };
+		Color kwColor{ 0.34f, 0.61f, 1.00f, 1.0f };
+
+		m_Renderer->drawRect(px - 1, py - 1, popupW + 2, popupH + 2, border);
+		m_Renderer->drawRect(px, py, popupW, popupH, bg);
+
+		for (int i = 0; i < rows; ++i)
+		{
+			const int idx = first + i;
+			if (idx >= n) break;
+
+			const float ry = py + 2.0f + i * rowH;
+			if (idx == m_Comp.selected)
+				m_Renderer->drawRect(px + 1, ry, popupW - 2, rowH, selBg);
+
+			const auto& item = m_Comp.items[idx];
+			Color c = (item.kind == CompletionKind::Keyword
+				|| item.kind == CompletionKind::Type
+				|| item.kind == CompletionKind::Control)
+				? kwColor : textColor;
+
+			m_Renderer->drawText(item.label, px + padX, ry + 3.0f,
+				1.0f, c, FontStyle::Regular);
+		}
 	}
 
 }

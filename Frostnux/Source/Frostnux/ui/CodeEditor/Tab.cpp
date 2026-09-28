@@ -3,10 +3,10 @@
 
 namespace Frostnux {
 
-	void Tab::invalidateHighlight()
-	{
-		highlighter.markDirty(0, buffer.lineCount());
-		longestDirty = true;
-	}
+    void Tab::invalidateHighlight()
+    {
+        highlighter.markAllDirty();
+        longestDirty = true;
+    }
 
 }

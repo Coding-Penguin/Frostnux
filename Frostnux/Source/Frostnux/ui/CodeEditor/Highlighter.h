@@ -23,6 +23,7 @@ namespace Frostnux {
 	{
 		Color bg { 0.118f, 0.118f, 0.118f, 1 };
 		Color text { 0.86f, 0.86f, 0.86f, 1 };
+
 		Color control { 0.78f, 0.44f, 0.85f, 1 };
 		Color keyword { 0.34f, 0.61f, 1.00f, 1 };
 		Color type { 0.30f, 0.79f, 0.78f, 1 };
@@ -30,15 +31,20 @@ namespace Frostnux {
 		Color number { 0.71f, 0.80f, 0.66f, 1 };
 		Color string { 0.81f, 0.43f, 0.36f, 1 };
 		Color comment { 0.34f, 0.62f, 0.34f, 1 };
-		Color preproc { 0.61f, 0.50f, 0.40f, 1 };
+		Color preproc { 0.45f, 0.45f, 0.47f, 1 };
 		Color macro { 0.74f, 0.60f, 0.53f, 1 };
+
 		Color cursor { 0.90f, 0.90f, 0.90f, 1 };
+
 		Color selection { 0.26f, 0.40f, 0.62f, 1 };
 		Color currentLine { 1.0f, 1.0f, 1.0f, 0.05f };
+
 		Color gutterText { 0.40f, 0.40f, 0.42f, 1 };
 		Color gutterBg { 0.14f, 0.14f, 0.14f, 1 };
+
 		Color tabBg { 0.16f, 0.16f, 0.16f, 1 };
 		Color tabActive { 0.24f, 0.24f, 0.26f, 1 };
+
 		Color scrollTrack { 0.14f, 0.14f, 0.14f, 1 };
 		Color scrollThumb { 0.30f, 0.30f, 0.32f, 1 };
 
@@ -111,6 +117,13 @@ namespace Frostnux {
 			if (line < 0 || line >= (int)tokens_.size()) return empty;
 			return tokens_[line];
 		}
+
+		void markAllDirty() noexcept
+		{
+			dirtyFrom_ = 0;
+			forceAll_ = true;
+		}
+
 	private:
 		struct LineState
 		{
@@ -123,9 +136,10 @@ namespace Frostnux {
 		void tokenizeLine(std::u32string_view s, LineState st,
 			std::vector<Token>& out, LineState& end);
 
-		std::vector<std::vector<Token>> tokens_;
-		std::vector<LineState>          states_;
+		std::vector<std::vector<Token>>	tokens_;
+		std::vector<LineState>			states_;
 		int dirtyFrom_ = INT32_MAX;
+		bool forceAll_ = false;
 	};
 
 }

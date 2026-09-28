@@ -79,12 +79,11 @@ namespace Frostnux
 
 	void uiStatusBar::DrawChannel()
 	{
-		Channel channel = ChannelManager::GetChannel();
 		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
 		std::ifstream file(path);
 		nlohmann::json j;
 		file >> j;
-		if (channel == Channel::Preview)
+		if (ChannelManager::GetChannel() == Channel::Preview)
 		{
 			m_RightText = j.value("Preview", "Preview");
 		}

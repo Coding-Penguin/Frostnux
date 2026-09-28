@@ -15,7 +15,7 @@ namespace Frostnux {
 
 		int languageIndex = 1;
 		int themeIndex = 3;
-		int channelIndex = 1;
+		int channelIndex = 0;
 		int fontSize = 24;
 		float fileExplorerScrollY = 0.0f;
 		unsigned int WindowWidth = 1920, WindowHeight = 1080;
