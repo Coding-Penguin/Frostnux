@@ -70,14 +70,20 @@ namespace Frostnux {
 	void Highlighter::update(const TextBuffer& buf)
 	{
 		int n = buf.lineCount();
+
+		if ((int)tokens_.size() > n) tokens_.resize(n);
+		if ((int)states_.size() > n) states_.resize(n);
+
 		if ((int)tokens_.size() < n) tokens_.resize(n);
 		if ((int)states_.size() < n) states_.resize(n);
 
 		if (dirtyFrom_ == INT32_MAX) return;
+
 		if (dirtyFrom_ >= n) [[unlikely]]
 		{
 			dirtyFrom_ = INT32_MAX;
 			forceAll_ = false;
+			forceToEnd_ = false;
 			return;
 		}
 
@@ -85,21 +91,25 @@ namespace Frostnux {
 		LineState st;
 		if (i > 0) st = states_[i - 1];
 
-		const bool force = forceAll_;
+		const bool forceAll = forceAll_;
+		const bool forceToEnd = forceToEnd_;
 		forceAll_ = false;
+		forceToEnd_ = false;
 
 		while (i < n)
 		{
 			LineState newEnd;
 			tokenizeLine(buf.line(i), st, tokens_[i], newEnd);
 
-			const bool same = !force && (states_[i] == newEnd);
+			const bool same = !forceAll && !forceToEnd && (states_[i] == newEnd);
+
 			states_[i] = newEnd;
 			st = newEnd;
 
 			if (same) [[unlikely]] break;
 			++i;
 		}
+
 		dirtyFrom_ = INT32_MAX;
 	}
 

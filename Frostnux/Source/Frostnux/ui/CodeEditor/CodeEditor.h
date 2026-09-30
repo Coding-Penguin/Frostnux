@@ -8,6 +8,8 @@
 #include <vector>
 #include <memory>
 #include <string_view>
+#include <functional>
+#include <string>
 
 #include "Completion.h"
 
@@ -52,7 +54,57 @@ namespace Frostnux {
 
 		[[nodiscard]] EditorTheme& theme() { return m_Theme; }
 		[[nodiscard]] const EditorTheme& theme() const { return m_Theme; }
+
+		void SetClipboardFunctions(std::function<std::string()> getter, std::function<void(const std::string&)> setter)
+		{
+			m_GetClipboard = std::move(getter);
+			m_SetClipboard = std::move(setter);
+		}
 	private:
+		void doCopy(Tab& t);
+		void doCut(Tab& t);
+		void doPaste(Tab& t);
+
+		std::function<std::string()>			m_GetClipboard;
+		std::function<void(const std::string&)>	m_SetClipboard;
+
+		Renderer*	m_Renderer = nullptr;
+		EditorTheme	m_Theme;
+
+		std::vector<std::unique_ptr<Tab>> m_Tabs;
+		int m_Active = -1;
+
+		float m_vpX = 0, m_vpY = 0, m_vpW = 0, m_vpH = 0;
+
+		float m_TabBarH = 32.0f;
+		float m_LineHeight = 20.0f;
+		float m_GutterWidth = 60.0f;
+		float m_ScrollBarSize = 14.0f;
+		float m_CharScale = 1.0f;
+
+		bool m_CursorVisible = true;
+		bool m_Dragging = false;
+
+		struct CompletionState
+		{
+			bool active = false;
+			std::vector<CompletionItem> items;
+			int		selected = 0;
+			float	popupX = 0;
+			float	popupY = 0;
+			int		replaceStart = 0;
+			int		replaceEnd = 0;
+		};
+
+		CompletionEngine m_Completion;
+		CompletionState  m_Comp;
+
+		void triggerCompletion(bool force);
+		void cancelCompletion();
+		void moveCompletion(int dir);
+		void acceptCompletion();
+		void drawCompletionPopup(Tab& t, float textX, float textY, float textH);
+
 		bool onKeyPressed(KeyPressedEvent& e);
 		bool onChar(CharEvent& e);
 		bool onMouseButtonPressed(MouseButtonPressedEvent& e);
@@ -95,42 +147,6 @@ namespace Frostnux {
 		void drawCurrentLine(Tab& t, float textX, float textY, float textW);
 		void drawCursor(Tab& t, float textX, float textY, float textH);
 		void drawScrollBars(Tab& t);
-
-		Renderer*	m_Renderer = nullptr;
-		EditorTheme	m_Theme;
-
-		std::vector<std::unique_ptr<Tab>> m_Tabs;
-		int m_Active = -1;
-
-		float m_vpX = 0, m_vpY = 0, m_vpW = 0, m_vpH = 0;
-
-		float m_TabBarH = 32.0f;
-		float m_LineHeight = 20.0f;
-		float m_GutterWidth = 60.0f;
-		float m_ScrollBarSize = 14.0f;
-		float m_CharScale = 1.0f;
-
-		bool m_CursorVisible = true;
-		bool m_Dragging = false;
-
-		struct CompletionState
-		{
-			bool active = false;
-			std::vector<CompletionItem> items;
-			int   selected = 0;
-			float popupX = 0;
-			float popupY = 0;
-			int   prefixStartCol = 0;
-		};
-
-		CompletionEngine m_Completion;
-		CompletionState  m_Comp;
-
-		void triggerCompletion(bool force);
-		void cancelCompletion();
-		void moveCompletion(int dir);
-		void acceptCompletion();
-		void drawCompletionPopup(Tab& t, float textX, float textY, float textH);
 	};
 
 }

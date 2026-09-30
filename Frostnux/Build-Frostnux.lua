@@ -29,7 +29,7 @@ project "Frostnux"
     }
     
     filter "system:windows"
-        links { "GLFW", "Glad", "GLM", "Image", "opengl32.lib" }
+        links { "GLFW", "Glad", "GLM", "stb_image", "opengl32.lib" }
         defines { "FX_PLATFORM_WINDOWS" }
         systemversion "latest"
         buildoptions { "/utf-8" }

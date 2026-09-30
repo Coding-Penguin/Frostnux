@@ -1,6 +1,7 @@
 #pragma once
 #include "TextBuffer.h"
 #include "Highlighter.h"
+#include "SymbolIndex.h"
 #include <deque>
 
 namespace Frostnux {
@@ -171,6 +172,8 @@ namespace Frostnux {
 		int		 desiredCol = 0;
 		double	 longestWidth = 0;
 		bool	 longestDirty = true;
+
+		SymbolIndex symbols;
 
 		void invalidateHighlight();
 	};

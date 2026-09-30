@@ -107,7 +107,7 @@ namespace Frostnux {
 		{
 			win->OnAttach();
 		}
-		
+
 		auto& fm = FontManager::Get();
 		const float codeSize = 20.0f;
 
@@ -115,6 +115,20 @@ namespace Frostnux {
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Bold.ttf", codeSize, FontStyle::Bold);
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Italic.ttf", codeSize, FontStyle::Italic);
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-BoldItalic.ttf", codeSize, FontStyle::BoldItalic);
+
+		m_Editor.SetClipboardFunctions([]() -> std::string
+			{
+				auto* win = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+				if (!win) return {};
+				const char* s = glfwGetClipboardString(win);
+				return s ? std::string(s) : std::string{};
+			},
+			[](const std::string& s)
+			{
+				auto* win = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+				if (!win) return;
+				glfwSetClipboardString(win, s.c_str());
+			});
 	}
 
 	void uiLayer::OnDetach() 

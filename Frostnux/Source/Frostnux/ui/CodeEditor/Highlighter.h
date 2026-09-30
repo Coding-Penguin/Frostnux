@@ -109,6 +109,13 @@ namespace Frostnux {
 			dirtyFrom_ = std::min(dirtyFrom_, fromLine);
 		}
 
+		void markDirtyToEnd(int fromLine) noexcept
+		{
+			if (fromLine < 0) fromLine = 0;
+			dirtyFrom_ = std::min(dirtyFrom_, fromLine);
+			forceToEnd_ = true;
+		}
+
 		void update(const TextBuffer& buf);
 
 		[[nodiscard]] const std::vector<Token>& tokens(int line) const noexcept
@@ -133,13 +140,14 @@ namespace Frostnux {
 			bool operator==(const LineState&) const = default;
 		};
 
-		void tokenizeLine(std::u32string_view s, LineState st,
-			std::vector<Token>& out, LineState& end);
+		void tokenizeLine(std::u32string_view s, LineState st, std::vector<Token>& out, LineState& end);
 
 		std::vector<std::vector<Token>>	tokens_;
 		std::vector<LineState>			states_;
 		int dirtyFrom_ = INT32_MAX;
+
 		bool forceAll_ = false;
+		bool forceToEnd_ = false;
 	};
 
 }

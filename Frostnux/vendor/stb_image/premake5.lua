@@ -1,4 +1,4 @@
-project "Image"
+project "stb_image"
 	kind "StaticLib"
 	language "C++"
 	staticruntime "off"

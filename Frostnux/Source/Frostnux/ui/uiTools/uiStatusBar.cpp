@@ -97,8 +97,8 @@ namespace Frostnux
 	void uiStatusBar::DrawText()
 	{
 		Application &app = Application::Get();
-		int width = (int)app.GetWindow().GetWidth();
-		int height = (int)app.GetWindow().GetHeight();
+		float width = (int)app.GetWindow().GetWidth();
+		float height = (int)app.GetWindow().GetHeight();
 		float y = height - m_Height;
 		float textY = y + (m_Height - TextRenderer::Get().GetTextHeight()) / 2;
 

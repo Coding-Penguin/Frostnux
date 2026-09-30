@@ -1,6 +1,7 @@
 #include "fxpch.h"
 #include "CodeEditor.h"
 #include "TextBuffer.h"
+#include "SymbolIndex.h"
 #include <glad/glad.h>
 #include <fstream>
 
@@ -21,7 +22,6 @@ namespace Frostnux {
 		m_Tabs.push_back(std::move(t));
 		m_Active = static_cast<int>(m_Tabs.size()) - 1;
 		ref.invalidateHighlight();
-		m_Completion.rebuildIndex(ref.buffer);
 		return ref;
 	}
 
@@ -99,11 +99,11 @@ namespace Frostnux {
 			const int key = e.GetKeyCode();
 			switch (key)
 			{
-			case FX_KEY_UP:    moveCompletion(-1); return true;
-			case FX_KEY_DOWN:  moveCompletion(+1); return true;
+			case FX_KEY_UP:		moveCompletion(-1);	return true;
+			case FX_KEY_DOWN:	moveCompletion(+1);	return true;
 			case FX_KEY_ENTER:
-			case FX_KEY_TAB:   acceptCompletion(); return true;
-			case FX_KEY_ESCAPE:cancelCompletion(); return true;
+			case FX_KEY_TAB:	acceptCompletion();	return true;
+			case FX_KEY_ESCAPE:	cancelCompletion();	return true;
 			default: break;
 			}
 
@@ -127,46 +127,43 @@ namespace Frostnux {
 		{
 			switch (key)
 			{
-			case FX_KEY_Z:  if (shift) doRedo(t); else doUndo(t); return true;
-			case FX_KEY_Y:  doRedo(t);                            return true;
+			case FX_KEY_Z:  if (shift) doRedo(t); else doUndo(t);	return true;
+			case FX_KEY_Y:  doRedo(t);								return true;
 			case FX_KEY_A:
 			{
-				Position s{ 0, 0 };
-				Position en{ t.buffer.lineCount() - 1, static_cast<int>(t.buffer.line(t.buffer.lineCount() - 1).size()) };
+				Position s { 0, 0 };
+				Position en { t.buffer.lineCount() - 1, static_cast<int>(t.buffer.line(t.buffer.lineCount() - 1).size()) };
 				t.selection.set(s, en);
 				return true;
 			}
-			case FX_KEY_HOME:  moveHome(t, shift, true);  return true;
-			case FX_KEY_END:   moveEnd(t, shift, true);  return true;
-			case FX_KEY_LEFT:  moveLeft(t, shift, true);  return true;
-			case FX_KEY_RIGHT: moveRight(t, shift, true);  return true;
-			case FX_KEY_TAB:   switchTab(shift ? -1 : 1);  return true;
-			case FX_KEY_W:     closeTab(m_Active);          return true;
-
-			case FX_KEY_C:
-			case FX_KEY_V:
-			case FX_KEY_X:
-				return true;
+			case FX_KEY_HOME:	moveHome(t, shift, true);	return true;
+			case FX_KEY_END:	moveEnd(t, shift, true);	return true;
+			case FX_KEY_LEFT:	moveLeft(t, shift, true);	return true;
+			case FX_KEY_RIGHT:	moveRight(t, shift, true);	return true;
+			case FX_KEY_TAB:	switchTab(shift ? -1 : 1);	return true;
+			case FX_KEY_W:		closeTab(m_Active);			return true;
+			case FX_KEY_C:		doCopy(t);					return true;
+			case FX_KEY_V:		doPaste(t);					return true;
+			case FX_KEY_X:		doCut(t);					return true;
 
 			default: break;
 			}
 		}
-
+		
 		switch (key)
 		{
-		case FX_KEY_LEFT:      moveLeft(t, shift, false); return true;
-		case FX_KEY_RIGHT:     moveRight(t, shift, false); return true;
-		case FX_KEY_UP:        moveUp(t, shift);        return true;
-		case FX_KEY_DOWN:      moveDown(t, shift);        return true;
-		case FX_KEY_HOME:      moveHome(t, shift, false); return true;
-		case FX_KEY_END:       moveEnd(t, shift, false); return true;
-		case FX_KEY_PAGE_UP:   movePageUp(t, shift);     return true;
-		case FX_KEY_PAGE_DOWN: movePageDown(t, shift);     return true;
-
-		case FX_KEY_BACKSPACE: backspace(t);               return true;
-		case FX_KEY_DELETE:    deleteForward(t);           return true;
-		case FX_KEY_ENTER:     newline(t);                 return true;
-		case FX_KEY_TAB:       tabKey(t, shift);           return true;
+		case FX_KEY_LEFT:		moveLeft(t, shift, false);	return true;
+		case FX_KEY_RIGHT:		moveRight(t, shift, false);	return true;
+		case FX_KEY_UP:			moveUp(t, shift);			return true;
+		case FX_KEY_DOWN:		moveDown(t, shift);			return true;
+		case FX_KEY_HOME:		moveHome(t, shift, false);	return true;
+		case FX_KEY_END:		moveEnd(t, shift, false);	return true;
+		case FX_KEY_PAGE_UP:	movePageUp(t, shift);		return true;
+		case FX_KEY_PAGE_DOWN:	movePageDown(t, shift);		return true;
+		case FX_KEY_BACKSPACE:	backspace(t);				return true;
+		case FX_KEY_DELETE:		deleteForward(t);			return true;
+		case FX_KEY_ENTER:		newline(t);					return true;
+		case FX_KEY_TAB:		tabKey(t, shift);			return true;
 
 		case FX_KEY_ESCAPE:
 			t.selection.clear(t.selection.active());
@@ -185,10 +182,20 @@ namespace Frostnux {
 
 		insertText(*t, std::u32string(1, static_cast<char32_t>(cp)));
 
-		if (CompletionEngine::isIdentifierChar(static_cast<char32_t>(cp)))
-			triggerCompletion(false);
-		else
-			cancelCompletion();
+		const char32_t c = static_cast<char32_t>(cp);
+		const Position pos = t->selection.active();
+		const auto line = t->buffer.line(pos.line);
+
+		bool shouldTrigger = false;
+		if (CompletionEngine::isIdentifierChar(c))	shouldTrigger = true;
+		else if (c == U'.')							shouldTrigger = true;
+		else if (c == U'>' && pos.col >= 2 && line[pos.col - 2] == U'-')
+			shouldTrigger = true;
+		else if (c == U':' && pos.col >= 2 && line[pos.col - 2] == U':')
+			shouldTrigger = true;
+
+		if (shouldTrigger)	triggerCompletion(false);
+		else				cancelCompletion();
 
 		return true;
 	}
@@ -300,7 +307,13 @@ namespace Frostnux {
 		t.longestDirty = true;
 
 		t.undo.push(std::move(ed));
-		t.highlighter.markDirty(from.line, after.line);
+
+		const bool structural = text.find(U'\n') != std::u32string_view::npos || ed.removed.find(U'\n') != std::u32string::npos;
+
+		if (structural)
+			t.highlighter.markDirtyToEnd(std::min(from.line, after.line));
+		else
+			t.highlighter.markDirty(from.line, after.line);
 	}
 
 	void CodeEditor::insertText(Tab& t, std::u32string_view text)
@@ -521,7 +534,10 @@ namespace Frostnux {
 		t.longestDirty = true;
 
 		const int endLine = from.line + static_cast<int>(ed.removed.size()) + 1;
-		t.highlighter.markDirty(from.line, endLine);
+		const bool structural = ed.removed.find(U'\n') != std::u32string::npos || ed.inserted.find(U'\n') != std::u32string::npos;
+		
+		if (structural)	t.highlighter.markDirtyToEnd(from.line);
+		else			t.highlighter.markDirty(from.line, endLine);
 	}
 
 	void CodeEditor::doRedo(Tab& t)
@@ -541,7 +557,9 @@ namespace Frostnux {
 		t.dirty = true;
 		t.longestDirty = true;
 
-		t.highlighter.markDirty(from.line, after.line);
+		const bool structural = ed.removed.find(U'\n') != std::u32string::npos || ed.inserted.find(U'\n') != std::u32string::npos;
+		if (structural)	t.highlighter.markDirtyToEnd(from.line);
+		else			t.highlighter.markDirty(from.line, after.line);
 	}
 
 	void CodeEditor::layout(float x, float y, float w, float h)
@@ -855,42 +873,45 @@ namespace Frostnux {
 			static_cast<float>(t.hbar.trackH()),
 			m_Theme.scrollThumb);
 	}
-
+	
 	void CodeEditor::triggerCompletion(bool force)
 	{
 		Tab* t = activeTab();
 		if (!t) return;
 
-		// 有选区时不弹
 		if (!t->selection.empty()) { cancelCompletion(); return; }
 
 		const Position cur = t->selection.active();
-		std::u32string prefix = CompletionEngine::extractPrefix(t->buffer, cur);
+		CompletionResult r = m_Completion.complete(t->buffer, t->symbols, cur, force);
 
-		const size_t minLen = force ? 1 : 2;
-		if (prefix.size() < minLen) { cancelCompletion(); return; }
-
-		auto items = m_Completion.query(prefix, 32);
-		if (items.empty()) { cancelCompletion(); return; }
-
-		// 若只有一个候选且完全等于 prefix，不弹
-		if (items.size() == 1 && items[0].label == prefix)
+		if (!r.valid)
 		{
 			cancelCompletion();
 			return;
 		}
 
-		m_Comp.active = true;
-		m_Comp.items = std::move(items);
-		m_Comp.selected = 0;
-		m_Comp.prefixStartCol = cur.col - static_cast<int>(prefix.size());
+		if (r.items.size() == 1)
+		{
+			const int n = r.replaceEnd - r.replaceStart;
+			if ((int)r.items[0].label.size() == n
+				&& r.items[0].label == r.items[0].insertText)
+			{
+				cancelCompletion();
+				return;
+			}
+		}
 
-		// 计算 popup 屏幕坐标
+		m_Comp.active = true;
+		m_Comp.items = std::move(r.items);
+		m_Comp.selected = 0;
+		m_Comp.replaceStart = r.replaceStart;
+		m_Comp.replaceEnd = r.replaceEnd;
+
 		const float lineY = m_vpY + m_TabBarH
 			+ static_cast<float>(cur.line) * m_LineHeight
 			- static_cast<float>(t->scrollY);
 		const float caretX = m_vpX + m_GutterWidth
-			+ colToX(*t, cur.line, cur.col)
+			+ colToX(*t, cur.line, r.replaceStart)
 			- static_cast<float>(t->scrollX);
 
 		m_Comp.popupX = caretX;
@@ -923,8 +944,9 @@ namespace Frostnux {
 		const auto& item = m_Comp.items[m_Comp.selected];
 		const Position cur = t->selection.active();
 
-		Position from{ cur.line, m_Comp.prefixStartCol };
-		applyEdit(*t, from, cur, item.insertText);
+		Position from{ cur.line, m_Comp.replaceStart };
+		Position to{ cur.line, m_Comp.replaceEnd };
+		applyEdit(*t, from, to, item.insertText);
 
 		cancelCompletion();
 	}
@@ -937,8 +959,8 @@ namespace Frostnux {
 
 		constexpr float rowH = 20.0f;
 		constexpr float padX = 8.0f;
-		constexpr float popupW = 220.0f;
-		constexpr int   maxRows = 10;
+		constexpr float popupW = 260.0f;
+		constexpr int   maxRows = 12;
 
 		const int n = static_cast<int>(m_Comp.items.size());
 		const int rows = std::min(n, maxRows);
@@ -955,11 +977,13 @@ namespace Frostnux {
 		if (py + popupH > m_vpY + m_vpH)
 			py = m_Comp.popupY - m_LineHeight - popupH;
 
-		Color bg{ 0.15f, 0.15f, 0.17f, 0.97f };
-		Color border{ 0.30f, 0.30f, 0.34f, 1.0f };
-		Color selBg{ 0.22f, 0.36f, 0.55f, 1.0f };
-		Color textColor{ 0.90f, 0.90f, 0.90f, 1.0f };
-		Color kwColor{ 0.34f, 0.61f, 1.00f, 1.0f };
+		if (px + popupW > m_vpX + m_vpW)
+			px = m_vpX + m_vpW - popupW - 2.0f;
+
+		Color bg { 0.15f, 0.15f, 0.17f, 0.97f };
+		Color border { 0.30f, 0.30f, 0.34f, 1.0f };
+		Color selBg { 0.22f, 0.36f, 0.55f, 1.0f };
+		Color detailColor { 0.55f, 0.55f, 0.55f, 1.0f };
 
 		m_Renderer->drawRect(px - 1, py - 1, popupW + 2, popupH + 2, border);
 		m_Renderer->drawRect(px, py, popupW, popupH, bg);
@@ -970,18 +994,114 @@ namespace Frostnux {
 			if (idx >= n) break;
 
 			const float ry = py + 2.0f + i * rowH;
+
 			if (idx == m_Comp.selected)
 				m_Renderer->drawRect(px + 1, ry, popupW - 2, rowH, selBg);
 
 			const auto& item = m_Comp.items[idx];
-			Color c = (item.kind == CompletionKind::Keyword
-				|| item.kind == CompletionKind::Type
-				|| item.kind == CompletionKind::Control)
-				? kwColor : textColor;
 
-			m_Renderer->drawText(item.label, px + padX, ry + 3.0f,
-				1.0f, c, FontStyle::Regular);
+			Color nameColor;
+			switch (item.kind)
+			{
+			case CompletionKind::Keyword:
+			case CompletionKind::Control:	nameColor = { 0.78f, 0.44f, 0.85f, 1.0f }; break;
+			case CompletionKind::Type:		nameColor = { 0.30f, 0.79f, 0.78f, 1.0f }; break;
+			case CompletionKind::Function:	nameColor = { 0.86f, 0.86f, 0.66f, 1.0f }; break;
+			case CompletionKind::Class:
+			case CompletionKind::Struct:
+			case CompletionKind::Enum:		nameColor = { 0.30f, 0.79f, 0.78f, 1.0f }; break;
+			case CompletionKind::Namespace:	nameColor = { 0.85f, 0.85f, 0.85f, 1.0f }; break;
+			case CompletionKind::EnumValue:	nameColor = { 0.71f, 0.80f, 0.66f, 1.0f }; break;
+			default:						nameColor = { 0.90f, 0.90f, 0.90f, 1.0f }; break;
+			}
+
+			m_Renderer->drawText(item.label, px + padX, ry + 3.0f, 1.0f, nameColor, FontStyle::Regular);
+
+			if (!item.detail.empty())
+			{
+				const float labelW = m_Renderer->measureText(item.label, 1.0f);
+				const float detailX = px + padX + labelW + 12.0f;
+
+				const float detailW = m_Renderer->measureText(item.detail, 1.0f);
+				if (detailX + detailW < px + popupW - 4.0f)
+				{
+					m_Renderer->drawText(item.detail, detailX, ry + 3.0f, 1.0f, detailColor, FontStyle::Regular);
+				}
+			}
 		}
+
+		if (n > maxRows)
+		{
+			const float trackW = 4.0f;
+			const float trackX = px + popupW - trackW - 2.0f;
+			const float trackY = py + 2.0f;
+			const float trackH = rows * rowH;
+
+			m_Renderer->drawRect(trackX, trackY, trackW, trackH, { 0.20f, 0.20f, 0.22f, 0.5f });
+
+			const float thumbH = std::max(20.0f, trackH * static_cast<float>(rows) / n);
+			const float t = (n > rows) ? static_cast<float>(first) / (n - rows) : 0.0f;
+			const float thumbY = trackY + t * (trackH - thumbH);
+
+			m_Renderer->drawRect(trackX, thumbY, trackW, thumbH, { 0.45f, 0.45f, 0.50f, 0.9f });
+		}
+	}
+
+	void CodeEditor::doCopy(Tab& t)
+	{
+		if (t.selection.empty()) return;
+		if (!m_SetClipboard) return;
+
+		const std::u32string txt =
+			t.buffer.getText(t.selection.start(), t.selection.end());
+		if (txt.empty()) return;
+
+		m_SetClipboard(u32_to_utf8(txt));
+	}
+
+	void CodeEditor::doCut(Tab& t)
+	{
+		if (t.selection.empty()) return;
+		doCopy(t);
+		deleteSelection(t);
+	}
+
+	void CodeEditor::doPaste(Tab& t)
+	{
+		if (!m_GetClipboard) return;
+
+		const std::string utf8 = m_GetClipboard();
+		if (utf8.empty()) return;
+
+		std::u32string raw = utf8_to_u32(utf8);
+
+		std::u32string text;
+		text.reserve(raw.size());
+		for (size_t i = 0; i < raw.size(); ++i)
+		{
+			if (raw[i] == U'\r')
+			{
+				if (i + 1 < raw.size() && raw[i + 1] == U'\n')
+					continue;
+				text += U'\n';
+			}
+			else
+			{
+				text += raw[i];
+			}
+		}
+
+		std::u32string cleaned;
+		cleaned.reserve(text.size());
+		for (char32_t c : text)
+		{
+			if (c == U'\n' || c == U'\t') { cleaned += c; continue; }
+			if (c < 32) continue;
+			cleaned += c;
+		}
+
+		if (cleaned.empty()) return;
+		insertText(t, cleaned);
 	}
 
 }
