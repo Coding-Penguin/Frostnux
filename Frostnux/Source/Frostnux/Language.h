@@ -20,9 +20,9 @@ namespace Frostnux {
 			switch (s_CurrentLanguageType)
 			{
 			case LanguageType::en_US: return "English (US)";
-			case LanguageType::zh_CN: return "Chinese (Simplified)";
-			case LanguageType::ru_RU: return "Russian";
-			case LanguageType::hu_HU: return "Hungarian";
+			case LanguageType::zh_CN: return "简体中文";
+			case LanguageType::ru_RU: return "Pусский";
+			case LanguageType::hu_HU: return "Magyar";
 			default: return "Unknown";
 			}
 		}

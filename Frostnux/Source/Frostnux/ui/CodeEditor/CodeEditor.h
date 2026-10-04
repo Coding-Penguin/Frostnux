@@ -12,6 +12,7 @@
 #include <string>
 
 #include "Completion.h"
+#include "Navigation.h"
 
 namespace Frostnux {
 
@@ -24,8 +25,9 @@ namespace Frostnux {
 
 		virtual void drawRect(float x, float y, float w, float h, Color color) = 0;
 
-		[[nodiscard]] virtual float measureText(std::u32string_view text,
-			float scale) const = 0;
+		virtual void drawLine(float x1, float y1, float x2, float y2, float thickness, Color color) = 0;
+
+		[[nodiscard]] virtual float measureText(std::u32string_view text, float scale) const = 0;
 
 		[[nodiscard]] virtual float lineHeight(float scale) const = 0;
 	};
@@ -60,6 +62,24 @@ namespace Frostnux {
 			m_GetClipboard = std::move(getter);
 			m_SetClipboard = std::move(setter);
 		}
+
+		void SetSaveAsDialog(std::function<std::string()> fn)
+		{
+			m_SaveAsDialog = std::move(fn);
+		}
+
+		void SaveActiveTab(bool saveAs = false)
+		{
+			if (Tab* t = activeTab())
+				saveTab(*t, saveAs);
+		}
+
+		void SaveAllTabs()
+		{
+			for (auto& t : m_Tabs)
+				if (t->dirty)
+					saveTab(*t, false);
+		}
 	private:
 		void doCopy(Tab& t);
 		void doCut(Tab& t);
@@ -81,6 +101,10 @@ namespace Frostnux {
 		float m_GutterWidth = 60.0f;
 		float m_ScrollBarSize = 14.0f;
 		float m_CharScale = 1.0f;
+		double m_CurrentTime = 0.0;
+
+		float m_MouseX = -1.0f;
+		float m_MouseY = -1.0f;
 
 		bool m_CursorVisible = true;
 		bool m_Dragging = false;
@@ -98,6 +122,28 @@ namespace Frostnux {
 
 		CompletionEngine m_Completion;
 		CompletionState  m_Comp;
+
+		NavigationHistory m_Nav;
+		void goToDefinition();
+		void navBack();
+		void navForward();
+		NavLocation captureNavLocation();
+		void jumpToMatchingBrace(Tab& t, bool forward);
+
+		struct RefHighlight
+		{
+			bool active = false;
+			std::vector<std::pair<int, std::pair<int, int>>> occurrences;
+		};
+		RefHighlight	m_RefHighlight;
+		Position		m_LastCursorPos;
+
+		std::function<std::string()> m_SaveAsDialog;
+
+		bool saveTab(Tab& t, bool saveAs);
+
+		void updateReferenceHighlights(Tab& t);
+		void drawReferenceHighlights(Tab& t, float textX, float textY, float textW, float textH);
 
 		void triggerCompletion(bool force);
 		void cancelCompletion();
@@ -136,9 +182,9 @@ namespace Frostnux {
 		void doUndo(Tab& t);
 		void doRedo(Tab& t);
 
-		[[nodiscard]] Position pixelToPosition(Tab& t, float x, float y) const;
-		[[nodiscard]] float    colToX(const Tab& t, int line, int col) const;
-		[[nodiscard]] int      xToCol(const Tab& t, int line, float x) const;
+		[[nodiscard]] Position	pixelToPosition(Tab& t, float x, float y) const;
+		[[nodiscard]] float		colToX(const Tab& t, int line, int col) const;
+		[[nodiscard]] int		xToCol(const Tab& t, int line, float x) const;
 
 		void drawTabBar();
 		void drawGutter(Tab& t, float textTop, float textH);

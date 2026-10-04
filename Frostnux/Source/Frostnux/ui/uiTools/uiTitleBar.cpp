@@ -177,7 +177,12 @@ namespace Frostnux
 			m_Logo->Draw(5, 5, 80, 80);
 		}
 
-		std::string version = s_Version + " - " + j.value(LicenseManager::GetLicenseName(), LicenseManager::GetLicenseName()) + " [" + j.value("Preview", "Preview") + "]";
+		std::string version = s_Version + " - " + j.value(LicenseManager::GetLicenseName(), LicenseManager::GetLicenseName());
+		if (ChannelManager::GetChannel() == Channel::Preview)
+			version += " [" + j.value("Preview", "Preview") + "]";
+		else
+			version += " [" + j.value("Stable", "Stable") + "]";
+
 		float VersionX, VersionY;
 		VersionX = width / 2.0f - TextRenderer::Get().GetTextWidth(version) / 2.0f;
 		VersionY = (40.0f - TextRenderer::Get().GetTextHeight()) / 2.0f;

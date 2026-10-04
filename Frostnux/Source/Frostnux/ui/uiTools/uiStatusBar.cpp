@@ -50,7 +50,6 @@ namespace Frostnux
 		glLoadIdentity();
 
 		DrawProgress();
-		DrawChannel();
 		DrawText();
 
 		glPopMatrix();
@@ -67,31 +66,9 @@ namespace Frostnux
 		m_StatusText = text;
 	}
 
-	void uiStatusBar::SetRightText(const std::string &text)
-	{
-		m_RightText = text;
-	}
-
 	void uiStatusBar::SetProgress(float progress)
 	{
 		m_Progress = std::clamp(progress, -1.0f, 1.0f);
-	}
-
-	void uiStatusBar::DrawChannel()
-	{
-		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
-		std::ifstream file(path);
-		nlohmann::json j;
-		file >> j;
-		if (ChannelManager::GetChannel() == Channel::Preview)
-		{
-			m_RightText = j.value("Preview", "Preview");
-		}
-		else
-		{
-			m_RightText = j.value("Stable", "Stable");
-		}
-		DrawText();
 	}
 
 	void uiStatusBar::DrawText()
@@ -132,12 +109,6 @@ namespace Frostnux
 			glVertex2f(width - 5, textY + m_Height - 15.0f);
 			glEnd();
 		}
-		if (!m_RightText.empty())
-		{
-			float rightTextWidth = TextRenderer::Get().GetTextWidth(m_RightText);
-			float rightX = width - rightTextWidth - rightTextOffset;
-			TextRenderer::Get().DrawText(m_RightText, rightX, textY, r, g, b, 1.0f);
-		}
 	}
 
 	void uiStatusBar::DrawProgress()
@@ -150,7 +121,7 @@ namespace Frostnux
 		int height = (int)app.GetWindow().GetHeight();
 		float y = height - m_Height;
 
-		float rightTextWidth = m_RightText.empty() ? 0 : TextRenderer::Get().GetTextWidth(m_RightText);
+		float rightTextWidth = 0;
 		float rightX = width - rightTextWidth - 20.0f;
 		float leftX = rightX - 150.f;
 		float barWidth = rightX - leftX;

@@ -44,6 +44,21 @@ namespace Frostnux {
 			glEnd();
 		}
 
+		void drawLine(float x1, float y1, float x2, float y2, float thickness, Color c) override
+		{
+			glDisable(GL_TEXTURE_2D);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glColor4f(c.r, c.g, c.b, c.a);
+
+			glLineWidth(thickness);
+			glBegin(GL_LINES);
+			glVertex2f(x1, y1);
+			glVertex2f(x2, y2);
+			glEnd();
+			glLineWidth(1.0f);
+		}
+
 		[[nodiscard]] float measureText(std::u32string_view text, float) const override
 		{
 			TextRenderer* font = FontManager::Get().GetFont(m_FontName, FontStyle::Regular);

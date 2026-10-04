@@ -38,7 +38,6 @@ namespace Frostnux {
 		FX_CORE_INFO("Initilized log!");
 
 		SettingsManager::Get().Load();
-
 		if (settings.themeIndex < 0 || settings.themeIndex >= ThemeManager::GetThemeCount())
 		{
 			FX_CORE_WARN("Invalid theme index in settings: {}. Defaulting to Dark theme.", settings.themeIndex);

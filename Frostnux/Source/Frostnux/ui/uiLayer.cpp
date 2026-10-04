@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Frostnux/SettingsManager.h"
+#include "Frostnux/FileDialog.h"
 
 namespace Frostnux {
 
@@ -52,11 +53,37 @@ namespace Frostnux {
 		m_ShortcutBar->OnAttach();
 		std::vector<ShortcutItem> fileGroup =
 		{
-			{ "new", "N", j.value("NewFile", "New File"), []() { FX_INFO("New File"); }},
-			{ "open", "O", j.value("OpenFile", "Open File"), []() { FX_INFO("Open File"); } },
-			{ "save", "S", j.value("SaveFile", "Save File"), []() { FX_INFO("Save File"); } },
-			{ "saveas", "SA", j.value("SaveAs", "Save As"), []() { FX_INFO("Save As"); } },
-			{ "saveall", "SA", j.value("SaveAllFiles", "Save All Files"), []() { FX_INFO("Save All"); } }
+			{ "new", "N", j.value("NewFile", "New File"), [this]()
+				{
+					FX_CORE_INFO("New File");
+					m_Editor.addTab("Untitled.cpp");
+				}
+			},
+			{ "open", "O", j.value("OpenFile", "Open File"), [this]()
+				{
+					FX_CORE_INFO("Open Fiel");
+					const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
+					if (!path.empty()) m_Editor.openFile(path);
+				}
+			},
+			{ "save", "S", j.value("SaveFile", "Save File"), [this]()
+				{
+					FX_CORE_INFO("Save File");
+					m_Editor.SaveActiveTab(false);
+				}
+			},
+			{ "saveas", "SA", j.value("SaveAs", "Save As"), [this]()
+				{
+					FX_CORE_INFO("Save As");
+					m_Editor.SaveActiveTab(true);
+				}
+			},
+			{ "saveall", "SA", j.value("SaveAllFiles", "Save All Files"), [this]()
+				{
+					FX_INFO("Save All");
+					m_Editor.SaveAllTabs();
+				}
+			}
 		};
 		std::vector<ShortcutItem> editGroup =
 		{
@@ -129,6 +156,28 @@ namespace Frostnux {
 				if (!win) return;
 				glfwSetClipboardString(win, s.c_str());
 			});
+		m_Editor.SetSaveAsDialog([]() -> std::string
+			{
+				return SaveFileDialog("untitled.cpp", "C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
+			});
+
+		auto& tab = m_Editor.addTab("Untitled.cpp");
+		tab.buffer.setText(utf8_to_u32(
+			"class Foo {\n"
+			"public:\n"
+			"    int x;\n"
+			"    void bar();\n"
+			"};\n"
+			"\n"
+			"Foo obj;\n"
+			"\n"
+			"void test() {\n"
+			"    Foo f;\n"
+			"    obj.x = 1;\n"
+			"    obj.bar();\n"
+			"}\n"
+		));
+		tab.invalidateHighlight();
 	}
 
 	void uiLayer::OnDetach() 

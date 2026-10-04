@@ -15,16 +15,13 @@ namespace Frostnux {
 		virtual bool OnEvent(Event& event) override;
 
 		void SetStatusText(const std::string& text);
-		void SetRightText(const std::string& text);
 
 		void SetProgress(float progress);
 	private:
 		void DrawText();
 		void DrawProgress();
-		void DrawChannel();
 
 		std::string m_StatusText;
-		std::string m_RightText = "";
 
 		float m_Progress = -1.0f;
 		float m_Height = 35.0f;

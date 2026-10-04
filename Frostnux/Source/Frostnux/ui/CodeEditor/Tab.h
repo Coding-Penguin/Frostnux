@@ -52,7 +52,6 @@ namespace Frostnux {
 			return e;
 		}
 		void clear() { undo_.clear(); redo_.clear(); }
-
 	private:
 		std::deque<Edit> undo_, redo_;
 	};
@@ -169,13 +168,17 @@ namespace Frostnux {
 		ScrollBar vbar { ScrollBar::Orientation::Vertical };
 		ScrollBar hbar { ScrollBar::Orientation::Horizontal };
 
-		int		 desiredCol = 0;
-		double	 longestWidth = 0;
-		bool	 longestDirty = true;
+		int		desiredCol = 0;
+		double	longestWidth = 0;
+		bool	longestDirty = true;
 
 		SymbolIndex symbols;
 
+		bool   symbolsDirty = false;
+		double symbolsDirtyAt = 0.0;
+
 		void invalidateHighlight();
+		void markSymbolsDirty(double now);
 	};
 
 }

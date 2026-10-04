@@ -7,8 +7,7 @@ namespace Frostnux {
 
 		[[nodiscard]] bool isIdentStart(char32_t c)
 		{
-			return (c >= U'a' && c <= U'z') || (c >= U'A' && c <= U'Z')
-				|| c == U'_' || c > 127;
+			return (c >= U'a' && c <= U'z') || (c >= U'A' && c <= U'Z') || c == U'_' || c > 127;
 		}
 		[[nodiscard]] bool isIdentChar(char32_t c)
 		{
@@ -25,12 +24,12 @@ namespace Frostnux {
 				char32_t c = line[i];
 				if (c == U' ' || c == U'\t' || c == U'\r') { ++i; continue; }
 
-				if (c == U'/' && i + 1 < n && line[i + 1] == U'/') break;
+				if (c == U'/' && i + 1 < n && line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(i) + 1] == U'/') break;
 
-				if (c == U'/' && i + 1 < n && line[i + 1] == U'*')
+				if (c == U'/' && i + 1 < n && line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(i) + 1] == U'*')
 				{
 					i += 2;
-					while (i + 1 < n && !(line[i] == U'*' && line[i + 1] == U'/')) ++i;
+					while (i + 1 < n && !(line[i] == U'*' && line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(i) + 1] == U'/')) ++i;
 					i = (i + 1 < n) ? i + 2 : n;
 					continue;
 				}
@@ -45,7 +44,7 @@ namespace Frostnux {
 						if (line[i] == q) { ++i; break; }
 						++i;
 					}
-					out.push_back({ SymbolToken::Kind::String, {} });
+					out.push_back({ SymbolToken::Kind::String, {}, s });
 					continue;
 				}
 
@@ -53,18 +52,20 @@ namespace Frostnux {
 				{
 					int s = i;
 					while (i < n && isIdentChar(line[i])) ++i;
-					out.push_back({ SymbolToken::Kind::Ident, std::u32string(line.substr(s, i - s)) });
+					out.push_back({ SymbolToken::Kind::Ident,
+						std::u32string(line.substr(s, i - s)), s });
 					continue;
 				}
 
 				if (c >= U'0' && c <= U'9')
 				{
+					int s = i;
 					while (i < n && (isIdentChar(line[i]) || line[i] == U'.')) ++i;
-					out.push_back({ SymbolToken::Kind::Number, {} });
+					out.push_back({ SymbolToken::Kind::Number, {}, s });
 					continue;
 				}
 
-				out.push_back({ SymbolToken::Kind::Punct, std::u32string(1, c) });
+				out.push_back({ SymbolToken::Kind::Punct, std::u32string(1, c), i });
 				++i;
 			}
 			return out;
@@ -163,7 +164,7 @@ namespace Frostnux {
 
 			if (w == U"namespace")
 			{
-				if (i + 1 < n && toks[i + 1].kind == SymbolToken::Kind::Ident)
+				if (i + 1 < n && toks[static_cast<std::vector<Frostnux::SymbolToken, std::allocator<Frostnux::SymbolToken>>::size_type>(i) + 1].kind == SymbolToken::Kind::Ident)
 				{
 					int braceIdx = -1;
 					for (int j = i + 2; j < n; ++j)
@@ -174,7 +175,8 @@ namespace Frostnux {
 					}
 					if (braceIdx >= 0)
 					{
-						pushPendingScope(ctx, SymbolKind::Namespace, toks[i + 1].text);
+						registerSymbol(ctx, toks[i + 1].text, SymbolKind::Namespace, {}, line, toks[i + 1].col);
+						pushPendingScope(ctx, SymbolKind::Namespace, toks[static_cast<std::vector<Frostnux::SymbolToken, std::allocator<Frostnux::SymbolToken>>::size_type>(i) + 1].text, toks[static_cast<std::vector<Frostnux::SymbolToken, std::allocator<Frostnux::SymbolToken>>::size_type>(i) + 1].col);
 						i = braceIdx;
 						continue;
 					}
@@ -187,10 +189,8 @@ namespace Frostnux {
 
 			if (w == U"class" || w == U"struct" || w == U"union")
 			{
-				SymbolKind k = (w == U"class") ? SymbolKind::Class
-					: (w == U"struct") ? SymbolKind::Struct
-					: SymbolKind::Union;
-				if (i + 1 < n && toks[i + 1].kind == SymbolToken::Kind::Ident)
+				SymbolKind k = (w == U"class") ? SymbolKind::Class : (w == U"struct") ? SymbolKind::Struct : SymbolKind::Union;
+				if (i + 1 < n && toks[static_cast<std::vector<Frostnux::SymbolToken, std::allocator<Frostnux::SymbolToken>>::size_type>(i) + 1].kind == SymbolToken::Kind::Ident)
 				{
 					int braceIdx = -1;
 					for (int j = i + 2; j < n; ++j)
@@ -201,13 +201,14 @@ namespace Frostnux {
 					}
 					if (braceIdx >= 0)
 					{
-						pushPendingScope(ctx, k, toks[i + 1].text);
+						registerSymbol(ctx, toks[i + 1].text, SymbolKind::Namespace, {}, line, toks[i + 1].col);
+						pushPendingScope(ctx, k, toks[static_cast<std::vector<Frostnux::SymbolToken, std::allocator<Frostnux::SymbolToken>>::size_type>(i) + 1].text, toks[static_cast<std::vector<Frostnux::SymbolToken, std::allocator<Frostnux::SymbolToken>>::size_type>(i) + 1].col);
 						i = braceIdx;
 						continue;
 					}
 					if (braceIdx == -2)
 					{
-						registerSymbol(ctx, toks[i + 1].text, k, {}, line);
+						registerSymbol(ctx, toks[i + 1].text, k, {}, line, toks[static_cast<std::vector<Frostnux::SymbolToken, std::allocator<Frostnux::SymbolToken>>::size_type>(i) + 1].col);
 					}
 					i += 2;
 					continue;
@@ -219,7 +220,7 @@ namespace Frostnux {
 			if (w == U"enum")
 			{
 				int nameIdx = i + 1;
-				if (nameIdx < n && (toks[nameIdx].text == U"class" || toks[nameIdx].text == U"struct")) 
+				if (nameIdx < n && (toks[nameIdx].text == U"class" || toks[nameIdx].text == U"struct"))
 					++nameIdx;
 				if (nameIdx < n && toks[nameIdx].kind == SymbolToken::Kind::Ident)
 				{
@@ -233,14 +234,13 @@ namespace Frostnux {
 					}
 					if (braceIdx >= 0)
 					{
-						pushPendingScope(ctx, SymbolKind::Enum, toks[nameIdx].text);
+						registerSymbol(ctx, toks[i + 1].text, SymbolKind::Namespace, {}, line, toks[i + 1].col);
+						pushPendingScope(ctx, SymbolKind::Enum, toks[nameIdx].text, toks[nameIdx].col);
 
 						for (int j = braceIdx + 1; j < n; ++j)
 						{
-							if (toks[j].kind == SymbolToken::Kind::Ident
-								&& !isTypeModifier(toks[j].text))
-								registerSymbol(ctx, toks[j].text,
-									SymbolKind::EnumValue, {}, line);
+							if (toks[j].kind == SymbolToken::Kind::Ident && !isTypeModifier(toks[j].text))
+								registerSymbol(ctx, toks[j].text, SymbolKind::EnumValue, {},line, toks[j].col);
 						}
 						i = braceIdx + 1;
 						continue;
@@ -255,8 +255,7 @@ namespace Frostnux {
 		{
 			const int sid = ctx.scopeStack.back();
 			const auto k = scopes_[sid].kind;
-			if (k == SymbolKind::Namespace || k == SymbolKind::Class
-				|| k == SymbolKind::Struct || k == SymbolKind::Union)
+			if (k == SymbolKind::Namespace || k == SymbolKind::Class || k == SymbolKind::Struct || k == SymbolKind::Union)
 			{
 				tryParseDeclaration(toks, line, ctx);
 			}
@@ -302,8 +301,7 @@ namespace Frostnux {
 				}
 				if (retIdx >= 0)
 				{
-					registerSymbol(ctx, toks[nameIdx].text,
-						SymbolKind::Function, toks[retIdx].text, line);
+					registerSymbol(ctx, toks[nameIdx].text, SymbolKind::Function, toks[retIdx].text, line, toks[nameIdx].col);
 				}
 			}
 			return;
@@ -341,11 +339,11 @@ namespace Frostnux {
 		}
 		if (typeIdx < 0) return;
 
-		registerSymbol(ctx, toks[nameIdx].text,
-			SymbolKind::Variable, toks[typeIdx].text, line);
+		registerSymbol(ctx, toks[nameIdx].text, SymbolKind::Variable, toks[typeIdx].text, line, toks[nameIdx].col);
 	}
 
-	void SymbolIndex::pushPendingScope(ParseContext& ctx, SymbolKind kind, const std::u32string& name)
+	void SymbolIndex::pushPendingScope(ParseContext& ctx, SymbolKind kind,
+		const std::u32string& name, int col)
 	{
 		const int parent = ctx.scopeStack.back();
 
@@ -362,9 +360,8 @@ namespace Frostnux {
 			s.name = name;
 			s.kind = kind;
 			s.parent = parent;
-			s.qualified = scopes_[parent].qualified.empty()
-				? name
-				: scopes_[parent].qualified + U"::" + name;
+			s.col = col;
+			s.qualified = scopes_[parent].qualified.empty() ? name : scopes_[parent].qualified + U"::" + name;
 			scopes_.push_back(std::move(s));
 			scopes_[parent].children[name] = id;
 		}
@@ -373,8 +370,7 @@ namespace Frostnux {
 		ctx.pendingScope = true;
 	}
 
-	void SymbolIndex::registerSymbol(ParseContext& ctx, std::u32string name,
-		SymbolKind kind, std::u32string typeName, int line)
+	void SymbolIndex::registerSymbol(ParseContext& ctx, std::u32string name, SymbolKind kind, std::u32string typeName, int line, int col)
 	{
 		if (name.empty()) return;
 		const int sid = ctx.scopeStack.back();
@@ -392,6 +388,7 @@ namespace Frostnux {
 		s.kind = kind;
 		s.scopeId = sid;
 		s.line = line;
+		s.col = col;
 
 		symbols_.push_back(std::move(s));
 		idxs.push_back((int)symbols_.size() - 1);
