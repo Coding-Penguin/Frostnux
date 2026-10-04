@@ -7,11 +7,7 @@ namespace Frostnux {
 
 	bool CompletionEngine::isIdentifierChar(char32_t c) noexcept
 	{
-		return (c >= U'a' && c <= U'z')
-			|| (c >= U'A' && c <= U'Z')
-			|| (c >= U'0' && c <= U'9')
-			|| c == U'_'
-			|| c > 127;
+		return (c >= U'a' && c <= U'z') || (c >= U'A' && c <= U'Z') || (c >= U'0' && c <= U'9') || c == U'_' || c > 127;
 	}
 
 	const std::vector<std::u32string>& CompletionEngine::keywords()
@@ -76,16 +72,16 @@ namespace Frostnux {
 		{
 			switch (k)
 			{
-			case SymbolKind::Namespace: return CompletionKind::Namespace;
-			case SymbolKind::Class:     return CompletionKind::Class;
-			case SymbolKind::Struct:    return CompletionKind::Struct;
-			case SymbolKind::Union:     return CompletionKind::Struct;
-			case SymbolKind::Enum:      return CompletionKind::Enum;
-			case SymbolKind::EnumValue: return CompletionKind::EnumValue;
-			case SymbolKind::Function:  return CompletionKind::Function;
-			case SymbolKind::Variable:  return CompletionKind::Identifier;
-			case SymbolKind::Member:    return CompletionKind::Member;
-			default:                    return CompletionKind::Identifier;
+			case SymbolKind::Namespace:	return CompletionKind::Namespace;
+			case SymbolKind::Class:		return CompletionKind::Class;
+			case SymbolKind::Struct:	return CompletionKind::Struct;
+			case SymbolKind::Union:		return CompletionKind::Struct;
+			case SymbolKind::Enum:		return CompletionKind::Enum;
+			case SymbolKind::EnumValue:	return CompletionKind::EnumValue;
+			case SymbolKind::Function:	return CompletionKind::Function;
+			case SymbolKind::Variable:	return CompletionKind::Identifier;
+			case SymbolKind::Member:	return CompletionKind::Member;
+			default:					return CompletionKind::Identifier;
 			}
 		}
 
@@ -93,15 +89,15 @@ namespace Frostnux {
 		{
 			switch (k)
 			{
-			case CompletionKind::Keyword:   return 5;
-			case CompletionKind::Control:   return 4;
-			case CompletionKind::Type:      return 3;
-			case CompletionKind::Function:  return 2;
+			case CompletionKind::Keyword:	return 5;
+			case CompletionKind::Control:	return 4;
+			case CompletionKind::Type:		return 3;
+			case CompletionKind::Function:	return 2;
 			case CompletionKind::Class:
 			case CompletionKind::Struct:
-			case CompletionKind::Enum:      return 1;
-			case CompletionKind::Namespace: return 1;
-			default:                        return 0;
+			case CompletionKind::Enum:
+			case CompletionKind::Namespace:	return 1;
+			default:						return 0;
 			}
 		}
 
@@ -214,9 +210,7 @@ namespace Frostnux {
 			{
 				if (!startsWith(s->name, prefix)) continue;
 				if (alreadyContains(result.items, s->name)) continue;
-				result.items.push_back({
-					s->name, s->name, s->typeName, toCompletionKind(s->kind)
-					});
+				result.items.push_back({ s->name, s->name, s->typeName, toCompletionKind(s->kind)});
 			}
 		}
 
@@ -244,10 +238,7 @@ namespace Frostnux {
 			{
 				if (!startsWith(s->name, prefix)) continue;
 				if (alreadyContains(result.items, s->name)) continue;
-				result.items.push_back(
-				{
-					s->name, s->name, s->typeName, toCompletionKind(s->kind)
-				});
+				result.items.push_back({ s->name, s->name, s->typeName, toCompletionKind(s->kind) });
 			}
 		}
 

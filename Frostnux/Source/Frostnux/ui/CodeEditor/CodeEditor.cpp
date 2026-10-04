@@ -193,9 +193,61 @@ namespace Frostnux {
 		const unsigned int cp = e.GetCharCode();
 		if (cp == 0 || cp < 32) return false;
 
-		insertText(*t, std::u32string(1, static_cast<char32_t>(cp)));
-
 		const char32_t c = static_cast<char32_t>(cp);
+
+		static const std::u32string kOpens = U"([{\"'";
+		static const std::u32string kCloses = U")]}\"'";
+
+		char32_t closeCh = 0;
+		for (size_t k = 0; k < kOpens.size(); ++k)
+		{
+			if (kOpens[k] == c) { closeCh = kCloses[k]; break; }
+		}
+
+		if (closeCh != 0)
+		{
+			const Position pos = t->selection.active();
+			auto line = t->buffer.line(pos.line);
+
+			if (c == U'"' || c == U'\'')
+			{
+				if (pos.col > 0)
+				{
+					const char32_t prev = line[pos.col - 1];
+					const bool wordPrev = (prev >= U'a' && prev <= U'z') || (prev >= U'A' && prev <= U'Z') || (prev >= U'0' && prev <= U'9') || prev == U'_';
+					if (wordPrev)
+					{
+						insertText(*t, std::u32string(1, c));
+						cancelCompletion();
+						return true;
+					}
+				}
+			}
+
+			if (pos.col < static_cast<int>(line.size()) && line[pos.col] == closeCh)
+			{
+				Position next { pos.line, pos.col + 1 };
+				t->selection.clear(next);
+				t->desiredCol = next.col;
+				cancelCompletion();
+				return true;
+			}
+
+			std::u32string pair;
+			pair += c;
+			pair += closeCh;
+			insertText(*t, pair);
+
+			const Position cur = t->selection.active();
+			Position mid { cur.line, cur.col - 1 };
+			t->selection.clear(mid);
+			t->desiredCol = mid.col;
+			cancelCompletion();
+			return true;
+		}
+
+		insertText(*t, std::u32string(1, c));
+
 		const Position pos = t->selection.active();
 		const auto line = t->buffer.line(pos.line);
 
@@ -204,9 +256,9 @@ namespace Frostnux {
 			shouldTrigger = true;
 		else if (c == U'.')
 			shouldTrigger = true;
-		else if (c == U'>' && pos.col >= 2 && line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(pos.col) - 2] == U'-')
+		else if (c == U'>' && pos.col >= 2 && line[static_cast<size_t>(pos.col) - 2] == U'-')
 			shouldTrigger = true;
-		else if (c == U':' && pos.col >= 2 && line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(pos.col) - 2] == U':')
+		else if (c == U':' && pos.col >= 2 && line[static_cast<size_t>(pos.col) - 2] == U':')
 			shouldTrigger = true;
 
 		if (shouldTrigger)	triggerCompletion(false);
@@ -373,14 +425,35 @@ namespace Frostnux {
 	void CodeEditor::backspace(Tab& t)
 	{
 		if (!t.selection.empty()) { deleteSelection(t); return; }
+
 		const Position p = t.selection.active();
 		if (p.line == 0 && p.col == 0) return;
 
+		if (p.col > 0)
+		{
+			auto line = t.buffer.line(p.line);
+			if (p.col < static_cast<int>(line.size()))
+			{
+				const char32_t before = line[p.col - 1];
+				const char32_t after = line[p.col];
+
+				const bool pair = (before == U'(' && after == U')') || (before == U'[' && after == U']') || (before == U'{' && after == U'}') || (before == U'"' && after == U'"') || (before == U'\'' && after == U'\'');
+
+				if (pair)
+				{
+					Position start{ p.line, p.col - 1 };
+					Position end{ p.line, p.col + 1 };
+					applyEdit(t, start, end, U"");
+					return;
+				}
+			}
+		}
+
 		Position start;
 		if (p.col == 0)
-			start = Position{ p.line - 1, static_cast<int>(t.buffer.line(p.line - 1).size()) };
+			start = Position { p.line - 1, static_cast<int>(t.buffer.line(p.line - 1).size()) };
 		else
-			start = Position{ p.line, p.col - 1 };
+			start = Position { p.line, p.col - 1 };
 		applyEdit(t, start, p, U"");
 	}
 
@@ -399,13 +472,46 @@ namespace Frostnux {
 
 	void CodeEditor::newline(Tab& t)
 	{
-		const auto l = t.buffer.line(t.selection.active().line);
+		if (!t.selection.empty())
+			deleteSelection(t);
+
+		const Position cur = t.selection.active();
+		auto line = t.buffer.line(cur.line);
+
 		std::u32string indent;
-		for (char32_t c : l)
+		for (char32_t ch : line)
 		{
-			if (c == U' ' || c == U'\t') indent += c;
+			if (ch == U' ' || ch == U'\t') indent += ch;
 			else break;
 		}
+
+		const bool afterOpenBrace = cur.col > 0 && cur.col <= static_cast<int>(line.size()) && line[static_cast<size_t>(cur.col) - 1] == U'{';
+
+		const bool beforeCloseBrace = cur.col < static_cast<int>(line.size()) && line[cur.col] == U'}';
+
+		if (afterOpenBrace && beforeCloseBrace)
+		{
+			std::u32string inner = indent + U"    ";
+			std::u32string repl = U"\n";
+			repl += inner;
+			repl += U"\n";
+			repl += indent;
+			repl += U"}";
+
+			Position to { cur.line, cur.col + 1 };
+			applyEdit(t, cur, to, repl);
+
+			const Position after = t.selection.active();
+			Position mid{ after.line - 1, static_cast<int>(inner.size()) };
+			t.selection.clear(mid);
+			t.desiredCol = mid.col;
+			ensureCursorVisible(t);
+			return;
+		}
+
+		if (afterOpenBrace)
+			indent += U"    ";
+
 		std::u32string text = U"\n";
 		text += indent;
 		insertText(t, text);
