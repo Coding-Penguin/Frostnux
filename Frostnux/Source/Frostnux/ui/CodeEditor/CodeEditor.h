@@ -13,6 +13,7 @@
 
 #include "Completion.h"
 #include "Navigation.h"
+#include "ProjectIndex.h"
 
 namespace Frostnux {
 
@@ -48,11 +49,14 @@ namespace Frostnux {
 		void closeTab(int idx);
 		void switchTab(int dir);
 		Tab* activeTab();
+		Tab& newFile(const std::string& title = "Untitled");
 		[[nodiscard]] int activeIndex()	const { return m_Active; }
 		[[nodiscard]] int tabCount()	const { return static_cast<int>(m_Tabs.size()); }
 
 		void update(double dt, double now);
 		void render(float x, float y, float w, float h);
+
+		void SetProjectIndex(ProjectIndex* idx) { m_ProjectIndex = idx; }
 
 		[[nodiscard]] EditorTheme& theme() { return m_Theme; }
 		[[nodiscard]] const EditorTheme& theme() const { return m_Theme; }
@@ -66,6 +70,11 @@ namespace Frostnux {
 		void SetSaveAsDialog(std::function<std::string()> fn)
 		{
 			m_SaveAsDialog = std::move(fn);
+		}
+
+		void SetCtrlStateGetter(std::function<bool()> fn)
+		{
+			m_IsCtrlDown = std::move(fn);
 		}
 
 		void SaveActiveTab(bool saveAs = false)
@@ -125,6 +134,7 @@ namespace Frostnux {
 
 		NavigationHistory m_Nav;
 		void goToDefinition();
+		void jumpTo(Tab* target, int line, int col);
 		void navBack();
 		void navForward();
 		NavLocation captureNavLocation();
@@ -139,6 +149,11 @@ namespace Frostnux {
 		Position		m_LastCursorPos;
 
 		std::function<std::string()> m_SaveAsDialog;
+
+		std::function<bool()> m_IsCtrlDown;
+
+		ProjectIndex* m_ProjectIndex = nullptr;
+		Tab* FindTabByPath(const std::string& path);
 
 		bool saveTab(Tab& t, bool saveAs);
 

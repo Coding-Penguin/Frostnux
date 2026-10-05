@@ -3,6 +3,7 @@
 #include "uiTools/uiStatusBar.h"
 #include "uiTools/uiShortcutBar.h"
 #include "uiTools/PropertiesWindow.h"
+#include "CodeEditor/ProjectIndex.h"
 #include "CodeEditor/CodeEditor.h"
 #include "CodeEditor/GLRenderer.h"
 #include "Frostnux/FontManager.h"
@@ -40,6 +41,7 @@ namespace Frostnux {
 
 		GLRenderer m_EditorRenderer;
 		CodeEditor m_Editor { &m_EditorRenderer };
+		ProjectIndex m_ProjectIndex;
 	};
 
 }

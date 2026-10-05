@@ -96,6 +96,7 @@ namespace Frostnux {
 
 	Application::~Application()
 	{
+		SettingsManager::Get().Save();
 		TextRenderer::Get().Unload();
 
 		m_MainWindow.reset();

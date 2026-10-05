@@ -24,6 +24,18 @@ namespace Frostnux {
 		return ref;
 	}
 
+	Tab& CodeEditor::newFile(const std::string& title)
+	{
+		auto t = std::make_unique<Tab>();
+		t->title = utf8_to_u32(title);
+
+		Tab& ref = *t;
+		m_Tabs.push_back(std::move(t));
+		m_Active = static_cast<int>(m_Tabs.size()) - 1;
+		ref.invalidateHighlight();
+		return ref;
+	}
+
 	Tab* CodeEditor::openFile(const std::string& path)
 	{
 		for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i)
@@ -206,6 +218,32 @@ namespace Frostnux {
 
 		if (closeCh != 0)
 		{
+			if (!t->selection.empty())
+			{
+				const Position s = t->selection.start();
+				const Position epos = t->selection.end();
+				const std::u32string sel = t->buffer.getText(s, epos);
+
+				std::u32string wrapped;
+				wrapped.reserve(sel.size() + 2);
+				wrapped += c;
+				wrapped += sel;
+				wrapped += closeCh;
+
+				applyEdit(*t, s, epos, wrapped);
+
+				const Position after = t->selection.active();
+				if (after.col > 0)
+				{
+					Position target { after.line, after.col - 1 };
+					t->selection.clear(target);
+					t->desiredCol = target.col;
+					ensureCursorVisible(*t);
+				}
+				cancelCompletion();
+				return true;
+			}
+
 			const Position pos = t->selection.active();
 			auto line = t->buffer.line(pos.line);
 
@@ -226,7 +264,7 @@ namespace Frostnux {
 
 			if (pos.col < static_cast<int>(line.size()) && line[pos.col] == closeCh)
 			{
-				Position next { pos.line, pos.col + 1 };
+				Position next{ pos.line, pos.col + 1 };
 				t->selection.clear(next);
 				t->desiredCol = next.col;
 				cancelCompletion();
@@ -289,8 +327,7 @@ namespace Frostnux {
 
 				const float closeX = tx + w - kCloseSize - 6.0f;
 				const float closeY = m_vpY + (m_TabBarH - kCloseSize) * 0.5f;
-				if (x >= closeX - 4.0f && x <= closeX + kCloseSize + 4.0f
-					&& y >= closeY && y <= closeY + kCloseSize)
+				if (x >= closeX - 4.0f && x <= closeX + kCloseSize + 4.0f && y >= closeY && y <= closeY + kCloseSize)
 				{
 					closeTab(i);
 					return true;
@@ -314,6 +351,28 @@ namespace Frostnux {
 		if (t.hbar.hitTest(x, y)) { t.hbar.onMouseDown(x, y); applyScrollFromBars(t); return true; }
 
 		const Position p = pixelToPosition(t, x, y);
+
+		if (m_IsCtrlDown && m_IsCtrlDown())
+		{
+			auto line = t.buffer.line(p.line);
+			if (p.col < static_cast<int>(line.size()) && CompletionEngine::isIdentifierChar(line[p.col]))
+			{
+				int s = p.col;
+				int e2 = p.col;
+				while (s > 0 && CompletionEngine::isIdentifierChar(line[s - 1])) --s;
+				while (e2 < static_cast<int>(line.size()) && CompletionEngine::isIdentifierChar(line[e2])) ++e2;
+
+				std::u32string name(line.substr(s, e2 - s));
+				if (t.symbols.findSymbolAnywhere(name))
+				{
+					t.selection.clear(p);
+					t.desiredCol = p.col;
+					goToDefinition();
+					return true;
+				}
+			}
+		}
+
 		t.selection.set(p, p);
 		t.desiredCol = p.col;
 		m_Dragging = true;
@@ -1323,30 +1382,77 @@ namespace Frostnux {
 		Tab* t = activeTab();
 		if (!t) return;
 
-		const Position pos = t->selection.active();
-		auto line = t->buffer.line(pos.line);
+		const Position cursor = t->selection.active();
+		auto line = t->buffer.line(cursor.line);
 		if (line.empty()) return;
 
-		int s = std::clamp(pos.col, 0, static_cast<int>(line.size()));
+		int s = std::clamp(cursor.col, 0, static_cast<int>(line.size()));
 		int e = s;
-		while (s > 0 && CompletionEngine::isIdentifierChar(line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(s) - 1])) --s;
-		while (e < static_cast<int>(line.size()) && CompletionEngine::isIdentifierChar(line[e]))
-			++e;
+		while (s > 0 && CompletionEngine::isIdentifierChar(line[static_cast<size_t>(s) - 1])) --s;
+		while (e < static_cast<int>(line.size()) && CompletionEngine::isIdentifierChar(line[e])) ++e;
 		if (s == e) return;
 
-		std::u32string name(line.substr(s, e - s));
+		const std::u32string name(line.substr(s, e - s));
 
-		const Symbol* sym = t->symbols.findSymbolAnywhere(name);
-		if (!sym) return;
+		if (const Symbol* sym = t->symbols.findSymbolAnywhere(name))
+		{
+			jumpTo(t, sym->line, sym->col);
+			return;
+		}
 
-		m_Nav.push(captureNavLocation());
+		if (m_ProjectIndex && !t->path.empty() && m_ProjectIndex->IsIndexed(t->path))
+		{
+			auto matches = m_ProjectIndex->FindSymbol(name, t->path, 8);
+			if (!matches.empty())
+			{
+				const SymbolMatch& m = matches[0];
 
-		Position target { sym->line, sym->col };
-		t->selection.clear(target);
-		t->desiredCol = target.col;
-		ensureCursorVisible(*t);
+				if (Tab* target = FindTabByPath(m.filePath))
+				{
+					jumpTo(target, m.symbol->line, m.symbol->col);
+					return;
+				}
 
-		m_Nav.push(captureNavLocation());
+				NavLocation from;
+				from.tab = t;
+				from.pos = cursor;
+				from.scrollX = t->scrollX;
+				from.scrollY = t->scrollY;
+				m_Nav.push(from);
+
+				Tab* target = openFile(m.filePath);
+				if (!target) return;
+
+				Position p{ m.symbol->line, m.symbol->col };
+				p = target->buffer.clamp(p);
+				target->selection.clear(p);
+				target->desiredCol = p.col;
+				ensureCursorVisible(*target);
+
+				m_Nav.push(captureNavLocation());
+				return;
+			}
+		}
+
+		for (auto& other : m_Tabs)
+		{
+			if (other.get() == t) continue;
+			if (const Symbol* sym = other->symbols.findSymbolAnywhere(name))
+			{
+				jumpTo(other.get(), sym->line, sym->col);
+				return;
+			}
+		}
+	}
+
+	Tab* CodeEditor::FindTabByPath(const std::string& path)
+	{
+		if (path.empty()) return nullptr;
+		for (auto& t : m_Tabs)
+		{
+			if (t->path == path) return t.get();
+		}
+		return nullptr;
 	}
 
 	void CodeEditor::navBack()
@@ -1551,7 +1657,6 @@ namespace Frostnux {
 			t.title = utf8_to_u32(base);
 		}
 
-		// 逐行拼成 UTF-8
 		std::string out;
 		out.reserve(1024);
 		const int n = t.buffer.lineCount();
@@ -1568,6 +1673,30 @@ namespace Frostnux {
 
 		t.dirty = false;
 		return true;
+	}
+
+	void CodeEditor::jumpTo(Tab* target, int line, int col)
+	{
+		if (!target) return;
+
+		m_Nav.push(captureNavLocation());
+
+		for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i)
+		{
+			if (m_Tabs[i].get() == target)
+			{
+				m_Active = i;
+				break;
+			}
+		}
+
+		Position p { line, col };
+		p = target->buffer.clamp(p);
+		target->selection.clear(p);
+		target->desiredCol = p.col;
+		ensureCursorVisible(*target);
+
+		m_Nav.push(captureNavLocation());
 	}
 
 }

@@ -56,12 +56,12 @@ namespace Frostnux {
 			{ "new", "N", j.value("NewFile", "New File"), [this]()
 				{
 					FX_CORE_INFO("New File");
-					m_Editor.addTab("Untitled.cpp");
+					m_Editor.newFile("Untitled.cpp");
 				}
 			},
 			{ "open", "O", j.value("OpenFile", "Open File"), [this]()
 				{
-					FX_CORE_INFO("Open Fiel");
+					FX_CORE_INFO("Open File");
 					const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
 					if (!path.empty()) m_Editor.openFile(path);
 				}
@@ -113,9 +113,9 @@ namespace Frostnux {
 		m_ShortcutBar->AddGroup(editGroup, true);
 		m_ShortcutBar->AddGroup(buildGroup, true);
 		m_ShortcutBar->AddGroup(bookmarkGroup, false);
-
+		
 		uiWindow::InitDockSystem(0.0f, 130.0f, width, height - 130.0f - 35.0f);
-
+		/*
 		auto* properties = new PropertiesWindow(j.value("Properties", "Properties"));
 		auto* fileExplorer = new FileExplorer(j.value("FileExplorer", "FileExplorer"), s_RootPath, properties);
 		fileExplorer->SetFileOpenCallback([this](const std::string& path)
@@ -127,8 +127,9 @@ namespace Frostnux {
 		auto* notifications = new uiWindow(j.value("Notifications", "Notifications"));
 
 		m_Windows.push_back(fileExplorer);
+		m_Windows.push_back(properties);
 
-		uiWindow::DockWindow(fileExplorer, DockRegion::Left);
+		uiWindow::DockWindow(fileExplorer, DockRegion::Left);*/
 
 		for (auto* win : m_Windows)
 		{
@@ -160,24 +161,18 @@ namespace Frostnux {
 			{
 				return SaveFileDialog("untitled.cpp", "C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
 			});
-
-		auto& tab = m_Editor.addTab("Untitled.cpp");
-		tab.buffer.setText(utf8_to_u32(
-			"class Foo {\n"
-			"public:\n"
-			"    int x;\n"
-			"    void bar();\n"
-			"};\n"
-			"\n"
-			"Foo obj;\n"
-			"\n"
-			"void test() {\n"
-			"    Foo f;\n"
-			"    obj.x = 1;\n"
-			"    obj.bar();\n"
-			"}\n"
-		));
-		tab.invalidateHighlight();
+		m_Editor.SetCtrlStateGetter([]() -> bool
+			{
+				auto* win = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+				if (!win) return false;
+				return glfwGetKey(win, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(win, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS;
+			});
+		
+		// Scan the project index
+		m_ProjectIndex.SetRoot(s_RootPath);
+		m_ProjectIndex.Scan();
+		m_Editor.SetProjectIndex(&m_ProjectIndex);
+		FX_CORE_INFO("ProjectIndex: indexed {} files", m_ProjectIndex.FileCount());
 	}
 
 	void uiLayer::OnDetach() 
