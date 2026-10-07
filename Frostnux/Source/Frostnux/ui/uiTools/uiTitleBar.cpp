@@ -3,7 +3,7 @@
 #include "PhotoRenderer.h"
 #include "TextRenderer.h"
 #include "uiButton.h"
-#include "Frostnux/Application.h"
+#include "Frostnux/Core/Application.h"
 #include "Frostnux/Events/Event.h"
 #ifdef FX_PLATFORM_WINDOWS
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -12,8 +12,8 @@
 #include <GLFW/glfw3native.h>
 #include <GLFW/glfw3.h>
 
-#include "Frostnux/FontManager.h"
-#include "Frostnux/LicenseManager.h"
+#include "Frostnux/Core/FontManager.h"
+#include "Frostnux/Core/LicenseManager.h"
 
 namespace Frostnux
 {

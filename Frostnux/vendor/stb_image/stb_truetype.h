@@ -3822,7 +3822,7 @@ static int stbtt_BakeFontBitmap_internal(unsigned char *data, int offset,  // fo
    f.userdata = NULL;
    if (!stbtt_InitFont(&f, data, offset))
       return -1;
-   STBTT_memset(pixels, 0, pw*ph); // background of 0 around pixels
+   STBTT_memset(pixels, 0, pw * ph); // background of 0 around pixels
    x=y=1;
    bottom_y = 1;
 

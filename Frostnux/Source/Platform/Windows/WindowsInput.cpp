@@ -3,7 +3,7 @@
 
 #include <glad/glad.h>
 #include "GLFW/glfw3.h"
-#include "Frostnux/Application.h"
+#include "Frostnux/Core/Application.h"
 
 namespace Frostnux {
 

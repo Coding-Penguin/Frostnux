@@ -1,7 +1,7 @@
 #pragma once
 #include <fxpch.h>
 
-#include "Frostnux/Core.h"
+#include "Frostnux/Core/Core.h"
 
 namespace Frostnux {
 

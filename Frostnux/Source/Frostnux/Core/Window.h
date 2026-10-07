@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core.h"
-#include "Events/Event.h"
+#include "Frostnux/Events/Event.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>

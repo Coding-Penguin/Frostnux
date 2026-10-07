@@ -1,5 +1,5 @@
 #pragma once
-#include "ui/uiTools/TextRenderer.h"
+#include "Frostnux/ui/uiTools/TextRenderer.h"
 #include <unordered_map>
 #include <string>
 
@@ -20,8 +20,8 @@ namespace Frostnux {
 
 		bool LoadFont(const std::string& name, const std::string& filepath, float size, FontStyle style = FontStyle::Regular);
 		TextRenderer* GetFont(const std::string& name, FontStyle style = FontStyle::Regular);
+		bool AddFallback(const std::string& name, const std::string& filepath, FontStyle style = FontStyle::Regular);
 		void UnloadAll();
-
 	private:
 		FontManager() = default;
 		~FontManager() = default;

@@ -100,6 +100,8 @@ namespace Frostnux {
 		Renderer*	m_Renderer = nullptr;
 		EditorTheme	m_Theme;
 
+		float m_CloseButtonXOffset = 20.0f;
+
 		std::vector<std::unique_ptr<Tab>> m_Tabs;
 		int m_Active = -1;
 
@@ -178,13 +180,14 @@ namespace Frostnux {
 		void applyScrollFromBars(Tab& t);
 		void ensureCursorVisible(Tab& t);
 
-		void applyEdit(Tab& t, Position from, Position to, std::u32string_view text);
+		void applyEdit(Tab& t, Position from, Position to, std::u32string_view text) const;
 		void insertText(Tab& t, std::u32string_view text);
 		void deleteSelection(Tab& t);
 		void backspace(Tab& t);
 		void deleteForward(Tab& t);
 		void newline(Tab& t);
 		void tabKey(Tab& t, bool shift);
+		void indentLines(Tab& t, int lineFrom, int lineTo, int delta);
 		void moveCursor(Tab& t, Position p, bool selecting);
 		void moveLeft(Tab& t, bool selecting, bool byWord);
 		void moveRight(Tab& t, bool selecting, bool byWord);
@@ -208,6 +211,63 @@ namespace Frostnux {
 		void drawCurrentLine(Tab& t, float textX, float textY, float textW);
 		void drawCursor(Tab& t, float textX, float textY, float textH);
 		void drawScrollBars(Tab& t);
+
+		struct SearchMatch
+		{
+			int line = 0;
+			int col = 0;
+			int len = 0;
+		};
+
+		struct SearchState
+		{
+			bool active = false;
+			bool replaceMode = false;
+			int  focusedField = 0;             // 0 = query, 1 = replace
+
+			std::u32string query;
+			std::u32string replaceText;
+			int queryCursor = 0;
+			int replaceCursor = 0;
+
+			bool caseSensitive = false;
+			bool wholeWord = false;
+			bool usePattern = false;
+
+			std::vector<SearchMatch> matches;
+			int  currentMatch = -1;
+
+			float panelX = 0, panelY = 0, panelW = 0, panelH = 0;
+			float queryBoxX = 0, queryBoxY = 0, queryBoxW = 0, queryBoxH = 0;
+			float replaceBoxX = 0, replaceBoxY = 0, replaceBoxW = 0, replaceBoxH = 0;
+			float closeBtnX = 0, closeBtnY = 0, closeBtnSize = 0;
+			float nextBtnX = 0, prevBtnX = 0, caseBtnX = 0;
+			float wordBtnX = 0, patternBtnX = 0;
+			float replaceBtnX = 0, replaceAllBtnX = 0;
+			float btnY = 0, btnSize = 0;
+		};
+
+		SearchState m_Search;
+
+		void openSearch(bool replaceMode);
+		void closeSearch();
+		void performSearch(Tab& t);
+		void gotoMatch(Tab& t, int idx);
+		void gotoNextMatch(Tab& t);
+		void gotoPrevMatch(Tab& t);
+		void replaceCurrentMatch(Tab& t);
+		void replaceAllMatches(Tab& t);
+		bool handleSearchClick(float x, float y);
+
+		void searchInputChar(char32_t c);
+		void searchInputBackspace();
+		void searchInputDelete();
+		void searchInputMoveLeft();
+		void searchInputMoveRight();
+
+		void drawSearchPanel(Tab& t);
+		void drawSearchHighlights(Tab& t, float textX, float textY, float textW, float textH);
+		void drawSearchBtn(float x, float y, float w, float h, std::u32string_view label, bool active);
 	};
 
 }

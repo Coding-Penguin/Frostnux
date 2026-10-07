@@ -1,12 +1,12 @@
 #pragma once
-#include "Frostnux/Layer.h"
+#include "Frostnux/Core/Layer.h"
 #include "uiTools/uiStatusBar.h"
 #include "uiTools/uiShortcutBar.h"
 #include "uiTools/PropertiesWindow.h"
 #include "CodeEditor/ProjectIndex.h"
 #include "CodeEditor/CodeEditor.h"
 #include "CodeEditor/GLRenderer.h"
-#include "Frostnux/FontManager.h"
+#include "Frostnux/Core/FontManager.h"
 
 #include <vector>
 

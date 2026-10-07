@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Events/Event.h"
-#include "Events/ApplicationEvent.h"
+#include "Frostnux/Events/Event.h"
+#include "Frostnux/Events/ApplicationEvent.h"
 #include "Window.h"
 #include "LayerStack.h"
 

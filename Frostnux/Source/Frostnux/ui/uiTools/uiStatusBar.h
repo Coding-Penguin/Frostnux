@@ -1,5 +1,5 @@
 #pragma once
-#include "Frostnux/Layer.h"
+#include "Frostnux/Core/Layer.h"
 
 namespace Frostnux {
 
@@ -19,7 +19,7 @@ namespace Frostnux {
 		void SetProgress(float progress);
 	private:
 		void DrawText();
-		void DrawProgress();
+		void DrawProgress() const;
 
 		std::string m_StatusText;
 

@@ -9,7 +9,7 @@
 #include <GLFW/glfw3native.h> 
 #include <glad/glad.h>
 
-#include "Frostnux/Log.h"
+#include "Frostnux/Core/Log.h"
 
 #include "Frostnux/Events/ApplicationEvent.h"
 #include "Frostnux/Events/KeyEvent.h"
@@ -17,7 +17,7 @@
 
 #include "Frostnux/ui/uiLayer.h"
 
-#include "Frostnux/Application.h"
+#include "Frostnux/Core/Application.h"
 
 #include <stb_image.h>
 
@@ -410,7 +410,7 @@ namespace Frostnux {
 			return;
 		}
 
-		GLFWimage image;
+		GLFWimage image{};
 		image.width = width;
 		image.height = height;
 		image.pixels = data;

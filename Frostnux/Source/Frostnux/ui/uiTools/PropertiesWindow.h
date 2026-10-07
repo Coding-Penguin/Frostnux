@@ -29,7 +29,7 @@ namespace Frostnux {
 		float m_ItemHeight = 25.0f;
 
 		void DrawProperties();
-		void DrawPropertyItem(const PropertyItem& item, float x, float y, float width);
+		void DrawPropertyItem(const PropertyItem& item, float x, float y, float width) const;
 	};
 
 }

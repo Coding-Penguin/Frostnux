@@ -48,5 +48,9 @@
 	"FileExplorer": "File Explorer",
 	"Properties": "Properties",
 	"Notifications": "Notifications",
-	"Output": "Output"
+	"Output": "Output",
+
+	"Find": "Find",
+	"Replace": "Replace",
+	"ReplaceAll": "Replace All"
 }

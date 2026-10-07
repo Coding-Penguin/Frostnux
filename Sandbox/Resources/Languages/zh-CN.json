@@ -48,5 +48,9 @@
 	"FileExplorer": "文件资源管理器",
 	"Properties": "属性",
 	"Notifications": "通知",
-	"Output": "输出"
+	"Output": "输出",
+
+	"Find": "查找",
+	"Replace": "替换",
+	"ReplaceAll": "全部替换"
 }

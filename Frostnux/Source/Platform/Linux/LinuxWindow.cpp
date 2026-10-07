@@ -16,12 +16,12 @@
 	#include <X11/Xatom.h>
 #endif
 
-#include "Frostnux/Log.h"
+#include "Frostnux/Core/Log.h"
 #include "Frostnux/Events/ApplicationEvent.h"
 #include "Frostnux/Events/KeyEvent.h"
 #include "Frostnux/Events/MouseEvent.h"
 
-#include "Frostnux/Application.h"
+#include "Frostnux/Core/Application.h"
 
 #include <stb_image.h>
 

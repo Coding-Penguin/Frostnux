@@ -1,10 +1,10 @@
 #include <fxpch.h>
 #include "FileExplorer.h"
 #include "TextRenderer.h"
-#include "Frostnux/Log.h"
+#include "Frostnux/Core/Log.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "Frostnux/Application.h"
+#include "Frostnux/Core/Application.h"
 #include "../uiLayer.h"
 #include "Frostnux/Events/Event.h"
 #include "Frostnux/Events/MouseEvent.h"
@@ -674,7 +674,7 @@ namespace Frostnux {
 		setState(m_RootNode);
 	}
 
-	void FileExplorer::SaveState()
+	void FileExplorer::SaveState() const
 	{
 		std::unordered_map<std::string, bool> expandedState;
 		std::function<void(const FileNode&)> collectExpanded = [&](const FileNode& n)

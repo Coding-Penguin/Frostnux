@@ -1,12 +1,12 @@
 #include <fxpch.h>
 #include "uiLayer.h"
 #include "uiTools/ui.h"
-#include "Frostnux/Log.h"
-#include "Frostnux/Application.h"
+#include "Frostnux/Core/Log.h"
+#include "Frostnux/Core/Application.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "Frostnux/SettingsManager.h"
-#include "Frostnux/FileDialog.h"
+#include "Frostnux/Core/SettingsManager.h"
+#include "Frostnux/Core/FileDialog.h"
 
 namespace Frostnux {
 
@@ -143,6 +143,11 @@ namespace Frostnux {
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Bold.ttf", codeSize, FontStyle::Bold);
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-Italic.ttf", codeSize, FontStyle::Italic);
 		fm.LoadFont("code", "Resources/Fonts/CascadiaCode-BoldItalic.ttf", codeSize, FontStyle::BoldItalic);
+		// Fallback
+		fm.AddFallback("code", "Resources/Fonts/SourceHanSansSC-Normal.otf", FontStyle::Regular);
+		fm.AddFallback("code", "Resources/Fonts/SourceHanSansSC-Bold.otf", FontStyle::Bold);
+		fm.AddFallback("code", "Resources/Fonts/SourceHanSansSC-Regular.otf", FontStyle::Italic);
+		fm.AddFallback("code", "Resources/Fonts/SourceHanSansSC-Heavy.otf", FontStyle::BoldItalic);
 
 		m_Editor.SetClipboardFunctions([]() -> std::string
 			{

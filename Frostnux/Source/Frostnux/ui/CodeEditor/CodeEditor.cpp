@@ -7,6 +7,109 @@
 
 namespace Frostnux {
 
+	namespace {
+
+		char32_t toLowerUnicode(char32_t c)
+		{
+			if (c >= U'A' && c <= U'Z') return c + 32;
+			if (c >= 0x00C0 && c <= 0x00DE && c != 0x00D7) return c + 0x20;
+			if (c >= 0x0100 && c <= 0x017F && (c % 2 == 0)) return c + 1;
+			if (c >= 0x0391 && c <= 0x03A9 && c != 0x03A2) return c + 0x20;
+			if (c >= 0x0410 && c <= 0x042F) return c + 0x20;
+			if (c >= 0x0400 && c <= 0x040F) return c + 0x50;
+			if (c >= 0x0460 && c <= 0x04FF && (c % 2 == 0)) return c + 1;
+			return c;
+		}
+
+		bool isWordBoundary(std::u32string_view line, int col, int len)
+		{
+			if (col > 0 && CompletionEngine::isIdentifierChar(line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(col) - 1]))
+				return false;
+			const int end = col + len;
+			if (end < (int)line.size() && CompletionEngine::isIdentifierChar(line[end]))
+				return false;
+			return true;
+		}
+
+		int globMatchLen(std::u32string_view text, int start, int end, std::u32string_view pat, int pi, bool caseSensitive)
+		{
+			int ti = start;
+			while (pi < (int)pat.size())
+			{
+				char32_t pc = pat[pi];
+
+				if (pc == U'\\' && pi + 1 < (int)pat.size())
+				{
+					if (ti >= end) return -1;
+					char32_t tc = text[ti], lit = pat[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(pi) + 1];
+					if (!caseSensitive) { tc = toLowerUnicode(tc); lit = toLowerUnicode(lit); }
+					if (tc != lit) return -1;
+					++ti; pi += 2;
+				}
+				else if (pc == U'?')
+				{
+					if (ti >= end) return -1;
+					++ti; ++pi;
+				}
+				else if (pc == U'*')
+				{
+					while (pi < (int)pat.size() && pat[pi] == U'*') ++pi;
+					if (pi == (int)pat.size()) return end - start;
+
+					for (int k = ti; k <= end; ++k)
+					{
+						int sub = globMatchLen(text, k, end, pat, pi, caseSensitive);
+						if (sub >= 0) return (k - start) + sub;
+					}
+					return -1;
+				}
+				else
+				{
+					if (ti >= end) return -1;
+					char32_t tc = text[ti];
+					if (!caseSensitive) { tc = toLowerUnicode(tc); pc = toLowerUnicode(pc); }
+					if (tc != pc) return -1;
+					++ti; ++pi;
+				}
+			}
+			return ti - start;
+		}
+
+		std::u32string applyIndent(std::u32string_view line, int delta)
+		{
+			if (delta > 0)
+			{
+				if (line.empty()) return {};
+				std::u32string result;
+				result.reserve(line.size() + 4);
+				result += U"    ";
+				result.append(line);
+				return result;
+			}
+			else
+			{
+				int remove = 0;
+				const int n = static_cast<int>(line.size());
+
+				if (n >= 4 && line[0] == U' ' && line[1] == U' ' && line[2] == U' ' && line[3] == U' ')
+				{
+					remove = 4;
+				}
+				else if (n > 0 && line[0] == U'\t')
+				{
+					remove = 1;
+				}
+				else
+				{
+					while (remove < n && line[remove] == U' ') ++remove;
+				}
+
+				return std::u32string(line.substr(remove));
+			}
+		}
+
+	}
+
 	Tab& CodeEditor::addTab(const std::string& path)
 	{
 		auto t = std::make_unique<Tab>();
@@ -105,6 +208,63 @@ namespace Frostnux {
 
 	bool CodeEditor::onKeyPressed(KeyPressedEvent& e)
 	{
+		const int	rawKey = e.GetKeyCode();
+		const int	rawMods = e.GetMods();
+		const bool	rawCtrl = (rawMods & FX_KEY_CONTROL) != 0;
+		const bool	rawShift = (rawMods & FX_KEY_SHIFT) != 0;
+
+		if (rawCtrl && rawKey == FX_KEY_F) { openSearch(false); return true; }
+		if (rawCtrl && rawKey == FX_KEY_H) { openSearch(true);  return true; }
+
+		if (m_Search.active)
+		{
+			Tab* tp = activeTab();
+
+			if (rawKey == FX_KEY_ESCAPE) { closeSearch(); return true; }
+
+			if (rawKey == FX_KEY_ENTER && tp)
+			{
+				if (m_Search.replaceMode && m_Search.focusedField == 1)
+					replaceCurrentMatch(*tp);
+				else if (rawShift)
+					gotoPrevMatch(*tp);
+				else
+					gotoNextMatch(*tp);
+				return true;
+			}
+
+			if (rawKey == FX_KEY_F3 && tp)
+			{
+				if (rawShift) gotoPrevMatch(*tp);
+				else          gotoNextMatch(*tp);
+				return true;
+			}
+
+			if (rawKey == FX_KEY_TAB)
+			{
+				if (m_Search.replaceMode)
+					m_Search.focusedField = 1 - m_Search.focusedField;
+				return true;
+			}
+
+			if (rawKey == FX_KEY_BACKSPACE) { searchInputBackspace(); return true; }
+			if (rawKey == FX_KEY_DELETE) { searchInputDelete();    return true; }
+			if (rawKey == FX_KEY_LEFT) { searchInputMoveLeft();  return true; }
+			if (rawKey == FX_KEY_RIGHT) { searchInputMoveRight(); return true; }
+			if (rawKey == FX_KEY_HOME)
+			{
+				if (m_Search.focusedField == 0)	m_Search.queryCursor = 0;
+				else							m_Search.replaceCursor = 0;
+				return true;
+			}
+			if (rawKey == FX_KEY_END)
+			{
+				if (m_Search.focusedField == 0)	m_Search.queryCursor = (int)m_Search.query.size();
+				else							m_Search.replaceCursor = (int)m_Search.replaceText.size();
+				return true;
+			}
+		}
+
 		if (m_Comp.active)
 		{
 			const int key = e.GetKeyCode();
@@ -200,6 +360,14 @@ namespace Frostnux {
 
 	bool CodeEditor::onChar(CharEvent& e)
 	{
+		if (m_Search.active)
+		{
+			const unsigned int cp = e.GetCharCode();
+			if (cp == 0 || cp < 32) return false;
+			searchInputChar(static_cast<char32_t>(cp));
+			return true;
+		}
+
 		Tab* t = activeTab();
 		if (!t) return false;
 		const unsigned int cp = e.GetCharCode();
@@ -251,7 +419,7 @@ namespace Frostnux {
 			{
 				if (pos.col > 0)
 				{
-					const char32_t prev = line[pos.col - 1];
+					const char32_t prev = line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(pos.col) - 1];
 					const bool wordPrev = (prev >= U'a' && prev <= U'z') || (prev >= U'A' && prev <= U'Z') || (prev >= U'0' && prev <= U'9') || prev == U'_';
 					if (wordPrev)
 					{
@@ -313,6 +481,8 @@ namespace Frostnux {
 		const float y = e.GetMouseY();
 		if (!Rect{ m_vpX, m_vpY, m_vpW, m_vpH }.contains(x, y)) return false;
 
+		if (m_Search.active && handleSearchClick(x, y)) return true;
+
 		if (y < m_vpY + m_TabBarH)
 		{
 			constexpr float kPadLeft = 12.0f;
@@ -323,7 +493,7 @@ namespace Frostnux {
 			for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i)
 			{
 				const float titleW = m_Renderer->measureText(m_Tabs[i]->title, m_CharScale);
-				const float w = titleW + kPadLeft + kPadRight;
+				const float w = titleW + kPadLeft + kPadRight + m_CloseButtonXOffset;
 
 				const float closeX = tx + w - kCloseSize - 6.0f;
 				const float closeY = m_vpY + (m_TabBarH - kCloseSize) * 0.5f;
@@ -359,7 +529,7 @@ namespace Frostnux {
 			{
 				int s = p.col;
 				int e2 = p.col;
-				while (s > 0 && CompletionEngine::isIdentifierChar(line[s - 1])) --s;
+				while (s > 0 && CompletionEngine::isIdentifierChar(line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(s) - 1])) --s;
 				while (e2 < static_cast<int>(line.size()) && CompletionEngine::isIdentifierChar(line[e2])) ++e2;
 
 				std::u32string name(line.substr(s, e2 - s));
@@ -428,7 +598,7 @@ namespace Frostnux {
 		return true;
 	}
 
-	void CodeEditor::applyEdit(Tab& t, Position from, Position to, std::u32string_view text)
+	void CodeEditor::applyEdit(Tab& t, Position from, Position to, std::u32string_view text) const
 	{
 		from = t.buffer.clamp(from);
 		to = t.buffer.clamp(to);
@@ -493,7 +663,7 @@ namespace Frostnux {
 			auto line = t.buffer.line(p.line);
 			if (p.col < static_cast<int>(line.size()))
 			{
-				const char32_t before = line[p.col - 1];
+				const char32_t before = line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(p.col) - 1];
 				const char32_t after = line[p.col];
 
 				const bool pair = (before == U'(' && after == U')') || (before == U'[' && after == U']') || (before == U'{' && after == U'}') || (before == U'"' && after == U'"') || (before == U'\'' && after == U'\'');
@@ -532,53 +702,94 @@ namespace Frostnux {
 	void CodeEditor::newline(Tab& t)
 	{
 		if (!t.selection.empty())
+		{
 			deleteSelection(t);
+		}
 
 		const Position cur = t.selection.active();
-		auto line = t.buffer.line(cur.line);
+		const auto line = t.buffer.line(cur.line);
 
 		std::u32string indent;
-		for (char32_t ch : line)
+		for (char32_t c : line)
 		{
-			if (ch == U' ' || ch == U'\t') indent += ch;
+			if (c == U' ' || c == U'\t') indent += c;
 			else break;
 		}
 
-		const bool afterOpenBrace = cur.col > 0 && cur.col <= static_cast<int>(line.size()) && line[static_cast<size_t>(cur.col) - 1] == U'{';
-
-		const bool beforeCloseBrace = cur.col < static_cast<int>(line.size()) && line[cur.col] == U'}';
-
-		if (afterOpenBrace && beforeCloseBrace)
+		int back = cur.col - 1;
+		while (back >= 0 && (line[back] == U' ' || line[back] == U'\t')) --back;
+		if (back >= 0 && line[back] == U'{')
 		{
-			std::u32string inner = indent + U"    ";
-			std::u32string repl = U"\n";
-			repl += inner;
-			repl += U"\n";
-			repl += indent;
-			repl += U"}";
-
-			Position to { cur.line, cur.col + 1 };
-			applyEdit(t, cur, to, repl);
-
-			const Position after = t.selection.active();
-			Position mid{ after.line - 1, static_cast<int>(inner.size()) };
-			t.selection.clear(mid);
-			t.desiredCol = mid.col;
-			ensureCursorVisible(t);
-			return;
+			indent += U"    ";
 		}
 
-		if (afterOpenBrace)
-			indent += U"    ";
+		int fwd = cur.col;
+		while (fwd < static_cast<int>(line.size()) && (line[fwd] == U' ' || line[fwd] == U'\t')) ++fwd;
+		if (fwd < static_cast<int>(line.size()) && line[fwd] == U'}')
+		{
+			if (indent.size() >= 4) indent.resize(indent.size() - 4);
+		}
 
 		std::u32string text = U"\n";
 		text += indent;
 		insertText(t, text);
 	}
 
-	void CodeEditor::tabKey(Tab& t, bool)
+	void CodeEditor::tabKey(Tab& t, bool shift)
 	{
-		insertText(t, U"    ");
+		const int delta = shift ? -1 : 1;
+
+		if (t.selection.empty())
+		{
+			if (!shift)
+			{
+				insertText(t, U"    ");
+				return;
+			}
+
+			indentLines(t, t.selection.active().line, t.selection.active().line, -1);
+			return;
+		}
+
+		const Position s = t.selection.start();
+		const Position e = t.selection.end();
+		indentLines(t, s.line, e.line, delta);
+	}
+
+	void CodeEditor::indentLines(Tab& t, int lineFrom, int lineTo, int delta)
+	{
+		if (lineFrom < 0 || lineTo < lineFrom) return;
+		if (lineTo >= t.buffer.lineCount()) return;
+
+		const bool hadSelection = !t.selection.empty();
+		const int  origSelStartLine = t.selection.start().line;
+		const int  origSelEndLine = t.selection.end().line;
+
+		std::u32string newText;
+		for (int i = lineFrom; i <= lineTo; ++i)
+		{
+			if (i > lineFrom) newText += U'\n';
+			newText += applyIndent(t.buffer.line(i), delta);
+		}
+
+		Position from { lineFrom, 0 };
+		Position to { lineTo, static_cast<int>(t.buffer.line(lineTo).size()) };
+
+		applyEdit(t, from, to, newText);
+
+		if (hadSelection)
+		{
+			Position newStart { origSelStartLine, 0 };
+			Position newEnd { origSelEndLine, static_cast<int>(t.buffer.line(origSelEndLine).size()) };
+			t.selection.set(newStart, newEnd);
+		}
+		else
+		{
+			const Position cur = t.selection.active();
+			const int newLen = static_cast<int>(t.buffer.line(cur.line).size());
+			t.selection.clear(Position{ cur.line, std::min(cur.col, newLen) });
+			t.desiredCol = t.selection.active().col;
+		}
 	}
 
 	void CodeEditor::moveCursor(Tab& t, Position p, bool selecting)
@@ -916,12 +1127,14 @@ namespace Frostnux {
 
 		drawCurrentLine(*t, textX, textY, textW);
 		drawReferenceHighlights(*t, textX, textY, textW, textH);
+		drawSearchHighlights(*t, textX, textY, textW, textH);
 		drawSelection(*t, textX, textY, textW, textH);
 		drawTextLines(*t, textX, textY, textW, textH);
 		drawGutter(*t, textY, textH);
 		drawCursor(*t, textX, textY, textH);
 		drawScrollBars(*t);
 		drawCompletionPopup(*t, textX, textY, textH);
+		drawSearchPanel(*t);
 	}
 
 	void CodeEditor::drawTabBar()
@@ -942,7 +1155,7 @@ namespace Frostnux {
 		{
 			Tab& tab = *m_Tabs[i];
 			const float titleW = m_Renderer->measureText(tab.title, m_CharScale);
-			const float w = titleW + kPadLeft + kPadRight;
+			const float w = titleW + kPadLeft + kPadRight + m_CloseButtonXOffset;
 
 			if (mouseInTabBar && m_MouseX >= tx && m_MouseX <= tx + w)
 			{
@@ -964,7 +1177,7 @@ namespace Frostnux {
 		{
 			Tab& tab = *m_Tabs[i];
 			const float titleW = m_Renderer->measureText(tab.title, m_CharScale);
-			const float w = titleW + kPadLeft + kPadRight; 
+			const float w = titleW + kPadLeft + kPadRight + m_CloseButtonXOffset;
 			Color bg;
 			if (i == m_Active)
 				bg = m_Theme.tabActive;
@@ -977,7 +1190,7 @@ namespace Frostnux {
 
 			std::u32string title = tab.title;
 			if (tab.dirty) title += U" *";
-			m_Renderer->drawText(title, tx + kPadLeft, m_vpY + 7.0f, m_CharScale, m_Theme.text); 
+			m_Renderer->drawText(title, tx + kPadLeft, m_vpY + 7.0f, m_CharScale, m_Theme.text);
 			const float closeX = tx + w - kCloseSize - 6.0f;
 			const float closeY = m_vpY + (m_TabBarH - kCloseSize) * 0.5f;
 
@@ -1697,6 +1910,452 @@ namespace Frostnux {
 		ensureCursorVisible(*target);
 
 		m_Nav.push(captureNavLocation());
+	}
+
+	void CodeEditor::openSearch(bool replaceMode)
+	{
+		m_Search.active = true;
+		m_Search.replaceMode = replaceMode;
+		m_Search.focusedField = 0;
+
+		Tab* t = activeTab();
+		if (t && !t->selection.empty())
+		{
+			const Position s = t->selection.start();
+			const Position e = t->selection.end();
+			if (s.line == e.line && e.col > s.col)
+			{
+				m_Search.query = std::u32string(t->buffer.line(s.line).substr(s.col, e.col - s.col));
+				m_Search.queryCursor = (int)m_Search.query.size();
+			}
+		}
+
+		if (t) performSearch(*t);
+	}
+
+	void CodeEditor::closeSearch()
+	{
+		m_Search.active = false;
+		m_Search.matches.clear();
+		m_Search.currentMatch = -1;
+	}
+
+	void CodeEditor::performSearch(Tab& t)
+	{
+		m_Search.matches.clear();
+		m_Search.currentMatch = -1;
+
+		if (m_Search.query.empty()) return;
+
+		const bool cs = m_Search.caseSensitive;
+		const bool ww = m_Search.wholeWord;
+
+		if (m_Search.usePattern)
+		{
+			for (int i = 0; i < t.buffer.lineCount(); ++i)
+			{
+				auto line = t.buffer.line(i);
+				const int lineLen = (int)line.size();
+				for (int j = 0; j < lineLen; ++j)
+				{
+					int len = globMatchLen(line, j, lineLen, m_Search.query, 0, cs);
+					if (len <= 0) continue;
+					if (ww && !isWordBoundary(line, j, len)) continue;
+					m_Search.matches.push_back({ i, j, len });
+				}
+			}
+		}
+		else
+		{
+			const int qlen = (int)m_Search.query.size();
+			for (int i = 0; i < t.buffer.lineCount(); ++i)
+			{
+				auto line = t.buffer.line(i);
+				const int lineLen = (int)line.size();
+				if (lineLen < qlen) continue;
+
+				for (int j = 0; j + qlen <= lineLen; ++j)
+				{
+					bool ok = true;
+					for (int k = 0; k < qlen; ++k)
+					{
+						char32_t tc = line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(j) + k];
+						char32_t qc = m_Search.query[k];
+						if (!cs) { tc = toLowerUnicode(tc); qc = toLowerUnicode(qc); }
+						if (tc != qc) { ok = false; break; }
+					}
+					if (!ok) continue;
+					if (ww && !isWordBoundary(line, j, qlen)) continue;
+					m_Search.matches.push_back({ i, j, qlen });
+				}
+			}
+		}
+
+		if (!m_Search.matches.empty()) m_Search.currentMatch = 0;
+	}
+
+	void CodeEditor::gotoMatch(Tab& t, int idx)
+	{
+		if (idx < 0 || idx >= (int)m_Search.matches.size()) return;
+		m_Search.currentMatch = idx;
+
+		const auto& m = m_Search.matches[idx];
+		Position from{ m.line, m.col };
+		Position to{ m.line, m.col + m.len };
+		t.selection.set(from, to);
+		t.desiredCol = m.col;
+		ensureCursorVisible(t);
+	}
+
+	void CodeEditor::gotoNextMatch(Tab& t)
+	{
+		if (m_Search.matches.empty()) return;
+		const int n = (int)m_Search.matches.size();
+		gotoMatch(t, (m_Search.currentMatch + 1) % n);
+	}
+
+	void CodeEditor::gotoPrevMatch(Tab& t)
+	{
+		if (m_Search.matches.empty()) return;
+		const int n = (int)m_Search.matches.size();
+		gotoMatch(t, (m_Search.currentMatch - 1 + n) % n);
+	}
+
+	void CodeEditor::replaceCurrentMatch(Tab& t)
+	{
+		if (m_Search.currentMatch < 0) return;
+		if (m_Search.currentMatch >= (int)m_Search.matches.size()) return;
+
+		const auto& m = m_Search.matches[m_Search.currentMatch];
+		Position from { m.line, m.col };
+		Position to { m.line, m.col + m.len };
+		applyEdit(t, from, to, m_Search.replaceText);
+
+		performSearch(t);
+
+		if (m_Search.currentMatch < (int)m_Search.matches.size() - 1)
+		{
+			m_Search.currentMatch++;
+			gotoMatch(t, m_Search.currentMatch);
+		}
+	}
+
+	void CodeEditor::replaceAllMatches(Tab& t)
+	{
+		if (m_Search.matches.empty()) return;
+
+		for (int i = (int)m_Search.matches.size() - 1; i >= 0; --i)
+		{
+			const auto& m = m_Search.matches[i];
+			Position from { m.line, m.col };
+			Position to { m.line, m.col + m.len };
+			applyEdit(t, from, to, m_Search.replaceText);
+		}
+
+		performSearch(t);
+	}
+
+	void CodeEditor::searchInputChar(char32_t c)
+	{
+		if (m_Search.focusedField == 0)
+		{
+			m_Search.query.insert(m_Search.query.begin() + m_Search.queryCursor, c);
+			m_Search.queryCursor++;
+		}
+		else
+		{
+			m_Search.replaceText.insert(m_Search.replaceText.begin() + m_Search.replaceCursor, c);
+			m_Search.replaceCursor++;
+		}
+
+		if (Tab* t = activeTab()) performSearch(*t);
+	}
+
+	void CodeEditor::searchInputBackspace()
+	{
+		if (m_Search.focusedField == 0)
+		{
+			if (m_Search.queryCursor <= 0) return;
+			m_Search.query.erase(m_Search.query.begin() + m_Search.queryCursor - 1);
+			m_Search.queryCursor--;
+		}
+		else
+		{
+			if (m_Search.replaceCursor <= 0) return;
+			m_Search.replaceText.erase(m_Search.replaceText.begin() + m_Search.replaceCursor - 1);
+			m_Search.replaceCursor--;
+		}
+		if (Tab* t = activeTab()) performSearch(*t);
+	}
+
+	void CodeEditor::searchInputDelete()
+	{
+		if (m_Search.focusedField == 0)
+		{
+			if (m_Search.queryCursor >= (int)m_Search.query.size()) return;
+			m_Search.query.erase(m_Search.query.begin() + m_Search.queryCursor);
+		}
+		else
+		{
+			if (m_Search.replaceCursor >= (int)m_Search.replaceText.size()) return;
+			m_Search.replaceText.erase(m_Search.replaceText.begin() + m_Search.replaceCursor);
+		}
+		if (Tab* t = activeTab()) performSearch(*t);
+	}
+
+	void CodeEditor::searchInputMoveLeft()
+	{
+		if (m_Search.focusedField == 0)
+		{
+			if (m_Search.queryCursor > 0) m_Search.queryCursor--;
+		}
+		else
+		{
+			if (m_Search.replaceCursor > 0) m_Search.replaceCursor--;
+		}
+	}
+
+	void CodeEditor::searchInputMoveRight()
+	{
+		if (m_Search.focusedField == 0)
+		{
+			if (m_Search.queryCursor < (int)m_Search.query.size()) m_Search.queryCursor++;
+		}
+		else
+		{
+			if (m_Search.replaceCursor < (int)m_Search.replaceText.size()) m_Search.replaceCursor++;
+		}
+	}
+
+	bool CodeEditor::handleSearchClick(float x, float y)
+	{
+		if (!m_Search.active) return false;
+
+		const bool inPanel = x >= m_Search.panelX && x <= m_Search.panelX + m_Search.panelW && y >= m_Search.panelY && y <= m_Search.panelY + m_Search.panelH;
+
+		if (!inPanel)
+		{
+			closeSearch();
+			return false;
+		}
+
+		Tab* t = activeTab();
+		if (!t) return true;
+
+		if (x >= m_Search.queryBoxX && x <= m_Search.queryBoxX + m_Search.queryBoxW && y >= m_Search.queryBoxY && y <= m_Search.queryBoxY + m_Search.queryBoxH)
+		{
+			m_Search.focusedField = 0;
+			return true;
+		}
+
+		if (m_Search.replaceMode && x >= m_Search.replaceBoxX && x <= m_Search.replaceBoxX + m_Search.replaceBoxW && y >= m_Search.replaceBoxY && y <= m_Search.replaceBoxY + m_Search.replaceBoxH)
+		{
+			m_Search.focusedField = 1;
+			return true;
+		}
+
+		if (x >= m_Search.closeBtnX && x <= m_Search.closeBtnX + m_Search.closeBtnSize && y >= m_Search.closeBtnY && y <= m_Search.closeBtnY + m_Search.closeBtnSize)
+		{
+			closeSearch();
+			return true;
+		}
+
+		if (y >= m_Search.btnY && y <= m_Search.btnY + m_Search.btnSize)
+		{
+			if (x >= m_Search.nextBtnX && x <= m_Search.nextBtnX + m_Search.btnSize)
+			{
+				gotoNextMatch(*t); return true;
+			}
+			if (x >= m_Search.prevBtnX && x <= m_Search.prevBtnX + m_Search.btnSize)
+			{
+				gotoPrevMatch(*t); return true;
+			}
+			if (x >= m_Search.caseBtnX && x <= m_Search.caseBtnX + m_Search.btnSize)
+			{
+				m_Search.caseSensitive = !m_Search.caseSensitive;
+				performSearch(*t);
+				return true;
+			}
+		}
+
+		if (m_Search.replaceMode && y >= m_Search.replaceBoxY && y <= m_Search.replaceBoxY + m_Search.replaceBoxH)
+		{
+			const float repW = 60.0f;
+			if (x >= m_Search.replaceAllBtnX && x <= m_Search.replaceAllBtnX + repW)
+			{
+				replaceAllMatches(*t); return true;
+			}
+			if (x >= m_Search.replaceBtnX && x <= m_Search.replaceBtnX + repW)
+			{
+				replaceCurrentMatch(*t); return true;
+			}
+		}
+
+		return true;
+	}
+
+	void CodeEditor::drawSearchHighlights(Tab& t, float textX, float textY, float textW, float textH)
+	{
+		(void)textW;
+		if (!m_Search.active || m_Search.matches.empty()) return;
+
+		const Color matchColor { 0.55f, 0.45f, 0.15f, 0.55f };
+		const Color currentColor { 0.85f, 0.55f, 0.10f, 0.85f };
+
+		for (int i = 0; i < (int)m_Search.matches.size(); ++i)
+		{
+			const auto& m = m_Search.matches[i];
+			if (m.line < 0 || m.line >= t.buffer.lineCount()) continue;
+
+			const float y = textY + (float)m.line * m_LineHeight - (float)t.scrollY;
+			if (y + m_LineHeight < textY) continue;
+			if (y > textY + textH) break;
+
+			const float x0 = textX + colToX(t, m.line, m.col) - (float)t.scrollX;
+			const float x1 = textX + colToX(t, m.line, m.col + m.len) - (float)t.scrollX;
+
+			const Color c = (i == m_Search.currentMatch) ? currentColor : matchColor;
+			if (x1 > x0)
+				m_Renderer->drawRect(x0, y, x1 - x0, m_LineHeight, c);
+		}
+	}
+
+	void CodeEditor::drawSearchBtn(float x, float y, float w, float h, std::u32string_view label, bool active)
+	{
+		const Color bg = active ? Color { 0.30f, 0.50f, 0.80f, 1.0f } : Color { 0.25f, 0.25f, 0.28f, 1.0f };
+		const Color fg { 0.90f, 0.90f, 0.90f, 1.0f };
+
+		m_Renderer->drawRect(x, y, w, h, bg);
+
+		const float tw = m_Renderer->measureText(label, 1.0f);
+		m_Renderer->drawText(label, x + (w - tw) * 0.5f, y + (h - m_LineHeight) * 0.5f + 1.0f, 1.0f, fg, FontStyle::Regular);
+	}
+
+	void CodeEditor::drawSearchPanel(Tab& t)
+	{
+		(void)t;
+		if (!m_Search.active) return;
+		if (!m_Renderer) return;
+
+		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
+		std::ifstream file(path);
+		nlohmann::json j;
+		file >> j;
+	
+		constexpr float panelW = 640.0f;
+		const float panelH = m_Search.replaceMode ? 74.0f : 46.0f;
+		const float panelX = m_vpX + (m_vpW - panelW) * 0.5f;
+		const float panelY = m_vpY + m_vpH - panelH - 24.0f;
+	
+		m_Search.panelX = panelX;
+		m_Search.panelY = panelY;
+		m_Search.panelW = panelW;
+		m_Search.panelH = panelH;
+	
+		m_Renderer->drawRect(panelX - 1, panelY - 1, panelW + 2, panelH + 2, { 0.30f, 0.30f, 0.34f, 1.0f });
+		m_Renderer->drawRect(panelX, panelY, panelW, panelH, { 0.18f, 0.18f, 0.20f, 0.98f });
+	
+		constexpr float padX = 10.0f;
+		constexpr float rowH = 22.0f;
+		constexpr float inputH = 22.0f;
+		constexpr float labelW = 44.0f;
+		constexpr float btnSize = 22.0f;
+		constexpr float btnGap = 4.0f;
+		const float inputY0 = panelY + 10.0f;
+		const float inputY1 = inputY0 + rowH + 6.0f;
+	
+		const float inputX = panelX + padX + labelW;
+		const float buttonsW = btnSize * 6 + btnGap * 5 + 8.0f;
+		const float inputW = panelW - padX * 2 - labelW - buttonsW;
+	
+		m_Search.queryBoxX = inputX;
+		m_Search.queryBoxY = inputY0;
+		m_Search.queryBoxW = inputW;
+		m_Search.queryBoxH = inputH;
+	
+		m_Search.replaceBoxX = inputX;
+		m_Search.replaceBoxY = inputY1;
+		m_Search.replaceBoxW = inputW;
+		m_Search.replaceBoxH = inputH;
+	
+		m_Search.btnSize = btnSize;
+		m_Search.btnY = inputY0 + (inputH - btnSize) * 0.5f;
+	
+		float bx = panelX + panelW - padX - btnSize;
+		m_Search.closeBtnX = bx;
+		m_Search.closeBtnY = m_Search.btnY;
+		bx -= btnSize + btnGap; m_Search.nextBtnX = bx;
+		bx -= btnSize + btnGap; m_Search.prevBtnX = bx;
+		bx -= btnSize + btnGap; m_Search.patternBtnX = bx;
+		bx -= btnSize + btnGap; m_Search.wordBtnX = bx;
+		bx -= btnSize + btnGap; m_Search.caseBtnX = bx;
+	
+		const float textY0 = inputY0 + (inputH - m_LineHeight) * 0.5f;
+		const float textY1 = inputY1 + (inputH - m_LineHeight) * 0.5f;
+	
+		m_Renderer->drawText(utf8_to_u32(j.value("Find", "Find")), panelX + padX, textY0, 1.0f, m_Theme.text, FontStyle::Regular);
+		if (m_Search.replaceMode)
+			m_Renderer->drawText(utf8_to_u32(j.value("Replace", "Replace")), panelX + padX, textY1, 1.0f, m_Theme.text, FontStyle::Regular);
+	
+		auto drawInputBox = [&](float ix, float iy, float iw, float ih,
+			const std::u32string& text, int cursor, bool focused)
+			{
+				const Color boxBg{ 0.10f, 0.10f, 0.12f, 1.0f };
+				const Color border = focused ? Color{ 0.35f, 0.60f, 0.95f, 1.0f } : Color{ 0.25f, 0.25f, 0.28f, 1.0f };
+	
+				m_Renderer->drawRect(ix, iy, iw, ih, border);
+				m_Renderer->drawRect(ix + 1, iy + 1, iw - 2, ih - 2, boxBg);
+	
+				const float ty = iy + (ih - m_LineHeight) * 0.5f;
+				m_Renderer->drawText(text, ix + 6.0f, ty, 1.0f, m_Theme.text, FontStyle::Regular);
+	
+				if (focused && m_CursorVisible)
+				{
+					const float cw = m_Renderer->measureText(std::u32string_view(text).substr(0, cursor), 1.0f);
+					m_Renderer->drawRect(ix + 6.0f + cw, iy + 3.0f, 1.5f, ih - 6.0f, m_Theme.cursor);
+				}
+			};
+	
+		drawInputBox(m_Search.queryBoxX, m_Search.queryBoxY, m_Search.queryBoxW, m_Search.queryBoxH, m_Search.query, m_Search.queryCursor, m_Search.focusedField == 0);
+	
+		if (m_Search.replaceMode)
+			drawInputBox(m_Search.replaceBoxX, m_Search.replaceBoxY, m_Search.replaceBoxW, m_Search.replaceBoxH, m_Search.replaceText, m_Search.replaceCursor, m_Search.focusedField == 1);
+	
+		drawSearchBtn(m_Search.closeBtnX, m_Search.closeBtnY, btnSize, btnSize, U"×", false);
+		drawSearchBtn(m_Search.nextBtnX, m_Search.btnY, btnSize, btnSize, U"↓", false);
+		drawSearchBtn(m_Search.prevBtnX, m_Search.btnY, btnSize, btnSize, U"↑", false);
+		drawSearchBtn(m_Search.patternBtnX, m_Search.btnY, btnSize, btnSize, U".*", m_Search.usePattern);
+		drawSearchBtn(m_Search.wordBtnX, m_Search.btnY, btnSize, btnSize, U"W", m_Search.wholeWord);
+		drawSearchBtn(m_Search.caseBtnX, m_Search.btnY, btnSize, btnSize, U"Aa", m_Search.caseSensitive);
+	
+		if (m_Search.replaceMode)
+		{
+			constexpr float repW = 65.0f;
+			constexpr float allW = 80.0f;
+			const float repY = inputY1 + 1.0f;
+			const float repH = inputH - 2.0f;
+	
+			float rbx = panelX + panelW - padX - allW;
+			m_Search.replaceAllBtnX = rbx;
+			drawSearchBtn(rbx, repY, allW, repH, utf8_to_u32(j.value("ReplaceAll", "Replace All")), false);
+	
+			rbx -= repW + 8.0f;
+			m_Search.replaceBtnX = rbx;
+			drawSearchBtn(rbx, repY, repW, repH, utf8_to_u32(j.value("Replace", "Replace")), false);
+		}
+	
+		const int total = (int)m_Search.matches.size();
+		const int cur = (total > 0) ? (m_Search.currentMatch + 1) : 0;
+	
+		std::u32string counter = utf8_to_u32(std::to_string(cur) + " / " + std::to_string(total));
+	
+		const float counterW = m_Renderer->measureText(counter, 1.0f);
+		const float counterX = m_Search.queryBoxX + m_Search.queryBoxW - counterW - 6.0f;
+	
+		if (total == 0 && !m_Search.query.empty())
+			m_Renderer->drawText(counter, counterX, textY0, 1.0f, Color { 0.90f, 0.40f, 0.40f, 1.0f }, FontStyle::Regular);
+		else
+			m_Renderer->drawText(counter, counterX, textY0, 1.0f, m_Theme.gutterText, FontStyle::Regular);
 	}
 
 }

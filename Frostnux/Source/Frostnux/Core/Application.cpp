@@ -2,10 +2,10 @@
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include "Application.h"
-#include "Events/ApplicationEvent.h"
+#include "Frostnux/Events/ApplicationEvent.h"
 #include "Log.h"
 #include "Window.h"
-#include "ui/uiTools/uiWindow.h"
+#include "Frostnux/ui/uiTools/uiWindow.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>

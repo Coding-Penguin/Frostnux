@@ -1,7 +1,7 @@
 #pragma once
 #include <fxpch.h>
 #include "Event.h"
-#include "Frostnux/Input.h"
+#include "Frostnux/Core/Input.h"
 
 #include <glm/glm.hpp>
 

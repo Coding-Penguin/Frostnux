@@ -1,6 +1,6 @@
 #pragma once
 #include <glad/glad.h>
-#include "Frostnux/FontManager.h"
+#include "Frostnux/Core/FontManager.h"
 #include "CodeEditor.h"
 #include <string>
 

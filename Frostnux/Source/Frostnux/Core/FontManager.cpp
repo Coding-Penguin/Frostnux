@@ -36,6 +36,18 @@ namespace Frostnux {
 		return nullptr;
 	}
 
+	bool FontManager::AddFallback(const std::string& name, const std::string& filepath, FontStyle style)
+	{
+		FontKey key{ name, style };
+		auto it = m_Fonts.find(key);
+		if (it == m_Fonts.end())
+		{
+			FX_CORE_ERROR("AddFallback: font '{}' not found", name);
+			return false;
+		}
+		return it->second->AddFallback(filepath);
+	}
+
 	void FontManager::UnloadAll()
 	{
 		m_Fonts.clear();

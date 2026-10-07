@@ -26,17 +26,17 @@ namespace Frostnux
 			switch (s_CurrentTheme)
 			{
 			case Theme::Dark:
-				return { 0.01f, 0.01f, 0.05f };
+				return { 0.01f, 0.01f, 0.03f };
 			case Theme::Light:
 				return { 0.95f, 0.95f, 1.0f };
 			case Theme::Cool_Breeze:
-				return { 0.8f, 0.9f, 0.95f };
+				return { 0.8f, 0.9f, 0.93f };
 			case Theme::Cool_Slate:
-				return { 0.1f, 0.13f, 0.17f };
+				return { 0.1f, 0.13f, 0.15f };
 			case Theme::Icy_Mint:
 				return { 0.8f, 0.9f, 0.85f };
 			case Theme::Moonlight:
-				return { 0.05f, 0.1f, 0.17f };
+				return { 0.05f, 0.1f, 0.15f };
 			}
 		}
 		static std::string GetThemeName()

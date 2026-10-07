@@ -1,5 +1,5 @@
 #pragma once
-#include "Frostnux/Window.h"
+#include "Frostnux/Core/Window.h"
 
 struct GLFWwindow;
 

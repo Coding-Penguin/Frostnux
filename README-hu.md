@@ -34,7 +34,7 @@
 ## Mi a Frostnux?
 Frostnux egy olyan kis IDE, amit egy középiskolás otthon készített, amely más lehetőséget nyújt a kódfejlesztéshez,
 
-Jelenlegi verziója a 2026.3.5, és támogatja a C++ nyelvet.
+Jelenlegi verziója a 2026.3.6, és támogatja a C++ nyelvet.
 
 ## Engedély
 

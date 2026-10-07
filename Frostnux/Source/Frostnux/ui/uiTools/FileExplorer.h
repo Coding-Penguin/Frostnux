@@ -47,7 +47,7 @@ namespace Frostnux {
 		Filetype GetFileExtension(const std::string& path) const;
 
 		void LoadState();
-		void SaveState();
+		void SaveState() const;
 	private:
 		std::string m_RootPath;
 		FileNode m_RootNode;

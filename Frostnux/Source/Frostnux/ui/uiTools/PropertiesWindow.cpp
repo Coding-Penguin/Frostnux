@@ -1,9 +1,9 @@
 #include <fxpch.h>
 #include "PropertiesWindow.h"
-#include "Frostnux/Log.h"
+#include "Frostnux/Core/Log.h"
 #include "TextRenderer.h"
 #include <glad/glad.h>
-#include "Frostnux/Application.h"
+#include "Frostnux/Core/Application.h"
 
 namespace Frostnux {
 
@@ -113,7 +113,7 @@ namespace Frostnux {
 		glDisable(GL_SCISSOR_TEST);
 	}
 
-	void PropertiesWindow::DrawPropertyItem(const PropertyItem& item, float x, float y, float width)
+	void PropertiesWindow::DrawPropertyItem(const PropertyItem& item, float x, float y, float width) const
 	{
 		float keyWidth = width * 0.35f;
 		float valueX = x + keyWidth + 10;

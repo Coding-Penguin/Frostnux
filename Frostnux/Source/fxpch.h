@@ -12,6 +12,7 @@
 #include <fstream>
 #include <iomanip>
 #include <codecvt>
+#include <cwctype>
 #include <memory>
 #include <string>
 #include <vector>
@@ -28,15 +29,15 @@
 #include <map>
 #include <set>
 
-#include "Frostnux/SettingsManager.h"
-#include "Frostnux/Language.h"
-#include "Frostnux/Channel.h"
-#include "Frostnux/Theme.h"
-#include "Frostnux/Core.h"
-#include "Frostnux/Log.h"
+#include "Frostnux/Core/SettingsManager.h"
+#include "Frostnux/Core/Language.h"
+#include "Frostnux/Core/Channel.h"
+#include "Frostnux/Core/Theme.h"
+#include "Frostnux/Core/Core.h"
+#include "Frostnux/Core/Log.h"
 
-#include "Frostnux/KeyCodes.h"
-#include "Frostnux/MouseButtonCodes.h"
+#include "Frostnux/Core/KeyCodes.h"
+#include "Frostnux/Core/MouseButtonCodes.h"
 
 #include "Global.h"
 

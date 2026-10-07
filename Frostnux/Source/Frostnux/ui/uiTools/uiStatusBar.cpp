@@ -1,11 +1,11 @@
 #include <fxpch.h>
 #include "uiStatusBar.h"
 #include <glad/glad.h>
-#include "Frostnux/Application.h"
-#include "Frostnux/Log.h"
+#include "Frostnux/Core/Application.h"
+#include "Frostnux/Core/Log.h"
 #include "TextRenderer.h"
-#include "Frostnux/Theme.h"
-#include "Frostnux/Channel.h"
+#include "Frostnux/Core/Theme.h"
+#include "Frostnux/Core/Channel.h"
 
 namespace Frostnux
 {
@@ -111,7 +111,7 @@ namespace Frostnux
 		}
 	}
 
-	void uiStatusBar::DrawProgress()
+	void uiStatusBar::DrawProgress() const
 	{
 		if (m_Progress < 0.0f)
 			return;

@@ -5,7 +5,7 @@
 #include <stb_image.h>
 
 #include <glad/glad.h>
-#include "Frostnux/Log.h"
+#include "Frostnux/Core/Log.h"
 
 namespace Frostnux {
 

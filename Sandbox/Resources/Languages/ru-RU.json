@@ -48,5 +48,9 @@
 	"FileExplorer": "Проводник файлов",
 	"Properties": "Свойства",
 	"Notifications": "Уведомления",
-	"Output": "Вывод"
+	"Output": "Вывод",
+
+  "Find": "Найти",
+	"Replace": "Заменить",
+	"ReplaceAll": "Заменить все"
 }

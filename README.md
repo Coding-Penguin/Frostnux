@@ -6,6 +6,7 @@
 <div align = "center">
 
 # Frostnux · 霜砧
+
 <strong> An open-source IDE with native runtime based on C++ / OpenGL. </strong>
 
 <em>Chinese name: <strong>霜砧</strong> (official Chinese branding). The repository name remain <code>Frostnux</code>.</em>
@@ -31,9 +32,10 @@
 </div>
 
 ## What Frostnux Is
+
 Frostnux is a small IDE developed by a middle school student at home, aiming to provide another possibility for code development,
 
-The current version is 2026.3.5 and supports language C++
+The current version is 2026.3.6 and supports language C++
 
 ## License
 

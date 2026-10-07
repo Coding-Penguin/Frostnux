@@ -1,5 +1,5 @@
 #pragma once
-#include "Events/Event.h"
+#include "Frostnux/Events/Event.h"
 
 namespace Frostnux {
 

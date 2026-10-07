@@ -3,8 +3,8 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "Frostnux/Application.h"
-#include "Frostnux/Log.h"
+#include "Frostnux/Core/Application.h"
+#include "Frostnux/Core/Log.h"
 
 #include "Frostnux/Events/Event.h"
 #include "Frostnux/Events/ApplicationEvent.h"
@@ -625,7 +625,7 @@ namespace Frostnux {
 			glfwSetCursor(glfwWindow, glfwCreateStandardCursor(GLFW_ARROW_CURSOR));
 	}
 
-	void uiWindow::UpdateResizeCursor(ResizeEdge edge)
+	void uiWindow::UpdateResizeCursor(ResizeEdge edge) const
 	{
 		GLFWwindow* glfwWin = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 		GLFWcursor* cursor = nullptr;

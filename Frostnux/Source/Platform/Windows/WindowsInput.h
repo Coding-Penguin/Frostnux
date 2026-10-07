@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Frostnux/Input.h"
+#include "Frostnux/Core/Input.h"
 
 namespace Frostnux {
 

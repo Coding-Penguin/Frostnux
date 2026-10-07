@@ -1,19 +1,19 @@
 #pragma once
 
-#include "Frostnux/Application.h"
-#include "Frostnux/Layer.h"
-#include "Frostnux/LayerStack.h"
-#include "Frostnux/Log.h"
-#include "Frostnux/Input.h"
+#include "Frostnux/Core/Application.h"
+#include "Frostnux/Core/Layer.h"
+#include "Frostnux/Core/LayerStack.h"
+#include "Frostnux/Core/Log.h"
+#include "Frostnux/Core/Input.h"
 #include "Frostnux/Events/Event.h"
 
 // UI
 #include "Frostnux/ui/uiLayer.h"
 
 // Codes
-#include "Frostnux/KeyCodes.h"
-#include "Frostnux/MouseButtonCodes.h"
+#include "Frostnux/Core/KeyCodes.h"
+#include "Frostnux/Core/MouseButtonCodes.h"
 
 // ---------- EntryPoint ----------
-#include "Frostnux/EntryPoint.h"
+#include "Frostnux/Core/EntryPoint.h"
 // --------------------------------

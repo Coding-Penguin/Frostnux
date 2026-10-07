@@ -1,9 +1,10 @@
 #pragma once
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
+#include <optional>
 #include <stb_truetype.h>
-#include <string_view>
 
 namespace Frostnux {
 
@@ -16,8 +17,16 @@ namespace Frostnux {
 		static TextRenderer& Get();
 
 		bool LoadFont(const std::string& fontPath, float fontSize);
-		void DrawText(const std::string& text, float x, float y, float r, float g, float b, float a);
+
+		bool AddFallback(const std::string& fontPath);
+
+		void DrawText(const std::string& text, float x, float y,
+			float r, float g, float b, float a);
+		void DrawTextUTF32(std::u32string_view text, float x, float y,
+			float r, float g, float b, float a);
+
 		float GetTextWidth(const std::string& text) const;
+		float GetTextWidthUTF32(std::u32string_view text) const;
 		float GetTextHeight() const;
 
 		static float GetFontSize();
@@ -27,10 +36,6 @@ namespace Frostnux {
 		bool IsInitialized() const { return m_Initialized; }
 
 		float GetCharWidth(char c) const;
-
-		float GetTextWidthUTF32(std::u32string_view text) const;
-		void  DrawTextUTF32(std::u32string_view text, float x, float y, float r, float g, float b, float a);
-
 		float GetAdvance(unsigned int codepoint) const;
 		float GetLineHeight() const;
 	private:
@@ -43,25 +48,37 @@ namespace Frostnux {
 			float xoff, yoff;
 		};
 
-		const CharInfo* BakeGlyph(unsigned int codepoint);
-		const CharInfo* GetOrCreateGlyph(unsigned int codepoint);
+		struct FontFace
+		{
+			std::vector<unsigned char> buffer;
+			stbtt_fontinfo info{};
+			float scale = 0.0f;
+			int   ascent = 0, descent = 0, lineGap = 0;
+
+			unsigned int textureID = 0;
+			int atlasW = 0, atlasH = 0;
+			int atlasX = 1, atlasY = 1, atlasRowHeight = 0;
+		};
+
+		struct CachedGlyph
+		{
+			int			faceIdx = -1;
+			CharInfo	info{};
+		};
+
+		bool LoadFace(FontFace& face, const std::string& path, float fontSize);
+		void CreateAtlas(FontFace& face, int w, int h);
+
+		std::optional<CharInfo> BakeGlyphToFace(FontFace& face, unsigned int cp) const;
+		const CharInfo* GetOrCreateGlyph(unsigned int cp, int& outFaceIdx);
 
 		bool m_Initialized = false;
-		unsigned int m_TextureID = 0;
-		int m_AtlasWidth = 0, m_AtlasHeight = 0;
-
-		std::unordered_map<unsigned int, CharInfo> m_Chars;
-
-		int m_TabWidth = 4;
-		float m_CharWidth = 0.0f;
-
-		std::vector<unsigned char> m_FontBuffer;
-		stbtt_fontinfo m_FontInfo{};
-		float m_Scale = 0.0f;
-		int   m_Ascent = 0, m_Descent = 0, m_LineGap = 0;
 		float m_FontSize = 0.0f;
+		float m_CharWidth = 0.0f;
+		int   m_TabWidth = 4;
 
-		int m_AtlasX = 1, m_AtlasY = 1, m_AtlasRowHeight = 0;
+		std::vector<FontFace> m_Faces;
+		std::unordered_map<unsigned int, CachedGlyph> m_GlyphCache;
 	};
 
 }

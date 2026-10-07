@@ -2,7 +2,7 @@
 
 #ifdef FX_PLATFORM_WINDOWS
 
-#include "Frostnux/FileDialog.h"
+#include "Frostnux/Core/FileDialog.h"
 #include <windows.h>
 #include <commdlg.h>
 #include <vector>

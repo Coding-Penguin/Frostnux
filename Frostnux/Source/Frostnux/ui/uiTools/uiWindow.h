@@ -1,7 +1,7 @@
 #pragma once
 #include <fxpch.h>
 #include "TextRenderer.h"
-#include "Frostnux/Layer.h"
+#include "Frostnux/Core/Layer.h"
 #include "uiButton.h"
 
 namespace Frostnux {
@@ -186,7 +186,7 @@ namespace Frostnux {
 		bool IsInResizeZone(float mx, float my) const;
 		void SetResizeCursor(bool isResizeZone);
 		ResizeEdge GetResizeEdge(float mx, float my) const;
-		void UpdateResizeCursor(ResizeEdge edge);
+		void UpdateResizeCursor(ResizeEdge edge) const;
 		void DrawResizeGrip() const;
 	};
 
