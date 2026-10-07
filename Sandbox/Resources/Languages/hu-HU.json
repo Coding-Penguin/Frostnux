@@ -50,7 +50,10 @@
 	"Notifications": "Értesítések",
 	"Output": "Kimenet",
 
-  "Find": "Keresés",
+	"Find": "Keresés",
 	"Replace": "Csere",
-  "ReplaceAll": "Összes cseréje"
+	"ReplaceAll": "Összes cseréje",
+
+	"Line number...": "Sorszám...",
+	"Symbol name...": "Szimbólum neve..."
 }

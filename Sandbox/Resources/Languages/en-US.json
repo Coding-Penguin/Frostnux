@@ -52,5 +52,8 @@
 
 	"Find": "Find",
 	"Replace": "Replace",
-	"ReplaceAll": "Replace All"
+	"ReplaceAll": "Replace All",
+
+	"Line number...": "Line number...",
+  "Symbol name...": "Symbol name..."
 }

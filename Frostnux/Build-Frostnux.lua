@@ -18,7 +18,7 @@ project "Frostnux"
         "vendor/glm",
         "vendor/stb_image",
         "vendor/spdlog/include",
-		"vendor/json/include",
+		"vendor/nlohmann_json/include",
         "vendor"
     }
     

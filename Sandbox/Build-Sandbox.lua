@@ -15,9 +15,8 @@ project "Sandbox"
         "../Frostnux/vendor/Glad/include",
         "../Frostnux/vendor/glm",
         "../Frostnux/vendor/stb_image",
-        "../Frostnux/vendor/miniaudio",
         "../Frostnux/vendor/spdlog/include",
-        "../Frostnux/vendor/json/include",
+        "../Frostnux/vendor/nlohmann_json/include",
         "../Frostnux/vendor"
    }
 

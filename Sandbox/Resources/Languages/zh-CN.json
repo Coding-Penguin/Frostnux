@@ -52,5 +52,8 @@
 
 	"Find": "查找",
 	"Replace": "替换",
-	"ReplaceAll": "全部替换"
+	"ReplaceAll": "全部替换",
+
+	"Line number...": "行号...",
+	"Symbol name...": "符号名称..."
 }

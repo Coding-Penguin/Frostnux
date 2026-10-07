@@ -117,6 +117,10 @@ namespace Frostnux {
 		float m_MouseX = -1.0f;
 		float m_MouseY = -1.0f;
 
+		double		m_LastClickTime = 0.0;
+		Position	m_LastClickPos;
+		int			m_ClickCount = 0;
+
 		bool m_CursorVisible = true;
 		bool m_Dragging = false;
 
@@ -268,6 +272,81 @@ namespace Frostnux {
 		void drawSearchPanel(Tab& t);
 		void drawSearchHighlights(Tab& t, float textX, float textY, float textW, float textH);
 		void drawSearchBtn(float x, float y, float w, float h, std::u32string_view label, bool active);
+
+		void selectWordAt(Tab& t, Position p);
+		void selectLineAt(Tab& t, Position p);
+		void selectNextOccurrence(Tab& t);
+		[[nodiscard]] Position findNextOccurrence(Tab& t, std::u32string_view word, Position after) const;
+
+		enum class InputPopupMode : uint8_t { None, GoToLine, GoToSymbol };
+
+		struct SymbolCopy
+		{
+			std::u32string	name;
+			std::u32string	typeName;
+			SymbolKind		kind = SymbolKind::Unknown;
+			int				line = 0;
+			int				col = 0;
+		};
+
+		struct InputPopup
+		{
+			InputPopupMode mode = InputPopupMode::None;
+			std::u32string text;
+			int caret = 0;
+			int selected = 0;
+			std::vector<SymbolCopy> matches;
+			float x = 0, y = 0, w = 0, h = 0;
+		};
+
+		InputPopup m_InputPopup;
+
+		void openInputPopup(InputPopupMode mode);
+		void closeInputPopup();
+		void refreshInputPopupMatches();
+		void acceptInputPopup();
+		void drawInputPopup();
+
+		struct RefPanelItem
+		{
+			int line = 0;
+			int colStart = 0;
+			int colEnd = 0;
+			std::u32string preview;
+		};
+
+		struct RefPanel
+		{
+			bool active = false;
+			std::u32string word;
+			std::vector<RefPanelItem> items;
+			int selected = 0;
+			float h = 180.0f;
+		};
+
+		RefPanel m_RefPanel;
+
+		void openRefPanel();
+		void drawRefPanel();
+		void jumpToRefItem(int idx);
+
+		struct FoldRegion
+		{
+			int  startLine = 0;
+			int  endLine = 0;
+			bool collapsed = false;
+		};
+
+		std::vector<FoldRegion> m_Folds;
+
+		void rebuildFolds(Tab& t);
+		void toggleFoldAt(Tab& t, int line);
+		[[nodiscard]] bool isLineHidden(const Tab& t, int line) const;
+		[[nodiscard]] int  lineToVisualRow(const Tab& t, int line) const;
+		[[nodiscard]] int  visualRowToLine(const Tab& t, int row) const;
+		[[nodiscard]] int  visualRowCount(const Tab& t) const;
+
+		void jumpToPosition(Tab& t, Position target, bool recordHistory);
 	};
 
 }

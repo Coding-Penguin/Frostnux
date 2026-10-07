@@ -50,7 +50,10 @@
 	"Notifications": "Уведомления",
 	"Output": "Вывод",
 
-  "Find": "Найти",
+	"Find": "Найти",
 	"Replace": "Заменить",
-	"ReplaceAll": "Заменить все"
+	"ReplaceAll": "Заменить все",
+
+	"Line number...": "Номер строки...",
+	"Symbol name...": "Имя символа..."
 }
