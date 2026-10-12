@@ -15,7 +15,8 @@
 <div align = "center">
 
 [English](./README.md)
-[中文](./README-zh.md)
+[简体中文](./README-zh_CN.md)
+[繁體中文](./README-zh_TW.md)
 [Pусский](./README-ru.md)
 [Magyar](./README-hu.md)
 </div>

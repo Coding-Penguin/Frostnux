@@ -8,6 +8,7 @@ Binaries-Intermediates/
 *.vcxproj.user
 *.vcxproj.filters
 *.sln
+*.dat
 Makefile
 
 # Exclude

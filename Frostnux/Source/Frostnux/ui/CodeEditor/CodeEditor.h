@@ -89,6 +89,18 @@ namespace Frostnux {
 				if (t->dirty)
 					saveTab(*t, false);
 		}
+
+		[[nodiscard]] std::vector<std::string> GetOpenFiles() const;
+		[[nodiscard]] std::string GetActiveFilePath() const;
+
+		void switchTabTo(int idx);
+
+		void rebuildFolds(Tab& t);
+
+		void SetOnTabListChanged(std::function<void()> fn)
+		{
+			m_OnTabListChanged = std::move(fn);
+		}
 	private:
 		void doCopy(Tab& t);
 		void doCut(Tab& t);
@@ -203,6 +215,7 @@ namespace Frostnux {
 		void movePageDown(Tab& t, bool selecting);
 		void doUndo(Tab& t);
 		void doRedo(Tab& t);
+		void toggleComment(Tab& t);
 
 		[[nodiscard]] Position	pixelToPosition(Tab& t, float x, float y) const;
 		[[nodiscard]] float		colToX(const Tab& t, int line, int col) const;
@@ -339,7 +352,6 @@ namespace Frostnux {
 
 		std::vector<FoldRegion> m_Folds;
 
-		void rebuildFolds(Tab& t);
 		void toggleFoldAt(Tab& t, int line);
 		[[nodiscard]] bool isLineHidden(const Tab& t, int line) const;
 		[[nodiscard]] int  lineToVisualRow(const Tab& t, int line) const;
@@ -347,6 +359,8 @@ namespace Frostnux {
 		[[nodiscard]] int  visualRowCount(const Tab& t) const;
 
 		void jumpToPosition(Tab& t, Position target, bool recordHistory);
+
+		std::function<void()> m_OnTabListChanged;
 	};
 
 }

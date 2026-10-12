@@ -388,7 +388,7 @@ namespace Frostnux {
 		{
 			glfwSetWindowPos(m_Window, newX, newY);
 		}
-		SettingsManager::Get().SetWindowSize(newW, newH);
+		SettingsManager::Get().Save();
 	}
 
 	void WindowsWindow::StopResizeWindow()
@@ -430,6 +430,11 @@ namespace Frostnux {
 	void WindowsWindow::Maximize()
 	{
 		glfwMaximizeWindow(m_Window);
+	}
+
+	bool WindowsWindow::IsMaximized() const
+	{
+		return glfwGetWindowAttrib(m_Window, GLFW_MAXIMIZED) == GLFW_TRUE;
 	}
 
 }

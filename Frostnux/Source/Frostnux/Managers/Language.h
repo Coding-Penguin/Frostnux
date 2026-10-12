@@ -6,6 +6,7 @@ namespace Frostnux {
 	{
 		en_US,
 		zh_CN,
+		zh_TW,
 		ru_RU,
 		hu_HU
 	};
@@ -21,6 +22,7 @@ namespace Frostnux {
 			{
 			case LanguageType::en_US: return "English (US)";
 			case LanguageType::zh_CN: return "简体中文";
+			case LanguageType::zh_TW: return "繁體中文";
 			case LanguageType::ru_RU: return "Pусский";
 			case LanguageType::hu_HU: return "Magyar";
 			default: return "Unknown";
@@ -32,11 +34,14 @@ namespace Frostnux {
 			{
 			case LanguageType::en_US: return "en-US";
 			case LanguageType::zh_CN: return "zh-CN";
+			case LanguageType::zh_TW: return "zh-TW";
 			case LanguageType::ru_RU: return "ru-RU";
 			case LanguageType::hu_HU: return "hu-HU";
 			default: return "Unknown";
 			}
 		}
+
+		static int GetLanguageCount() { return 5; }
 	private:
 		LanguageManager() = default;
 

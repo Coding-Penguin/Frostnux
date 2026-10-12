@@ -3,6 +3,23 @@
 
 namespace Frostnux {
 
+	std::vector<FontStyle> EditorTheme::tokenFont =
+	{
+		FontStyle::Regular,		// Default
+		FontStyle::BoldItalic,	// Keyword
+		FontStyle::Italic,		// Control
+		FontStyle::Italic,		// Type
+		FontStyle::Regular,		// Identifier
+		FontStyle::Italic,		// Function
+		FontStyle::Bold,		// Number
+		FontStyle::Italic,		// String
+		FontStyle::Regular,		// Char
+		FontStyle::Italic,		// Comment
+		FontStyle::Bold,		// Preprocessor
+		FontStyle::Regular,		// Macro
+		FontStyle::Regular		// Operator
+	};
+
 	[[nodiscard]] constexpr bool isControlKw(std::u32string_view w) noexcept
 	{
 		return w == U"if" || w == U"else" || w == U"for" || w == U"while"

@@ -44,6 +44,7 @@ namespace Frostnux {
 		virtual bool ShouldClose() const = 0;
 
 		virtual void Maximize() = 0;
+		virtual bool IsMaximized() const = 0;
 
 		static Window* Create(const WindowProps& props = WindowProps());
 	};

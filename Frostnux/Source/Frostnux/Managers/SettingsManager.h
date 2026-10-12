@@ -28,23 +28,12 @@ namespace Frostnux {
 		static SettingsManager& Get();
 
 		void Load();
-		void Save() const;
+		void Save();
 
 		AppSettings& GetSettings() { return m_Settings; }
 
 		void AddRecentFile(const std::string& filepath);
 		void SetOpenFiles(const std::vector<std::string>& files);
-		void SetTokenIndex(const std::vector<int> tokenIndex);
-		void SetThemeIndex(int index);
-		void SetLanguageIndex(int index);
-		void SetChannel(int index);
-		void SetFontSize(int size);
-		void SetMaximize(bool isMaximized);
-
-		void SetWindowSize(unsigned int width, unsigned int height);
-
-		void SaveFileExplorerState(float scrollY, const std::unordered_map<std::string, bool>& expandedState);
-		void LoadFileExplorerState(float& scrollY, std::unordered_map<std::string, bool>& expandedState);
 	private:
 		SettingsManager() = default;
 		~SettingsManager() = default;

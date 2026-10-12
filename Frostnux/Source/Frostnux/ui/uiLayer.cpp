@@ -5,10 +5,14 @@
 #include "Frostnux/Core/Application.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "Frostnux/Core/SettingsManager.h"
+#include "Frostnux/Managers/SettingsManager.h"
 #include "Frostnux/Core/FileDialog.h"
+#include "Frostnux/BuildSystem/Process.h"
 
 namespace Frostnux {
+
+	GLRenderer uiLayer::m_EditorRenderer;
+	CodeEditor uiLayer::m_Editor { &m_EditorRenderer };
 
 	uiLayer& uiLayer::Get()
 	{
@@ -115,21 +119,48 @@ namespace Frostnux {
 		m_ShortcutBar->AddGroup(bookmarkGroup, false);
 		
 		uiWindow::InitDockSystem(0.0f, 130.0f, width, height - 130.0f - 35.0f);
-		/*
+		
 		auto* properties = new PropertiesWindow(j.value("Properties", "Properties"));
+
+		// Load Test Solution
+		m_Solution.name = "TestSolution";
+		{
+			auto* app1 = m_Solution.AddProject("App", ProjectKind::ConsoleApp);
+			app1->sources = { "src/*.cpp", "*.cpp" };
+			app1->includeDirs = { "include" };
+
+			auto* core = m_Solution.AddProject("Core", ProjectKind::StaticLib);
+			core->sources = { "src/*.cpp" };
+		}
+		m_Solution.Save("TestSolution/Test.frostnux");
+
+		auto* solutionExplorer = new SolutionExplorer(j.value("SolutionExplorer", "Solution Explorer"), &m_Solution, properties);
+
+		solutionExplorer->SetFileOpenCallback([this](const std::string& path)
+			{
+				auto* tab = m_Editor.openFile(path);
+				if (tab) tab->invalidateHighlight();
+				FX_CORE_INFO("Open File: {}", path);
+			});
+		/*
 		auto* fileExplorer = new FileExplorer(j.value("FileExplorer", "FileExplorer"), s_RootPath, properties);
 		fileExplorer->SetFileOpenCallback([this](const std::string& path)
 			{
 				auto* tab = m_Editor.openFile(path);
 				tab->invalidateHighlight();
+				m_Editor.rebuildFolds(*tab);
+				SettingsManager::Get().AddRecentFile(path);
+				SaveEditorState();
 				FX_CORE_INFO("Open File: {}", path);
 			});
+		*/
 		auto* notifications = new uiWindow(j.value("Notifications", "Notifications"));
 
-		m_Windows.push_back(fileExplorer);
+		m_Windows.push_back(solutionExplorer);
 		m_Windows.push_back(properties);
 
-		uiWindow::DockWindow(fileExplorer, DockRegion::Left);*/
+		uiWindow::DockWindow(solutionExplorer, DockRegion::Left);
+		uiWindow::DockWindow(properties, DockRegion::Right);
 
 		for (auto* win : m_Windows)
 		{
@@ -172,12 +203,57 @@ namespace Frostnux {
 				if (!win) return false;
 				return glfwGetKey(win, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(win, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS;
 			});
+		m_Editor.SetOnTabListChanged([this]() { SaveEditorState(); });
+
+		RestoreEditorState();
+		SaveEditorState();
 		
 		// Scan the project index
 		m_ProjectIndex.SetRoot(s_RootPath);
 		m_ProjectIndex.Scan();
 		m_Editor.SetProjectIndex(&m_ProjectIndex);
 		FX_CORE_INFO("ProjectIndex: indexed {} files", m_ProjectIndex.FileCount());
+	}
+
+	void uiLayer::RestoreEditorState()
+	{
+		auto& settings = SettingsManager::Get().GetSettings();
+		const auto& openFiles = settings.openFiles;
+		const std::string& activePath = settings.recentFiles.empty() ? std::string{} : settings.recentFiles.front();
+
+		while (m_Editor.tabCount() > 0)
+			m_Editor.closeTab(m_Editor.tabCount() - 1);
+
+		int activeIdx = -1;
+		int openIdx = 0;
+		for (const auto& path : openFiles)
+		{
+			Tab* tab = m_Editor.openFile(path);
+			if (!tab) continue;
+			if (path == activePath)
+				activeIdx = openIdx;
+			++openIdx;
+		}
+
+		if (activeIdx >= 0 && activeIdx < m_Editor.tabCount())
+			m_Editor.switchTabTo(activeIdx);
+	}
+
+	void uiLayer::SaveEditorState()
+	{
+		auto& settings = SettingsManager::Get().GetSettings();
+
+		settings.openFiles = m_Editor.GetOpenFiles();
+
+		const std::string activePath = m_Editor.GetActiveFilePath();
+		if (!activePath.empty())
+		{
+			auto& recent = settings.recentFiles;
+			recent.erase(std::remove(recent.begin(), recent.end(), activePath), recent.end());
+			recent.insert(recent.begin(), activePath);
+		}
+
+		SettingsManager::Get().Save();
 	}
 
 	void uiLayer::OnDetach() 
@@ -224,6 +300,7 @@ namespace Frostnux {
 		MouseCircle::Get().OnUpdate(deltaTime);
 
 		uiWindow::DrawDockAreas();
+		uiWindow::DrawSplitters();
 
 		if (m_StatusBar)
 		{
@@ -288,6 +365,9 @@ namespace Frostnux {
 	bool uiLayer::OnEvent(Event& event)
 	{
 		MouseCircle::Get().OnEvent(event);
+
+		if (uiWindow::HandleSplitterEvent(event))
+			return true;
 
 		if (m_TitleBar && m_TitleBar->OnEvent(event))
 			return true;

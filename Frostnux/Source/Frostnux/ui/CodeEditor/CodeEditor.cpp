@@ -2,8 +2,8 @@
 #include "CodeEditor.h"
 #include "TextBuffer.h"
 #include "SymbolIndex.h"
+#include "../uiLayer.h"
 #include <glad/glad.h>
-#include <fstream>
 
 namespace Frostnux {
 
@@ -125,6 +125,7 @@ namespace Frostnux {
 		m_Active = static_cast<int>(m_Tabs.size()) - 1;
 		ref.invalidateHighlight();
 		rebuildFolds(ref);
+		if (m_OnTabListChanged) m_OnTabListChanged();
 		return ref;
 	}
 
@@ -137,6 +138,7 @@ namespace Frostnux {
 		m_Tabs.push_back(std::move(t));
 		m_Active = static_cast<int>(m_Tabs.size()) - 1;
 		ref.invalidateHighlight();
+		if (m_OnTabListChanged) m_OnTabListChanged();
 		return ref;
 	}
 
@@ -170,6 +172,8 @@ namespace Frostnux {
 		tab.buffer.setText(utf8_to_u32(content));
 		tab.invalidateHighlight();
 		rebuildFolds(tab);
+		if (m_OnTabListChanged) m_OnTabListChanged();
+		uiLayer::SaveEditorState();
 		return &tab;
 	}
 
@@ -183,6 +187,7 @@ namespace Frostnux {
 		m_Folds.clear();
 		m_InputPopup.mode = InputPopupMode::None;
 		m_RefPanel.active = false;
+		if (m_OnTabListChanged) m_OnTabListChanged();
 	}
 
 	void CodeEditor::switchTab(int dir)
@@ -193,6 +198,9 @@ namespace Frostnux {
 		m_Folds.clear();
 		m_InputPopup.mode = InputPopupMode::None;
 		m_RefPanel.active = false;
+		if (m_Active >= 0 && m_Active < n)
+			rebuildFolds(*m_Tabs[m_Active]);
+		if (m_OnTabListChanged) m_OnTabListChanged();
 	}
 
 	Tab* CodeEditor::activeTab()
@@ -470,8 +478,8 @@ namespace Frostnux {
 		{
 			switch (key)
 			{
-			case FX_KEY_Z:  if (shift) doRedo(t); else doUndo(t);	return true;
-			case FX_KEY_Y:  doRedo(t);								return true;
+			case FX_KEY_Z:				if (shift) doRedo(t); else doUndo(t);	return true;
+			case FX_KEY_Y:				doRedo(t);								return true;
 			case FX_KEY_A:
 			{
 				Position s { 0, 0 };
@@ -479,18 +487,19 @@ namespace Frostnux {
 				t.selection.set(s, en);
 				return true;
 			}
-			case FX_KEY_HOME:	moveHome(t, shift, true);				return true;
-			case FX_KEY_END:	moveEnd(t, shift, true);				return true;
-			case FX_KEY_LEFT:	moveLeft(t, shift, true);				return true;
-			case FX_KEY_RIGHT:	moveRight(t, shift, true);				return true;
-			case FX_KEY_TAB:	switchTab(shift ? -1 : 1);				return true;
-			case FX_KEY_W:		closeTab(m_Active);						return true;
-			case FX_KEY_C:		doCopy(t);								return true;
-			case FX_KEY_V:		doPaste(t);								return true;
-			case FX_KEY_X:		doCut(t);								return true;
-			case FX_KEY_D:		selectNextOccurrence(t);				return true;
-			case FX_KEY_RIGHT_BRACKET: jumpToMatchingBrace(t, true);	return true;
-			case FX_KEY_LEFT_BRACKET:  jumpToMatchingBrace(t, false);	return true;
+			case FX_KEY_HOME:			moveHome(t, shift, true);				return true;
+			case FX_KEY_END:			moveEnd(t, shift, true);				return true;
+			case FX_KEY_LEFT:			moveLeft(t, shift, true);				return true;
+			case FX_KEY_RIGHT:			moveRight(t, shift, true);				return true;
+			case FX_KEY_TAB:			switchTab(shift ? -1 : 1);				return true;
+			case FX_KEY_W:				closeTab(m_Active);						return true;
+			case FX_KEY_C:				doCopy(t);								return true;
+			case FX_KEY_V:				doPaste(t);								return true;
+			case FX_KEY_X:				doCut(t);								return true;
+			case FX_KEY_D:				selectNextOccurrence(t);				return true;
+			case FX_KEY_RIGHT_BRACKET:	jumpToMatchingBrace(t, true);			return true;
+			case FX_KEY_LEFT_BRACKET:	jumpToMatchingBrace(t, false);			return true;
+			case FX_KEY_SLASH:			toggleComment(t);						return true;
 			default: break;
 			}
 		}
@@ -3059,6 +3068,128 @@ namespace Frostnux {
 
 			m_Renderer->drawText(it.preview, panelX + 12 + lw + 16, ry + 2, m_CharScale, text);
 		}
+	}
+
+	void CodeEditor::toggleComment(Tab& t)
+	{
+		const int lineCount = t.buffer.lineCount();
+		if (lineCount == 0) return;
+
+		Position selStart, selEnd;
+		const bool hadSelection = !t.selection.empty();
+		if (hadSelection)
+		{
+			selStart = t.selection.start();
+			selEnd = t.selection.end();
+			if (selEnd.line > selStart.line && selEnd.col == 0)
+				--selEnd.line;
+		}
+		else
+		{
+			selStart = selEnd = t.selection.active();
+		}
+
+		int startLine = std::clamp(selStart.line, 0, lineCount - 1);
+		int endLine = std::clamp(selEnd.line, 0, lineCount - 1);
+		if (endLine < startLine) std::swap(startLine, endLine);
+
+		bool allCommented = true;
+		for (int i = startLine; i <= endLine; ++i)
+		{
+			auto line = t.buffer.line(i);
+			const int len = static_cast<int>(line.size());
+			int j = 0;
+			while (j < len && (line[j] == U' ' || line[j] == U'\t')) ++j;
+			if (j + 1 >= len || line[j] != U'/' || line[static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(j) + 1] != U'/')
+			{
+				allCommented = false;
+				break;
+			}
+		}
+
+		const Position from { startLine, 0 };
+		const Position to { endLine, static_cast<int>(t.buffer.line(endLine).size()) };
+		const std::u32string original = t.buffer.getText(from, to);
+
+		std::u32string result;
+		result.reserve(original.size() + static_cast<size_t>(endLine - startLine + 1) * 3);
+
+		size_t lineStart = 0;
+		for (size_t i = 0; i <= original.size(); ++i)
+		{
+			const bool isLineEnd = (i == original.size() || original[i] == U'\n');
+			if (!isLineEnd) continue;
+
+			std::u32string_view lineView(&original[lineStart], i - lineStart);
+
+			if (allCommented)
+			{
+				int j = 0;
+				const int len = static_cast<int>(lineView.size());
+				while (j < len && (lineView[j] == U' ' || lineView[j] == U'\t')) ++j;
+				result.append(lineView.substr(0, static_cast<size_t>(j)));
+				int k = j + 2;
+				if (k < len && lineView[k] == U' ') ++k;
+				result.append(lineView.substr(static_cast<size_t>(k)));
+			}
+			else
+			{
+				result += U"// ";
+				result.append(lineView);
+			}
+
+			if (i < original.size()) result += U'\n';
+			lineStart = i + 1;
+		}
+
+		const Position origCursor = t.selection.active();
+
+		applyEdit(t, from, to, result);
+
+		if (hadSelection)
+		{
+			const int newEndLen = static_cast<int>(t.buffer.line(endLine).size());
+			t.selection.set(Position { startLine, 0 }, Position { endLine, newEndLen });
+			t.desiredCol = newEndLen;
+		}
+		else
+		{
+			const int line = std::clamp(origCursor.line, 0, t.buffer.lineCount() - 1);
+			int col = origCursor.col;
+			if (allCommented)	col = std::max(0, col - 3);
+			else				col += 3;
+			const int lineLen = static_cast<int>(t.buffer.line(line).size());
+			col = std::min(col, lineLen);
+			t.selection.clear(Position { line, col });
+			t.desiredCol = col;
+		}
+	}
+
+	std::vector<std::string> CodeEditor::GetOpenFiles() const
+	{
+		std::vector<std::string> out;
+		out.reserve(m_Tabs.size());
+		for (const auto& t : m_Tabs)
+		{
+			if (!t->path.empty())
+				out.push_back(t->path);
+		}
+		return out;
+	}
+
+	std::string CodeEditor::GetActiveFilePath() const
+	{
+		if (m_Active < 0 || m_Active >= static_cast<int>(m_Tabs.size()))
+			return {};
+		return m_Tabs[m_Active]->path;
+	}
+
+	void CodeEditor::switchTabTo(int idx)
+	{
+		if (idx < 0 || idx >= static_cast<int>(m_Tabs.size())) return;
+		m_Active = idx;
+		m_Folds.clear();
+		rebuildFolds(*m_Tabs[idx]);
 	}
 
 }

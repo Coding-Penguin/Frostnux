@@ -6,9 +6,10 @@
 #include "uiStatusBar.h"
 #include "uiShortcutBar.h"
 
-#include "MouseCircle.h"
-
 #include "PhotoRenderer.h"
 #include "TextRenderer.h"
 
 #include "FileExplorer.h"
+#include "SolutionExplorer.h"
+
+#include "MouseCircle.h"

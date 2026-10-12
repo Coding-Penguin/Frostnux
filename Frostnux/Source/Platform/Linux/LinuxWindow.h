@@ -31,6 +31,8 @@ namespace Frostnux {
 		void SetWindowIcon(GLFWwindow* window) override;
 
 		void Maximize() override;
+
+		bool IsMaximized() const override;
 	private:
 		void Init(const WindowProps& props);
 		void Shutdown();

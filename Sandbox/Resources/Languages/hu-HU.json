@@ -4,11 +4,9 @@
 	"Stable": "stabil",
 	"Language": "Hungarian",
 	"LanguageCode": "hu-HU",
-
 	"Community": "Közösségi kiadás",
 	"Professional": "Professzionális változat",
 	"Enterprise": "Vállalati változat",
-
 	"File": "Fájl",
 	"Edit": "Szerkesztés",
 	"View": "Megtekintés",
@@ -18,42 +16,35 @@
 	"Tools": "Eszközök",
 	"Help": "Segítség",
 	"Search": "Keresés",
-
 	"NewFile": "Új Fájl",
 	"OpenFile": "Megnyitás Fájl",
 	"SaveFile": "Mentése Fájl",
 	"SaveAs": "Más néven mentés",
 	"SaveAllFiles": "Minden fájl mentése",
-
 	"Undo": "Mégsem",
 	"Redo": "Újra",
 	"Cut": "Vágás",
 	"Copy": "Másolás",
 	"Paste": "Illesítés",
-
 	"Rebuild": "Újrafordítás",
 	"Clean": "Tisztítás",
 	"Run": "Futtatás",
-
 	"FindBookmark": "Keres könyvjelzőt",
 	"AddBookmark": "Helyez könyvjelzőt",
 	"DeleteBookmark": "Törlés könyvjelzőt",
 	"NextBookmark": "Következő könyvjelzőt",
 	"ClearBookmarks": "Törölje ki az összes könyvjelzőt",
-
 	"Ready": "Készen áll",
 	"Building...": "Fordítás alatt...",
 	"Saving File...": "Fájl mentése folyamatban...",
-
+	"SolutionExplorer": "Megoldáskeverő",
 	"FileExplorer": "Fájloszkóztár",
 	"Properties": "Tulajdonság",
 	"Notifications": "Értesítések",
 	"Output": "Kimenet",
-
 	"Find": "Keresés",
 	"Replace": "Csere",
 	"ReplaceAll": "Összes cseréje",
-
 	"Line number...": "Sorszám...",
 	"Symbol name...": "Szimbólum neve..."
 }

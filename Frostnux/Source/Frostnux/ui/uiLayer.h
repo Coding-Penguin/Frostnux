@@ -6,7 +6,8 @@
 #include "CodeEditor/ProjectIndex.h"
 #include "CodeEditor/CodeEditor.h"
 #include "CodeEditor/GLRenderer.h"
-#include "Frostnux/Core/FontManager.h"
+#include "Frostnux/Managers/FontManager.h"
+#include "Frostnux/ProjectSystem/Solution.h"
 
 #include <vector>
 
@@ -33,15 +34,20 @@ namespace Frostnux {
 		void AddWindow(uiWindow* window);
 
 		static bool IsPointOverAnyWindow(float x, float y);
+
+		static void SaveEditorState();
+		static void RestoreEditorState();
 	private:
 		std::vector<uiWindow*> m_Windows;
 		uiTitleBar* m_TitleBar = nullptr;
 		uiStatusBar* m_StatusBar = nullptr;
 		uiShortcutBar* m_ShortcutBar = nullptr;
 
-		GLRenderer m_EditorRenderer;
-		CodeEditor m_Editor { &m_EditorRenderer };
+		static GLRenderer m_EditorRenderer;
+		static CodeEditor m_Editor;
 		ProjectIndex m_ProjectIndex;
+
+		Solution m_Solution;
 	};
 
 }

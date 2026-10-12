@@ -1,0 +1,59 @@
+{
+	"Name": "霜砧",
+	"Preview": "預覽版",
+	"Stable": "穩定版",
+	"Language": "繁體中文",
+	"LanguageCode": "zh-TW",
+
+	"Community": "社區版",
+	"Professional": "專業版",
+	"Enterprise": "企業版",
+
+	"File": "文件",
+	"Edit": "編輯",
+	"View": "查看",
+	"Project": "專案",
+	"Build": "編譯",
+	"Debug": "調試",
+	"Tools": "工具",
+	"Help": "幫助",
+	"Search": "搜索",
+
+	"NewFile": "新文件",
+	"OpenFile": "打開文件",
+	"SaveFile": "保存文件",
+	"SaveAs": "另存爲",
+	"SaveAllFiles": "保存所有文件",
+
+	"Undo": "撤銷",
+	"Redo": "重做",
+	"Cut": "剪切",
+	"Copy": "複製",
+	"Paste": "粘貼",
+	"Rebuild": "重建",
+	"Clean": "清理",
+	"Run": "運行",
+
+	"FindBookmark": "查找書簽",
+	"AddBookmark": "添加書簽",
+	"DeleteBookmark": "刪除書簽",
+	"NextBookmark": "下一個書簽",
+	"ClearBookmarks": "清除所有書簽",
+
+	"Ready": "就緒",
+	"Building...": "正在編譯...",
+	"Saving File...": "正在保存文件...",
+
+	"SolutionExplorer": "解決方案資源管理器",
+	"FileExplorer": "文件資源管理器",
+	"Properties": "屬性",
+	"Notifications": "通知",
+	"Output": "輸出",
+
+	"Find": "查找",
+	"Replace": "替換",
+	"ReplaceAll": "全部替換",
+
+	"Line number...": "行號...",
+	"Symbol name...": "符號名稱..."
+}

@@ -41,11 +41,10 @@ namespace Frostnux {
 		bool IsVisible() const { return m_IsVisible; }
 
 		void SetSize(float x, float y, float width, float height);
-		void SetStyle(bool isDark);
 
 		void AddButton(uiButton* button);
 
-		void DrawContent();
+		virtual void DrawContent();
 		std::string GetTitle() const { return m_name; }
 
 		void SetTitle(const std::string& title) { m_name = title; }
@@ -75,6 +74,11 @@ namespace Frostnux {
 		void StartDrag(float mouseX, float mouseY);
 		void OnDragMove(float mouseX, float mouseY);
 		void EndDrag();
+
+		static bool HandleSplitterEvent(Event& event);
+		static void DrawSplitters();
+		static void UpdateSplitterCursor(int splitterId);
+		static int  HitTestSplitter(float mx, float my);
 
 		static void DockWindow(uiWindow* window, DockRegion region);
 		static void DrawDockAreas();
@@ -128,8 +132,8 @@ namespace Frostnux {
 		{
 			std::vector<uiWindow*> windows;
 			uiWindow* activeWindow = nullptr;
-			DockRegion region;
-			float x, y, w, h;
+			DockRegion region = DockRegion::None;
+			float x = 0.0f, y = 0.0f, w = 0.0f, h = 0.0f;
 			float tabHeight = 25.0f;
 
 			uiWindow* GetWindow()
@@ -160,6 +164,10 @@ namespace Frostnux {
 
 		static bool s_ShowDockPanel;
 		static DockRegion s_HighlightedButton;
+
+		static int   s_DraggingSplitter;
+		static int   s_HoveredSplitter;
+		static bool  s_InitializedDock;
 
 		static uiWindow* s_FocusedFloatingWindow;
 

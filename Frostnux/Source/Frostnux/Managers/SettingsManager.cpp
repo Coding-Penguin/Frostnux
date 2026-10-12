@@ -1,6 +1,9 @@
 #include <fxpch.h>
 #include "SettingsManager.h"
-#include "Log.h"
+#include "Frostnux/Core/Log.h"
+#include "Frostnux/Core/Application.h"
+#include "Frostnux/ui/uiTools/FileExplorer.h"
+#include "Frostnux/ui/CodeEditor/Highlighter.h"
 
 namespace Frostnux {
 
@@ -44,11 +47,28 @@ namespace Frostnux {
 		{
 			FX_CORE_ERROR("Failed to parse settings JSON: {}", e.what());
 		}
-		FX_CORE_INFO("Settings loaded.");
+
+		FileExplorer::SetScrollY(m_Settings.fileExplorerScrollY);
+		FileExplorer::SetExpandedState(m_Settings.fileExplorerExpandedState);
 	}
 
-	void SettingsManager::Save() const
+	void SettingsManager::Save()
 	{
+		m_Settings.fontSize = s_FontSize;
+		m_Settings.channelIndex = (int)ChannelManager::GetChannel();
+		m_Settings.languageIndex = (int)LanguageManager::GetCurrentLanguage();
+		m_Settings.themeIndex = (int)ThemeManager::GetCurrentTheme();
+		if (Application::HasInstance())
+		{
+			auto& window = Application::Get().GetWindow();
+			m_Settings.IsMaximize = window.IsMaximized();
+			m_Settings.WindowWidth = window.GetWidth();
+			m_Settings.WindowHeight = window.GetHeight();
+		}
+		m_Settings.fileExplorerScrollY = FileExplorer::GetScrollY();
+		m_Settings.fileExplorerExpandedState = FileExplorer::GetExpandedState();
+		m_Settings.tokenIndex = EditorTheme::GetTokenCount();
+
 		nlohmann::json j;
 		j["themeIndex"] = m_Settings.themeIndex;
 		j["channelIndex"] = m_Settings.channelIndex;
@@ -87,62 +107,6 @@ namespace Frostnux {
 	void SettingsManager::SetOpenFiles(const std::vector<std::string>& files)
 	{
 		m_Settings.openFiles = files;
-		Save();
-	}
-
-	void SettingsManager::SetTokenIndex(const std::vector<int> tokenIndex)
-	{
-		m_Settings.tokenIndex = tokenIndex;
-		Save();
-	}
-
-	void SettingsManager::SetThemeIndex(int index)
-	{
-		m_Settings.themeIndex = index;
-		Save();
-	}
-
-	void SettingsManager::SetLanguageIndex(int index)
-	{
-		m_Settings.languageIndex = index;
-		Save();
-	}
-
-	void SettingsManager::SetChannel(int index)
-	{
-		m_Settings.channelIndex = index;
-		Save();
-	}
-
-	void SettingsManager::SetFontSize(int size)
-	{
-		m_Settings.fontSize = size;
-		Save();
-	}
-
-	void SettingsManager::SetWindowSize(unsigned int width, unsigned int height)
-	{
-		m_Settings.WindowWidth = width;
-		m_Settings.WindowHeight = height;
-		Save();
-	}
-
-	void SettingsManager::SaveFileExplorerState(float scrollY, const std::unordered_map<std::string, bool>& expandedState)
-	{
-		m_Settings.fileExplorerScrollY = scrollY;
-		m_Settings.fileExplorerExpandedState = expandedState;
-		Save();
-	}
-
-	void SettingsManager::LoadFileExplorerState(float& scrollY, std::unordered_map<std::string, bool>& expandedState)
-	{
-		scrollY = m_Settings.fileExplorerScrollY;
-		expandedState = m_Settings.fileExplorerExpandedState;
-	}
-
-	void SettingsManager::SetMaximize(bool isMaximized)
-	{
-		m_Settings.IsMaximize = isMaximized;
 		Save();
 	}
 

@@ -4,8 +4,8 @@
 #include "Frostnux/Core/Application.h"
 #include "Frostnux/Core/Log.h"
 #include "TextRenderer.h"
-#include "Frostnux/Core/Theme.h"
-#include "Frostnux/Core/Channel.h"
+#include "Frostnux/Managers/Theme.h"
+#include "Frostnux/Managers/Channel.h"
 
 namespace Frostnux
 {

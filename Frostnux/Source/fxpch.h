@@ -29,10 +29,10 @@
 #include <map>
 #include <set>
 
-#include "Frostnux/Core/SettingsManager.h"
-#include "Frostnux/Core/Language.h"
-#include "Frostnux/Core/Channel.h"
-#include "Frostnux/Core/Theme.h"
+#include "Frostnux/Managers/SettingsManager.h"
+#include "Frostnux/Managers/Language.h"
+#include "Frostnux/Managers/Channel.h"
+#include "Frostnux/Managers/Theme.h"
 #include "Frostnux/Core/Core.h"
 #include "Frostnux/Core/Log.h"
 

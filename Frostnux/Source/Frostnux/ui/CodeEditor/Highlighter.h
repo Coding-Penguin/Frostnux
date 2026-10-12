@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include <string_view>
-#include "Frostnux/Core/FontManager.h"
+#include "Frostnux/Managers/FontManager.h"
 
 namespace Frostnux {
 
@@ -66,22 +66,7 @@ namespace Frostnux {
 			}
 		}
 		
-		std::vector<FontStyle> tokenFont =
-		{
-			FontStyle::Regular,		// Default
-			FontStyle::BoldItalic,	// Keyword
-			FontStyle::Italic,		// Control
-			FontStyle::Italic,		// Type
-			FontStyle::Regular,		// Identifier
-			FontStyle::Italic,		// Function
-			FontStyle::Bold,		// Number
-			FontStyle::Italic,		// String
-			FontStyle::Regular,		// Char
-			FontStyle::Italic,		// Comment
-			FontStyle::Bold,		// Preprocessor
-			FontStyle::Regular,		// Macro
-			FontStyle::Regular		// Operator
-		};
+		static std::vector<FontStyle> tokenFont;
 
 		[[nodiscard]] FontStyle fontOf(TokenType t) const noexcept
 		{
@@ -97,6 +82,17 @@ namespace Frostnux {
 		FontStyle GetTokenFont(int index)
 		{
 			return tokenFont[index];
+		}
+		static std::vector<int> GetTokenCount()
+		{
+			std::vector<int> tokenCount;
+
+			for (int i = 0; i < tokenFont.size(); i++)
+			{
+				tokenCount.push_back(static_cast<int>(tokenFont[i]));
+			}
+
+			return tokenCount;
 		}
 	};
 

@@ -38,19 +38,18 @@ namespace Frostnux {
 	float uiWindow::s_CenterY = 0;
 	float uiWindow::s_CenterW = 0;
 	float uiWindow::s_CenterH = 0;
+	int		uiWindow::s_DraggingSplitter = 0;
+	int		uiWindow::s_HoveredSplitter = 0;
+	bool	uiWindow::s_InitializedDock = false;
 
 	uiWindow::uiWindow(std::string name)
 		:m_name(name)
 	{
-		Application& app = Application::Get();
-		s_LeftWidth = app.GetWindow().GetWidth() * 0.2f;
-		s_RightWidth = app.GetWindow().GetWidth() * 0.2f;
-		s_BottomHeight = app.GetWindow().GetHeight() * 0.3f;
 	}
 
 	uiWindow::~uiWindow()
 	{
-		for (auto *btn : m_Buttons)
+		for (auto* btn : m_Buttons)
 			delete btn;
 		m_Buttons.clear();
 	}
@@ -70,10 +69,6 @@ namespace Frostnux {
 		if (!m_IsVisible)
 			return;
 
-		Application& app = Application::Get();
-		s_LeftWidth = app.GetWindow().GetWidth() * 0.2f;
-		s_RightWidth = app.GetWindow().GetWidth() * 0.2f;
-		s_BottomHeight = app.GetWindow().GetHeight() * 0.3f;
 		DrawContent();
 	}
 
@@ -162,7 +157,7 @@ namespace Frostnux {
 
 	void uiWindow::DrawContent()
 	{
-		Application &app = Application::Get();
+		Application& app = Application::Get();
 		int width = (int)app.GetWindow().GetWidth();
 		int height = (int)app.GetWindow().GetHeight();
 
@@ -280,7 +275,7 @@ namespace Frostnux {
 		glVertex2f(closeX + 5, closeY + m_CloseButtonSize - 5);
 		glEnd();
 
-		for (auto *btn : m_Buttons)
+		for (auto* btn : m_Buttons)
 		{
 			btn->OnUpdate(m_RectX, m_RectY, m_IsVisible);
 		}
@@ -613,12 +608,12 @@ namespace Frostnux {
 		float zoneY = m_RectY + m_RectHeight - 15.0f;
 
 		return (mx >= zoneX && mx <= m_RectX + m_RectWidth &&
-				my >= zoneY && my <= m_RectY + m_RectHeight);
+			my >= zoneY && my <= m_RectY + m_RectHeight);
 	}
 
 	void uiWindow::SetResizeCursor(bool isResizeZone)
 	{
-		GLFWwindow *glfwWindow = static_cast<GLFWwindow *>(Application::Get().GetWindow().GetNativeWindow());
+		GLFWwindow* glfwWindow = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 		if (isResizeZone)
 			glfwSetCursor(glfwWindow, glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR));
 		else
@@ -678,7 +673,7 @@ namespace Frostnux {
 		glEnd();
 	}
 
-	void uiWindow::AddButton(uiButton *button)
+	void uiWindow::AddButton(uiButton* button)
 	{
 		if (button)
 		{
@@ -688,9 +683,34 @@ namespace Frostnux {
 
 	void uiWindow::InitDockSystem(float x, float y, float w, float h)
 	{
+		const bool firstTime = !s_InitializedDock;
+		const float oldW = s_MainW;
+		const float oldH = s_MainH;
+
 		s_MainX = x; s_MainY = y; s_MainW = w; s_MainH = h;
-		s_DockedWindows.clear();
-		s_FloatingWindows.clear();
+
+		if (firstTime)
+		{
+			s_LeftWidth = w * 0.2f;
+			s_RightWidth = w * 0.2f;
+			s_BottomHeight = h * 0.3f;
+			s_DockedWindows.clear();
+			s_FloatingWindows.clear();
+			s_InitializedDock = true;
+		}
+		else if (oldW > 0.0f && oldH > 0.0f && (oldW != w || oldH != h))
+		{
+			const float rW = w / oldW;
+			const float rH = h / oldH;
+			s_LeftWidth *= rW;
+			s_RightWidth *= rW;
+			s_BottomHeight *= rH;
+		}
+
+		s_LeftWidth = std::clamp(s_LeftWidth, 100.0f, w * 0.5f);
+		s_RightWidth = std::clamp(s_RightWidth, 100.0f, w * 0.5f);
+		s_BottomHeight = std::clamp(s_BottomHeight, 100.0f, h * 0.5f);
+
 		UpdateDockLayout();
 	}
 
@@ -765,7 +785,7 @@ namespace Frostnux {
 
 		for (auto* win : s_FloatingWindows)
 		{
-			if (win && win->IsVisible()) 
+			if (win && win->IsVisible())
 			{
 				win->DrawContent();
 			}
@@ -775,7 +795,7 @@ namespace Frostnux {
 		{
 			Application& app = Application::Get();
 			float x, y, w, h, leftW = app.GetWindow().GetWidth() * 0.2f, rightW = app.GetWindow().GetWidth() * 0.2f, bottomH = app.GetWindow().GetHeight() * 0.3f;
-			
+
 			switch (s_PreviewRegion)
 			{
 			case DockRegion::Left:
@@ -815,40 +835,40 @@ namespace Frostnux {
 	{
 		EventDispatcher dispatcher(event);
 		bool handled = false;
-		dispatcher.Dispatch<MouseButtonPressedEvent>([&](MouseButtonPressedEvent& e) 
+		dispatcher.Dispatch<MouseButtonPressedEvent>([&](MouseButtonPressedEvent& e)
 			{
-			float mx = e.GetMouseX(), my = e.GetMouseY();
-			if (my >= area.y && my <= area.y + area.tabHeight)
-			{
-				float tabWidth = 120.0f;
-				float tabX = area.x;
-				for (size_t i = 0; i < area.windows.size(); ++i)
+				float mx = e.GetMouseX(), my = e.GetMouseY();
+				if (my >= area.y && my <= area.y + area.tabHeight)
 				{
-					if (mx >= tabX && mx <= tabX + tabWidth)
+					float tabWidth = 120.0f;
+					float tabX = area.x;
+					for (size_t i = 0; i < area.windows.size(); ++i)
 					{
-						float closeX = tabX + tabWidth - 20;
-						float closeY = area.y + (area.tabHeight - 12) / 2;
-						if (mx >= closeX && mx <= closeX + 12 && my >= closeY && my <= closeY + 12)
+						if (mx >= tabX && mx <= tabX + tabWidth)
 						{
-							RemoveWindowFromDock(area.windows[i]);
-							handled = true;
-							return true;
-						}
-						else
-						{
-							area.activeWindow = area.windows[i];
+							float closeX = tabX + tabWidth - 20;
+							float closeY = area.y + (area.tabHeight - 12) / 2;
+							if (mx >= closeX && mx <= closeX + 12 && my >= closeY && my <= closeY + 12)
+							{
+								RemoveWindowFromDock(area.windows[i]);
+								handled = true;
+								return true;
+							}
+							else
+							{
+								area.activeWindow = area.windows[i];
 
-							float contentY = area.y + area.tabHeight;
-							float contentH = area.h - area.tabHeight;
-							area.activeWindow->SetSize(area.x, contentY, area.w, contentH);
-							handled = true;
-							return true;
+								float contentY = area.y + area.tabHeight;
+								float contentH = area.h - area.tabHeight;
+								area.activeWindow->SetSize(area.x, contentY, area.w, contentH);
+								handled = true;
+								return true;
+							}
 						}
+						tabX += tabWidth;
 					}
-					tabX += tabWidth;
 				}
-			}
-			return false;
+				return false;
 			});
 		if (!handled && area.activeWindow)
 		{
@@ -941,7 +961,7 @@ namespace Frostnux {
 		s_PreviewRegion = DockRegion::None;
 	}
 
-	void uiWindow::DockWindow(uiWindow* window, DockRegion region) 
+	void uiWindow::DockWindow(uiWindow* window, DockRegion region)
 	{
 		if (s_DockedWindows[region])
 		{
@@ -989,7 +1009,7 @@ namespace Frostnux {
 
 		if (m_IsDocked)
 		{
-			for (auto& pair : s_DockedWindows) 
+			for (auto& pair : s_DockedWindows)
 			{
 				if (pair.second == this)
 				{
@@ -1072,7 +1092,7 @@ namespace Frostnux {
 				{
 					DockWindow(s_DraggingWindow, s_PreviewRegion);
 				}
-				else 
+				else
 				{
 					UndockWindow(s_DraggingWindow);
 				}
@@ -1189,7 +1209,7 @@ namespace Frostnux {
 		float gap = 10.0f;
 		float startX = panelX + (panelW - 3 * (btnW + gap) + gap) / 2;
 		float startY = panelY + (panelH - 3 * (btnH + gap) + gap) / 2;
-		DockRegion regions[4] = 
+		DockRegion regions[4] =
 		{
 			DockRegion::Left,
 			DockRegion::Center,
@@ -1214,6 +1234,221 @@ namespace Frostnux {
 			return regions[3];
 		}
 		return DockRegion::None;
+	}
+
+	namespace { constexpr float kSplitterHitW = 8.0f; }
+
+	int uiWindow::HitTestSplitter(float mx, float my)
+	{
+		const bool hasLeft = s_DockedWindows[DockRegion::Left] != nullptr;
+		const bool hasRight = s_DockedWindows[DockRegion::Right] != nullptr;
+		const bool hasBottom = s_DockedWindows[DockRegion::Bottom] != nullptr;
+		if (!hasLeft && !hasRight && !hasBottom) return 0;
+
+		const float bottomH = hasBottom ? s_BottomHeight : 0.0f;
+		const float centerH = s_MainH - bottomH - (hasBottom ? s_DockSpacing : 0.0f);
+
+		if (hasLeft)
+		{
+			const float sx = s_MainX + s_LeftWidth;
+			if (mx >= sx - kSplitterHitW && mx <= sx + kSplitterHitW && my >= s_MainY && my <= s_MainY + centerH)
+				return 1;
+		}
+
+		if (hasRight)
+		{
+			const float sx = s_MainX + s_MainW - s_RightWidth;
+			if (mx >= sx - kSplitterHitW && mx <= sx + kSplitterHitW && my >= s_MainY && my <= s_MainY + centerH)
+				return 2;
+		}
+
+		if (hasBottom)
+		{
+			const float sy = s_MainY + s_MainH - s_BottomHeight;
+			if (my >= sy - kSplitterHitW && my <= sy + kSplitterHitW && mx >= s_MainX && mx <= s_MainX + s_MainW)
+				return 3;
+		}
+
+		return 0;
+	}
+
+	void uiWindow::UpdateSplitterCursor(int splitterId)
+	{
+		GLFWwindow* win = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+		if (!win) return;
+
+		GLFWcursor* cur = nullptr;
+		if (splitterId == 1 || splitterId == 2)
+			cur = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
+		else if (splitterId == 3)
+			cur = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
+		else
+			cur = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+
+		glfwSetCursor(win, cur);
+	}
+
+	bool uiWindow::HandleSplitterEvent(Event& event)
+	{
+		EventDispatcher d(event);
+
+		d.Dispatch<MouseButtonPressedEvent>([](MouseButtonPressedEvent& e)
+			{
+				if (e.GetMouseButton() != GLFW_MOUSE_BUTTON_LEFT) return false;
+				const int id = HitTestSplitter(e.GetMouseX(), e.GetMouseY());
+				if (id == 0) return false;
+
+				s_DraggingSplitter = id;
+				return true;
+			});
+
+		d.Dispatch<MouseMovedEvent>([](MouseMovedEvent& e)
+			{
+				const float mx = e.GetX();
+				const float my = e.GetY();
+
+				if (s_DraggingSplitter != 0)
+				{
+					if (s_DraggingSplitter == 1)
+					{
+						const float newW = std::clamp(mx - s_MainX,
+							100.0f, s_MainW * 0.5f);
+						s_LeftWidth = newW;
+					}
+					else if (s_DraggingSplitter == 2)
+					{
+						const float newW = std::clamp(s_MainX + s_MainW - mx,
+							100.0f, s_MainW * 0.5f);
+						s_RightWidth = newW;
+					}
+					else if (s_DraggingSplitter == 3)
+					{
+						const float newH = std::clamp(s_MainY + s_MainH - my,
+							100.0f, s_MainH * 0.5f);
+						s_BottomHeight = newH;
+					}
+					UpdateDockLayout();
+					return true;
+				}
+
+				const int hover = HitTestSplitter(mx, my);
+				if (hover != s_HoveredSplitter)
+				{
+					s_HoveredSplitter = hover;
+					UpdateSplitterCursor(hover);
+					if (hover != 0) return true;
+				}
+				return false;
+			});
+
+		d.Dispatch<MouseButtonReleasedEvent>([](MouseButtonReleasedEvent& e)
+			{
+				if (e.GetMouseButton() != GLFW_MOUSE_BUTTON_LEFT) return false;
+				if (s_DraggingSplitter == 0) return false;
+				s_DraggingSplitter = 0;
+				s_HoveredSplitter = 0;
+				UpdateSplitterCursor(0);
+				return true;
+			});
+
+		return event.m_Handled;
+	}
+
+	void uiWindow::DrawSplitters()
+	{
+		const bool hasLeft = s_DockedWindows[DockRegion::Left] != nullptr;
+		const bool hasRight = s_DockedWindows[DockRegion::Right] != nullptr;
+		const bool hasBottom = s_DockedWindows[DockRegion::Bottom] != nullptr;
+		if (!hasLeft && !hasRight && !hasBottom) return;
+
+		const float bottomH = hasBottom ? s_BottomHeight : 0.0f;
+		const float centerH = s_MainH - bottomH - (hasBottom ? s_DockSpacing : 0.0f);
+
+		glDisable(GL_TEXTURE_2D);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		auto bar = [](float x, float y, float w, float h, float r, float g, float b, float a)
+			{
+				glColor4f(r, g, b, a);
+				glBegin(GL_QUADS);
+				glVertex2f(x, y);
+				glVertex2f(x + w, y);
+				glVertex2f(x + w, y + h);
+				glVertex2f(x, y + h);
+				glEnd();
+			};
+
+		auto gripDotsV = [&](float cx, float cy, float r, float g, float b, float a)
+			{
+				for (int i = -1; i <= 1; ++i)
+					bar(cx - 2.0f, cy + i * 9.0f - 2.0f, 4.0f, 4.0f, r, g, b, a);
+			};
+		auto gripDotsH = [&](float cx, float cy, float r, float g, float b, float a)
+			{
+				for (int i = -1; i <= 1; ++i)
+					bar(cx + i * 9.0f - 2.0f, cy - 2.0f, 4.0f, 4.0f, r, g, b, a);
+			};
+
+		if (hasLeft)
+		{
+			const float sx = s_MainX + s_LeftWidth;
+
+			if (s_DraggingSplitter == 1)
+			{
+				bar(sx - 3.5f, s_MainY, 7.0f, centerH, 0.25f, 0.55f, 0.95f, 1.0f);
+				gripDotsV(sx, s_MainY + centerH * 0.5f, 1.0f, 1.0f, 1.0f, 0.95f);
+			}
+			else if (s_HoveredSplitter == 1)
+			{
+				bar(sx - 3.5f, s_MainY, 7.0f, centerH, 0.40f, 0.70f, 1.00f, 1.0f);
+				gripDotsV(sx, s_MainY + centerH * 0.5f, 1.0f, 1.0f, 1.0f, 0.90f);
+			}
+			else
+			{
+				bar(sx - 1.5f, s_MainY, 3.0f, centerH, 0.55f, 0.55f, 0.60f, 0.55f);
+			}
+		}
+
+		if (hasRight)
+		{
+			const float sx = s_MainX + s_MainW - s_RightWidth;
+
+			if (s_DraggingSplitter == 2)
+			{
+				bar(sx - 3.5f, s_MainY, 7.0f, centerH, 0.25f, 0.55f, 0.95f, 1.0f);
+				gripDotsV(sx, s_MainY + centerH * 0.5f, 1.0f, 1.0f, 1.0f, 0.95f);
+			}
+			else if (s_HoveredSplitter == 2)
+			{
+				bar(sx - 3.5f, s_MainY, 7.0f, centerH, 0.40f, 0.70f, 1.00f, 1.0f);
+				gripDotsV(sx, s_MainY + centerH * 0.5f, 1.0f, 1.0f, 1.0f, 0.90f);
+			}
+			else
+			{
+				bar(sx - 1.5f, s_MainY, 3.0f, centerH, 0.55f, 0.55f, 0.60f, 0.55f);
+			}
+		}
+
+		if (hasBottom)
+		{
+			const float sy = s_MainY + s_MainH - s_BottomHeight;
+
+			if (s_DraggingSplitter == 3)
+			{
+				bar(s_MainX, sy - 3.5f, s_MainW, 7.0f, 0.25f, 0.55f, 0.95f, 1.0f);
+				gripDotsH(s_MainX + s_MainW * 0.5f, sy, 1.0f, 1.0f, 1.0f, 0.95f);
+			}
+			else if (s_HoveredSplitter == 3)
+			{
+				bar(s_MainX, sy - 3.5f, s_MainW, 7.0f, 0.40f, 0.70f, 1.00f, 1.0f);
+				gripDotsH(s_MainX + s_MainW * 0.5f, sy, 1.0f, 1.0f, 1.0f, 0.90f);
+			}
+			else
+			{
+				bar(s_MainX, sy - 1.5f, s_MainW, 3.0f, 0.55f, 0.55f, 0.60f, 0.55f);
+			}
+		}
 	}
 
 }

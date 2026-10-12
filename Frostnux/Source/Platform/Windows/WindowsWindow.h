@@ -38,6 +38,8 @@ namespace Frostnux {
 		void SetWindowIcon(GLFWwindow* window) override;
 
 		void Maximize() override;
+
+		bool IsMaximized() const override;
 	private:
 		GLFWwindow* m_Window;
 

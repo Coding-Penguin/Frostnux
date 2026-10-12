@@ -45,6 +45,7 @@
 	"Building...": "Building...",
 	"Saving File...": "Saving File...",
 
+	"SolutionExplorer": "Solution Explorer",
 	"FileExplorer": "File Explorer",
 	"Properties": "Properties",
 	"Notifications": "Notifications",
@@ -55,5 +56,5 @@
 	"ReplaceAll": "Replace All",
 
 	"Line number...": "Line number...",
-  "Symbol name...": "Symbol name..."
+    "Symbol name...": "Symbol name..."
 }

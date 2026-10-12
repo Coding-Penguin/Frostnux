@@ -26,6 +26,8 @@ namespace Frostnux {
 		inline static Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_MainWindow; }
 		inline Window* GetWindowPointer() { return m_MainWindow.get(); }
+
+		static bool HasInstance() { return s_Instance != nullptr; }
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
 

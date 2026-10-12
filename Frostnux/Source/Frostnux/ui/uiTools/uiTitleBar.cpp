@@ -12,8 +12,8 @@
 #include <GLFW/glfw3native.h>
 #include <GLFW/glfw3.h>
 
-#include "Frostnux/Core/FontManager.h"
-#include "Frostnux/Core/LicenseManager.h"
+#include "Frostnux/Managers/FontManager.h"
+#include "Frostnux/Managers/LicenseManager.h"
 
 namespace Frostnux
 {
@@ -284,12 +284,12 @@ namespace Frostnux
 				if (glfwGetWindowAttrib(window, GLFW_MAXIMIZED))
 				{
 					glfwRestoreWindow(window);
-					SettingsManager::Get().SetMaximize(false);
+					SettingsManager::Get().Save();
 				}
 				else
 				{
 					glfwMaximizeWindow(window);
-					SettingsManager::Get().SetMaximize(true);
+					SettingsManager::Get().Save();
 				}
 				return true;
 			}

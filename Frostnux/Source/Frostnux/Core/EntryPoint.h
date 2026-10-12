@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef FX_PLATFORM_WINDOWS || defined(FX_PLATFORM_LINUX)
+#if defined(FX_PLATFORM_WINDOWS) || defined(FX_PLATFORM_LINUX)
 
 extern Frostnux::Application* Frostnux::CreateApplication();
 

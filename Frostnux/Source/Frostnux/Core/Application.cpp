@@ -18,8 +18,8 @@
 #endif
 
 #include "Input.h"
-#include "SettingsManager.h"
-#include "LicenseManager.h"
+#include "Frostnux/Managers/SettingsManager.h"
+#include "Frostnux/Managers/LicenseManager.h"
 
 namespace Frostnux {
 
@@ -42,14 +42,32 @@ namespace Frostnux {
 		{
 			FX_CORE_WARN("Invalid theme index in settings: {}. Defaulting to Dark theme.", settings.themeIndex);
 			ThemeManager::SetTheme(Theme::Dark);
-			SettingsManager::Get().SetThemeIndex((int)Theme::Dark);
+			SettingsManager::Get().Save();
 		}
 		else
 		{
 			ThemeManager::SetTheme((Theme)settings.themeIndex);
 		}
-		ChannelManager::SetChannel((Channel)settings.channelIndex);
-		LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
+		if (settings.channelIndex < 0 || settings.channelIndex > 1)
+		{
+			FX_CORE_WARN("Invalid channel index in settings: {}. Defaulting to Stable channel.", settings.channelIndex);
+			ChannelManager::SetChannel(Channel::Stable);
+			SettingsManager::Get().Save();
+		}
+		else
+		{
+			ChannelManager::SetChannel((Channel)settings.channelIndex);
+		}
+		if (settings.languageIndex < 0 || settings.languageIndex >= LanguageManager::GetLanguageCount())
+		{
+			FX_CORE_WARN("Invalid language index in settings: {}. Defaulting to English (US).", settings.languageIndex);
+			LanguageManager::SetLanguage(LanguageType::en_US);
+			SettingsManager::Get().Save();
+		}
+		else
+		{
+			LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
+		}
 		
 		FX_CORE_INFO("Frostnux is running on channel: {}, theme: {}, language: {}, License: {}, version: {}",
 			((ChannelManager::GetChannel() == Channel::Stable) ? "Stable" : "Preview"),
@@ -96,12 +114,9 @@ namespace Frostnux {
 
 	Application::~Application()
 	{
-		SettingsManager::Get().Save();
 		TextRenderer::Get().Unload();
-
 		m_MainWindow.reset();
 
-		FX_INFO("Application destructor called.");
 		FX_CORE_WARN("Shutting down Frostnux...");
 	}
 
@@ -183,6 +198,40 @@ namespace Frostnux {
 
 				m_Windows.erase(m_Windows.begin() + idx);
 			}
+
+			// Settings
+			auto& settings = SettingsManager::Get().GetSettings();
+			SettingsManager::Get().Load();
+			if (settings.themeIndex < 0 || settings.themeIndex >= ThemeManager::GetThemeCount())
+			{
+				FX_CORE_WARN("Invalid theme index in settings: {}. Defaulting to Dark theme.", settings.themeIndex);
+				ThemeManager::SetTheme(Theme::Dark);
+				SettingsManager::Get().Save();
+			}
+			else
+			{
+				ThemeManager::SetTheme((Theme)settings.themeIndex);
+			}
+			if (settings.channelIndex < 0 || settings.channelIndex > 1)
+			{
+				FX_CORE_WARN("Invalid channel index in settings: {}. Defaulting to Stable channel.", settings.channelIndex);
+				ChannelManager::SetChannel(Channel::Stable);
+				SettingsManager::Get().Save();
+			}
+			else
+			{
+				ChannelManager::SetChannel((Channel)settings.channelIndex);
+			}
+			if (settings.languageIndex < 0 || settings.languageIndex >= LanguageManager::GetLanguageCount())
+			{
+				FX_CORE_WARN("Invalid language index in settings: {}. Defaulting to English.", settings.languageIndex);
+				LanguageManager::SetLanguage(LanguageType::en_US);
+				SettingsManager::Get().Save();
+			}
+			else
+			{
+				LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
+			}
 		} while (m_Running && !m_MainWindow->ShouldClose());
 
 		for (auto& win : m_Windows)
@@ -198,7 +247,6 @@ namespace Frostnux {
 	{
 		FX_WARN("Window close event received. Shutting down Application...");
 		m_Running = false;
-		SettingsManager::Get().Save();
 		return true;
 	}
 
