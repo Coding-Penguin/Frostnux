@@ -70,7 +70,6 @@ project "stb_image"
 		runtime "Debug"
 		symbols "on"
 		sanitize { "Address" }
-		flags { "NoRuntimeChecks", "NoIncrementalLink" }
 
 	filter "configurations:Release"
 		runtime "Release"

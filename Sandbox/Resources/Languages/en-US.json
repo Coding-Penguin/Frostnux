@@ -19,8 +19,8 @@
 	"Help": "Help",
 	"Search": "Search",
 
-	"NewFile": "New File",
-	"OpenFile": "Open File",
+	"New": "New",
+	"Open": "Open",
 	"SaveFile": "Save File",
 	"SaveAs": "Save As",
 	"SaveAllFiles": "Save All Files",
@@ -56,5 +56,8 @@
 	"ReplaceAll": "Replace All",
 
 	"Line number...": "Line number...",
-    "Symbol name...": "Symbol name..."
+	"Symbol name...": "Symbol name...",
+
+	"Theme": "Theme",
+	"LanguageSwitch": "Language"
 }

@@ -88,7 +88,7 @@ namespace Frostnux {
 		if (outputName.empty()) outputName = name;
 
 		json j;
-		j["version"] = "1.0";
+		j["version"] = s_Version;
 		j["name"] = name;
 		j["kind"] = KindToString(kind);
 		j["language"] = language;
@@ -121,45 +121,90 @@ namespace Frostnux {
 		return true;
 	}
 
-	std::vector<std::filesystem::path> Project::ResolveSources() const
-	{
-		std::vector<std::filesystem::path> out;
-		const auto base = Directory();
+	namespace {
 
-		for (const auto& pattern : sources)
+		[[nodiscard]] bool IsIgnoredDir(const std::string& name)
 		{
-			auto star = pattern.find('*');
-			if (star == std::string::npos)
+			static const std::unordered_set<std::string> ignored = 
 			{
-				auto p = base / pattern;
-				std::error_code ec;
-				if (std::filesystem::exists(p, ec)) out.push_back(p);
-				continue;
-			}
+				"bin", "obj", "build", "out", "output",
+				".git", ".svn", ".hg", ".vs", ".vscode", ".idea",
+				"node_modules", "__pycache__", "Debug", "Release",
+				"x64", "x86", "ARM", "ARM64"
+			};
+			std::string lower;
+			lower.reserve(name.size());
+			for (char c : name)
+				lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+			return ignored.count(lower) > 0;
+		}
 
-			auto slash = pattern.find_last_of("/\\");
-			std::string dirPart = (slash == std::string::npos) ? "." : pattern.substr(0, slash);
-			std::string filePart = (slash == std::string::npos) ? pattern : pattern.substr(slash + 1);
+		[[nodiscard]] bool IsSourceExt(const std::string& ext)
+		{
+			return ext == ".cpp" || ext == ".c" || ext == ".cc" || ext == ".cxx" || ext == ".c++";
+		}
 
-			auto dotStar = filePart.find('*');
-			std::string prefix = filePart.substr(0, dotStar);
-			std::string suffix = filePart.substr(dotStar + 1);
+		[[nodiscard]] bool IsHeaderExt(const std::string& ext)
+		{
+			return ext == ".h" || ext == ".hpp" || ext == ".hxx" || ext == ".hh" || ext == ".h++" || ext == ".inl";
+		}
 
-			auto dir = base / dirPart;
+		void CollectFiles(const std::filesystem::path& root, std::vector<std::filesystem::path>& sources, std::vector<std::filesystem::path>& headers)
+		{
 			std::error_code ec;
-			if (!std::filesystem::is_directory(dir, ec)) continue;
+			if (!std::filesystem::is_directory(root, ec)) return;
 
-			for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
+			for (const auto& entry : std::filesystem::directory_iterator(root, ec))
 			{
-				if (!entry.is_regular_file()) continue;
-				const std::string fn = entry.path().filename().string();
-				if (fn.size() < prefix.size() + suffix.size()) continue;
-				if (fn.compare(0, prefix.size(), prefix) != 0) continue;
-				if (fn.compare(fn.size() - suffix.size(), suffix.size(), suffix) != 0) continue;
-				out.push_back(entry.path());
+				if (ec) break;
+				const auto& p = entry.path();
+				const std::string name = p.filename().string();
+
+				if (!name.empty() && name[0] == '.') continue;
+
+				if (entry.is_directory(ec))
+				{
+					if (IsIgnoredDir(name)) continue;
+					CollectFiles(p, sources, headers);
+					continue;
+				}
+
+				if (!entry.is_regular_file(ec)) continue;
+
+				std::string ext;
+				auto dot = name.find_last_of('.');
+				if (dot != std::string::npos)
+				{
+					ext = name.substr(dot);
+					for (auto& c : ext)
+						c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+				}
+
+				if (IsSourceExt(ext))		sources.push_back(p);
+				else if (IsHeaderExt(ext))	headers.push_back(p);
 			}
 		}
-		return out;
+
+	}
+
+	std::vector<std::filesystem::path> Project::ResolveSources() const
+	{
+		std::vector<std::filesystem::path> sources;
+		std::vector<std::filesystem::path> headers;
+		CollectFiles(Directory(), sources, headers);
+
+		std::sort(sources.begin(), sources.end());
+		return sources;
+	}
+
+	std::vector<std::filesystem::path> Project::ResolveHeaders() const
+	{
+		std::vector<std::filesystem::path> sources;
+		std::vector<std::filesystem::path> headers;
+		CollectFiles(Directory(), sources, headers);
+
+		std::sort(headers.begin(), headers.end());
+		return headers;
 	}
 
 	const ProjectConfig* Project::ActiveConfig() const

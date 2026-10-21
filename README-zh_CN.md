@@ -19,6 +19,8 @@
 [繁體中文](./README-zh_TW.md)
 [Pусский](./README-ru.md)
 [Magyar](./README-hu.md)
+
+[网站](https://frostnux.pages.dev)
 </div>
 <div align = "center">
 <strong> 零度锻造，比特成锋 </strong>

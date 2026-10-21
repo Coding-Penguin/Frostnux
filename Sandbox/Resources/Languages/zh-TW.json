@@ -19,8 +19,8 @@
 	"Help": "幫助",
 	"Search": "搜索",
 
-	"NewFile": "新文件",
-	"OpenFile": "打開文件",
+	"New": "新建",
+	"Open": "打開",
 	"SaveFile": "保存文件",
 	"SaveAs": "另存爲",
 	"SaveAllFiles": "保存所有文件",
@@ -55,5 +55,8 @@
 	"ReplaceAll": "全部替換",
 
 	"Line number...": "行號...",
-	"Symbol name...": "符號名稱..."
+	"Symbol name...": "符號名稱...",
+
+	"Theme": "主題",
+	"LanguageSwitch": "語言"
 }

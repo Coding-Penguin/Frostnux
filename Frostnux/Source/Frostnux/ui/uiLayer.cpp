@@ -20,6 +20,11 @@ namespace Frostnux {
 		return instance;
 	}
 
+	CodeEditor& uiLayer::GetCodeEditor()
+	{
+		return m_Editor;
+	}
+
 	uiLayer::uiLayer() : Layer("UILayer")
 	{
 	}
@@ -32,6 +37,57 @@ namespace Frostnux {
 		delete m_TitleBar;
 		delete m_StatusBar;
 		delete m_ShortcutBar;
+	}
+
+	void uiLayer::LoadSolution(const std::string& path)
+	{
+		Solution newSol;
+		if (newSol.Load(path))
+		{
+			m_Solution = std::move(newSol);
+			if (m_SolutionExplorer)
+				m_SolutionExplorer->SetSolution(&m_Solution);
+
+			FX_CORE_INFO("Loaded Solution: {}", m_Solution.name);
+		}
+		else
+		{
+			FX_CORE_ERROR("Failed to load solution: {}", path);
+		}
+	}
+
+	void uiLayer::CreateNewSolution(const std::string& path)
+	{
+		namespace fs = std::filesystem;
+
+		m_Solution = Solution();
+		m_Solution.path = path;
+		m_Solution.name = fs::path(path).stem().string();
+
+		auto* proj = m_Solution.AddProject(m_Solution.name, ProjectKind::ConsoleApp);
+
+		auto baseDir = fs::path(path).parent_path() / m_Solution.name;
+		std::error_code ec;
+		fs::create_directories(baseDir / "src", ec);
+		fs::create_directories(baseDir / "include", ec);
+
+		auto mainPath = baseDir / "src" / "main.cpp";
+		if (!fs::exists(mainPath, ec))
+		{
+			std::ofstream out(mainPath);
+			out << "#include <iostream>\n\nint main()\n{\n    std::cout << \"Hello, Frostnux!\" << std::endl;\n    return 0;\n}\n";
+			out.close();
+		}
+
+		m_Solution.Save(path);
+
+		if (m_SolutionExplorer)
+			m_SolutionExplorer->SetSolution(&m_Solution);
+
+		if (auto* tab = m_Editor.openFile(mainPath.string()))
+			tab->invalidateHighlight();
+
+		FX_CORE_INFO("Created new Solution at: {}", path);
 	}
 
 	void uiLayer::OnAttach()
@@ -55,40 +111,6 @@ namespace Frostnux {
 
 		m_ShortcutBar = new uiShortcutBar();
 		m_ShortcutBar->OnAttach();
-		std::vector<ShortcutItem> fileGroup =
-		{
-			{ "new", "N", j.value("NewFile", "New File"), [this]()
-				{
-					FX_CORE_INFO("New File");
-					m_Editor.newFile("Untitled.cpp");
-				}
-			},
-			{ "open", "O", j.value("OpenFile", "Open File"), [this]()
-				{
-					FX_CORE_INFO("Open File");
-					const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
-					if (!path.empty()) m_Editor.openFile(path);
-				}
-			},
-			{ "save", "S", j.value("SaveFile", "Save File"), [this]()
-				{
-					FX_CORE_INFO("Save File");
-					m_Editor.SaveActiveTab(false);
-				}
-			},
-			{ "saveas", "SA", j.value("SaveAs", "Save As"), [this]()
-				{
-					FX_CORE_INFO("Save As");
-					m_Editor.SaveActiveTab(true);
-				}
-			},
-			{ "saveall", "SA", j.value("SaveAllFiles", "Save All Files"), [this]()
-				{
-					FX_INFO("Save All");
-					m_Editor.SaveAllTabs();
-				}
-			}
-		};
 		std::vector<ShortcutItem> editGroup =
 		{
 			{ "undo", "U", j.value("Undo", "Undo"), []() { FX_INFO("Undo"); }},
@@ -113,7 +135,6 @@ namespace Frostnux {
 			{ "nextbookmark", "NB", j.value("NextBookmark", "Next Bookmark"), []() { FX_INFO("Next Bookmark"); } },
 			{ "clearbookmarks", "CB", j.value("ClearBookmarks", "Clear Bookmarks"), []() { FX_INFO("Clear Bookmarks"); } }
 		};
-		m_ShortcutBar->AddGroup(fileGroup, true);
 		m_ShortcutBar->AddGroup(editGroup, true);
 		m_ShortcutBar->AddGroup(buildGroup, true);
 		m_ShortcutBar->AddGroup(bookmarkGroup, false);
@@ -122,21 +143,9 @@ namespace Frostnux {
 		
 		auto* properties = new PropertiesWindow(j.value("Properties", "Properties"));
 
-		// Load Test Solution
-		m_Solution.name = "TestSolution";
-		{
-			auto* app1 = m_Solution.AddProject("App", ProjectKind::ConsoleApp);
-			app1->sources = { "src/*.cpp", "*.cpp" };
-			app1->includeDirs = { "include" };
+		m_SolutionExplorer = new SolutionExplorer(j.value("SolutionExplorer", "Solution Explorer"), &m_Solution, properties);
 
-			auto* core = m_Solution.AddProject("Core", ProjectKind::StaticLib);
-			core->sources = { "src/*.cpp" };
-		}
-		m_Solution.Save("TestSolution/Test.frostnux");
-
-		auto* solutionExplorer = new SolutionExplorer(j.value("SolutionExplorer", "Solution Explorer"), &m_Solution, properties);
-
-		solutionExplorer->SetFileOpenCallback([this](const std::string& path)
+		m_SolutionExplorer->SetFileOpenCallback([this](const std::string& path)
 			{
 				auto* tab = m_Editor.openFile(path);
 				if (tab) tab->invalidateHighlight();
@@ -156,10 +165,10 @@ namespace Frostnux {
 		*/
 		auto* notifications = new uiWindow(j.value("Notifications", "Notifications"));
 
-		m_Windows.push_back(solutionExplorer);
+		m_Windows.push_back(m_SolutionExplorer);
 		m_Windows.push_back(properties);
 
-		uiWindow::DockWindow(solutionExplorer, DockRegion::Left);
+		uiWindow::DockWindow(m_SolutionExplorer, DockRegion::Left);
 		uiWindow::DockWindow(properties, DockRegion::Right);
 
 		for (auto* win : m_Windows)
@@ -213,6 +222,29 @@ namespace Frostnux {
 		m_ProjectIndex.Scan();
 		m_Editor.SetProjectIndex(&m_ProjectIndex);
 		FX_CORE_INFO("ProjectIndex: indexed {} files", m_ProjectIndex.FileCount());
+
+		m_WelcomePage.OnAttach();
+		m_WelcomePage.SetCallbacks(
+			[this]()
+			{
+				m_Editor.newFile("Untitled.cpp");
+			},
+			[this]()
+			{
+				const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
+				if (!path.empty()) m_Editor.openFile(path);
+			},
+			[this]()
+			{
+				const std::string path = SaveFileDialog("Untitled.frostnux", "Frostnux Solution|*.frostnux");
+				if (!path.empty()) CreateNewSolution(path);
+			},
+			[this]()
+			{
+				const std::string path = OpenFileDialog("Frostnux Solution|*.frostnux");
+				if (!path.empty()) LoadSolution(path);
+			}
+		);
 	}
 
 	void uiLayer::RestoreEditorState()
@@ -295,7 +327,14 @@ namespace Frostnux {
 		float bottomH = uiWindow::GetDynamicBottomHeight();
 
 		m_Editor.update(deltaTime, glfwGetTime());
-		m_Editor.render(centerX, centerY, centerW, centerH);
+		if (m_Editor.tabCount() > 0)
+		{
+			m_Editor.render(centerX, centerY, centerW, centerH);
+		}
+		else
+		{
+			m_WelcomePage.Draw(centerX, centerY, centerW, centerH);
+		}
 
 		MouseCircle::Get().OnUpdate(deltaTime);
 
@@ -360,10 +399,15 @@ namespace Frostnux {
 		}
 
 		uiWindow::DrawDockPanel(mx, my);
+
+		PopupMenu::Get().Draw();
 	}
 
 	bool uiLayer::OnEvent(Event& event)
 	{
+		if (PopupMenu::Get().HandleEvent(&event))
+			return true;
+
 		MouseCircle::Get().OnEvent(event);
 
 		if (uiWindow::HandleSplitterEvent(event))
@@ -380,9 +424,17 @@ namespace Frostnux {
 			if (win->OnEvent(event))
 				return true;
 		}
-		
-		if (m_Editor.OnEvent(event))
-			return true;
+
+		if (m_Editor.tabCount() > 0)
+		{
+			if (m_Editor.OnEvent(event))
+				return true;
+		}
+		else
+		{
+			if (m_WelcomePage.OnEvent(event))
+				return true;
+		}
 
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)

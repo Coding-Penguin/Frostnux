@@ -43,9 +43,11 @@ namespace Frostnux {
 		bool Load(const std::filesystem::path& filepath);
 		bool Save(const std::filesystem::path& filepath = {});
 
-		[[nodiscard]] std::vector<std::filesystem::path> ResolveSources() const;
 		[[nodiscard]] std::filesystem::path Directory() const { return path.parent_path(); }
 		[[nodiscard]] const ProjectConfig* ActiveConfig() const;
+
+		[[nodiscard]] std::vector<std::filesystem::path> ResolveSources() const;
+		[[nodiscard]] std::vector<std::filesystem::path> ResolveHeaders() const;
 	};
 
 }

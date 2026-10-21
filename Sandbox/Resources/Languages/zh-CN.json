@@ -4,9 +4,11 @@
 	"Stable": "稳定版",
 	"Language": "简体中文",
 	"LanguageCode": "zh-CN",
+
 	"Community": "社区版",
 	"Professional": "专业版",
 	"Enterprise": "企业版",
+
 	"File": "文件",
 	"Edit": "编辑",
 	"View": "查看",
@@ -16,11 +18,13 @@
 	"Tools": "工具",
 	"Help": "帮助",
 	"Search": "搜索",
-	"NewFile": "新文件",
-	"OpenFile": "打开文件",
+
+	"New": "新建",
+	"Open": "打开",
 	"SaveFile": "保存文件",
 	"SaveAs": "另存为",
 	"SaveAllFiles": "保存所有文件",
+
 	"Undo": "撤销",
 	"Redo": "重做",
 	"Cut": "剪切",
@@ -29,22 +33,30 @@
 	"Rebuild": "重建",
 	"Clean": "清理",
 	"Run": "运行",
+
 	"FindBookmark": "查找书签",
 	"AddBookmark": "添加书签",
 	"DeleteBookmark": "删除书签",
 	"NextBookmark": "下一个书签",
 	"ClearBookmarks": "清除所有书签",
+
 	"Ready": "就绪",
 	"Building...": "正在编译...",
 	"Saving File...": "正在保存文件...",
+
 	"SolutionExplorer": "解决方案资源管理器",
 	"FileExplorer": "文件资源管理器",
 	"Properties": "属性",
 	"Notifications": "通知",
 	"Output": "输出",
+
 	"Find": "查找",
 	"Replace": "替换",
 	"ReplaceAll": "全部替换",
+
 	"Line number...": "行号...",
-	"Symbol name...": "符号名称..."
+	"Symbol name...": "符号名称...",
+
+  "Theme": "主题",
+  "LanguageSwitch": "语言"
 }

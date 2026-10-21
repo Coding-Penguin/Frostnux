@@ -2,7 +2,10 @@
 #include "uiTitleBar.h"
 #include "PhotoRenderer.h"
 #include "TextRenderer.h"
+#include "PopupMenu.h"
 #include "uiButton.h"
+#include "../uiLayer.h"
+#include "../CodeEditor/CodeEditor.h"
 #include "Frostnux/Core/Application.h"
 #include "Frostnux/Events/Event.h"
 #ifdef FX_PLATFORM_WINDOWS
@@ -14,6 +17,7 @@
 
 #include "Frostnux/Managers/FontManager.h"
 #include "Frostnux/Managers/LicenseManager.h"
+#include "Frostnux/Core/FileDialog.h"
 
 namespace Frostnux
 {
@@ -50,12 +54,84 @@ namespace Frostnux
 		Names[7] = j.value("Help", "Help");
 		Names[8] = j.value("Search", "Search");
 
+		CodeEditor& editorRef = uiLayer::GetCodeEditor();
+		CodeEditor* editor = &editorRef;
+
 		// File
 		float buttonWidth = TextRenderer::Get().GetTextWidth(Names[0]) + 30.0f;
 		auto Filebtn = std::make_unique<uiButton>(Names[0], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Filebtn->SetCallback([=]()
+		Filebtn->SetCallback([editor, j, x, y, buttonHeight]() mutable
 			{
-				FX_INFO("Clicked \"File\"");
+				auto sNew = j.value("New", "New");
+				auto sProject = j.value("Project", "Project");
+				auto sFile = j.value("File", "File");
+				auto sOpen = j.value("Open", "Open");
+				auto sSave = j.value("SaveFile", "Save File");
+				auto sSaveAs = j.value("SaveAs", "Save As");
+				auto sSaveAll = j.value("SaveAllFiles", "Save All Files");
+
+				std::vector<PopupMenu::Item> newSub;
+				{
+					PopupMenu::Item i1;
+					i1.label = sProject;
+					i1.onClick = [editor]() { FX_CORE_INFO("New Project"); };
+					newSub.push_back(i1);
+
+					PopupMenu::Item i2;
+					i2.label = sFile;
+					i2.onClick = [editor]() { FX_CORE_INFO("New File"); editor->newFile("Untitled.cpp"); };
+					newSub.push_back(i2);
+				}
+
+				std::vector<PopupMenu::Item> openSub;
+				{
+					PopupMenu::Item i1;
+					i1.label = sProject;
+					i1.onClick = [editor]() { FX_CORE_INFO("Open Project"); };
+					openSub.push_back(i1);
+
+					PopupMenu::Item i2;
+					i2.label = sFile;
+					i2.onClick = [editor]()
+						{
+						FX_CORE_INFO("Open File");
+						const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
+						if (!path.empty()) editor->openFile(path);
+						};
+					openSub.push_back(i2);
+				}
+
+				std::vector<PopupMenu::Item> mainMenu;
+
+				PopupMenu::Item itemNew;
+				itemNew.label = sNew;
+				itemNew.shortcut = "Ctrl+N";
+				itemNew.submenu = std::move(newSub);
+				mainMenu.push_back(std::move(itemNew));
+
+				PopupMenu::Item itemOpen;
+				itemOpen.label = sOpen;
+				itemOpen.shortcut = "Ctrl+O";
+				itemOpen.submenu = std::move(openSub);
+				mainMenu.push_back(std::move(itemOpen));
+
+				PopupMenu::Item itemSave;
+				itemSave.label = sSave;
+				itemSave.shortcut = "Ctrl+S";
+				itemSave.onClick = [editor]() { FX_CORE_INFO("Save"); editor->SaveActiveTab(false); };
+				mainMenu.push_back(std::move(itemSave));
+
+				PopupMenu::Item itemSaveAs;
+				itemSaveAs.label = sSaveAs;
+				itemSaveAs.onClick = [editor]() { FX_CORE_INFO("Save As"); editor->SaveActiveTab(true); };
+				mainMenu.push_back(std::move(itemSaveAs));
+
+				PopupMenu::Item itemSaveAll;
+				itemSaveAll.label = sSaveAll;
+				itemSaveAll.onClick = [editor]() { FX_CORE_INFO("Save All Files"); editor->SaveAllTabs(); };
+				mainMenu.push_back(std::move(itemSaveAll));
+
+				PopupMenu::Get().Open(x, y + buttonHeight, std::move(mainMenu));
 			});
 		m_Buttons.push_back(std::move(Filebtn));
 		x += buttonWidth + 10;
@@ -63,7 +139,7 @@ namespace Frostnux
 		// Edit
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[1]) + 30.0f;
 		auto Editbtn = std::make_unique<uiButton>(Names[1], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Editbtn->SetCallback([=]()
+		Editbtn->SetCallback([j, x, y, buttonHeight]() mutable
 			{
 				FX_INFO("Clicked \"Edit\"");
 			});
@@ -73,7 +149,7 @@ namespace Frostnux
 		// View
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[2]) + 30.0f;
 		auto Viewbtn = std::make_unique<uiButton>(Names[2], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Viewbtn->SetCallback([=]()
+		Viewbtn->SetCallback([j, x, y, buttonHeight]() mutable
 			{
 				FX_INFO("Clicked \"View\"");
 			});
@@ -83,9 +159,30 @@ namespace Frostnux
 		// Project
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[3]) + 30.0f;
 		auto Projectbtn = std::make_unique<uiButton>(Names[3], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Projectbtn->SetCallback([=]()
+
+		Projectbtn->SetCallback([j, x, y, buttonHeight]() mutable
 			{
-				FX_INFO("Clicked \"Project\"");
+				std::vector<PopupMenu::Item> mainMenu;
+
+				PopupMenu::Item newProj;
+				newProj.label = j.value("NewProject", "New Project");
+				newProj.onClick = []()
+					{
+					const std::string path = SaveFileDialog("Untitled.frostnux", "Frostnux Solution|*.frostnux");
+					if (!path.empty()) uiLayer::Get().CreateNewSolution(path);
+					};
+				mainMenu.push_back(std::move(newProj));
+
+				PopupMenu::Item openProj;
+				openProj.label = j.value("OpenProject", "Open Project");
+				openProj.onClick = []()
+					{
+						const std::string path = OpenFileDialog("Frostnux Solution|*.frostnux");
+						if (!path.empty()) uiLayer::Get().LoadSolution(path);
+					};
+				mainMenu.push_back(std::move(openProj));
+
+				PopupMenu::Get().Open(x, y + buttonHeight, std::move(mainMenu));
 			});
 		m_Buttons.push_back(std::move(Projectbtn));
 		x += buttonWidth + 10;
@@ -93,7 +190,7 @@ namespace Frostnux
 		// Build
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[4]) + 30.0f;
 		auto Buildbtn = std::make_unique<uiButton>(Names[4], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Buildbtn->SetCallback([=]()
+		Buildbtn->SetCallback([j, x, y, buttonHeight]() mutable
 			{
 				FX_INFO("Clicked \"Build\"");
 			});
@@ -103,7 +200,7 @@ namespace Frostnux
 		// Debug
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[5]) + 30.0f;
 		auto Debugbtn = std::make_unique<uiButton>(Names[5], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Debugbtn->SetCallback([=]()
+		Debugbtn->SetCallback([j, x, y, buttonHeight]() mutable
 			{
 				FX_INFO("Clicked \"Debug\"");
 			});
@@ -113,9 +210,8 @@ namespace Frostnux
 		// Tools
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[6]) + 30.0f;
 		auto Toolsbtn = std::make_unique<uiButton>(Names[6], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Toolsbtn->SetCallback([=]()
+		Toolsbtn->SetCallback([j, x, y, buttonHeight]() mutable
 			{
-				FX_INFO("Clicked \"Tools\"");
 			});
 		m_Buttons.push_back(std::move(Toolsbtn));
 		x += buttonWidth + 10;
@@ -123,7 +219,7 @@ namespace Frostnux
 		// Help
 		buttonWidth = TextRenderer::Get().GetTextWidth(Names[7]) + 30.0f;
 		auto Helpbtn = std::make_unique<uiButton>(Names[7], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-		Helpbtn->SetCallback([=]()
+		Helpbtn->SetCallback([j, x, y, buttonHeight]() mutable
 			{
 				FX_INFO("Clicked \"Help\"");
 			});
@@ -139,7 +235,7 @@ namespace Frostnux
 		auto addSearchButton = [&](const std::string& text, float width)
 			{
 				auto btn = std::make_unique<uiButton>(text, x, y, width, buttonHeight, ButtonStyles::NoBackgroundOrLine);
-				btn->SetCallback([=]()
+				btn->SetCallback([=]() mutable
 					{
 						FX_INFO("Clicked \"Search\".");
 					});
@@ -269,16 +365,14 @@ namespace Frostnux
 			if (e.GetMouseButton() != GLFW_MOUSE_BUTTON_LEFT) return false;
 			float mx = e.GetMouseX(), my = e.GetMouseY();
 
-			if (mx >= m_MinimizeRect.x && mx <= m_MinimizeRect.x + m_MinimizeRect.w &&
-				my >= m_MinimizeRect.y && my <= m_MinimizeRect.y + m_MinimizeRect.h)
+			if (mx >= m_MinimizeRect.x && mx <= m_MinimizeRect.x + m_MinimizeRect.w && my >= m_MinimizeRect.y && my <= m_MinimizeRect.y + m_MinimizeRect.h)
 			{
 				auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 				glfwIconifyWindow(window);
 				return true;
 			}
 
-			if (mx >= m_MaximizeRect.x && mx <= m_MaximizeRect.x + m_MaximizeRect.w &&
-				my >= m_MaximizeRect.y && my <= m_MaximizeRect.y + m_MaximizeRect.h)
+			if (mx >= m_MaximizeRect.x && mx <= m_MaximizeRect.x + m_MaximizeRect.w && my >= m_MaximizeRect.y && my <= m_MaximizeRect.y + m_MaximizeRect.h)
 			{
 				auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 				if (glfwGetWindowAttrib(window, GLFW_MAXIMIZED))
@@ -294,8 +388,7 @@ namespace Frostnux
 				return true;
 			}
 
-			if (mx >= m_CloseRect.x && mx <= m_CloseRect.x + m_CloseRect.w &&
-				my >= m_CloseRect.y && my <= m_CloseRect.y + m_CloseRect.h)
+			if (mx >= m_CloseRect.x && mx <= m_CloseRect.x + m_CloseRect.w && my >= m_CloseRect.y && my <= m_CloseRect.y + m_CloseRect.h)
 			{
 				auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -317,12 +410,7 @@ namespace Frostnux
 					}
 				}
 
-				if (!hitButton && ((mx >= m_MinimizeRect.x && mx <= m_MinimizeRect.x + m_MinimizeRect.w &&
-					my >= m_MinimizeRect.y && my <= m_MinimizeRect.y + m_MinimizeRect.h) ||
-					(mx >= m_MaximizeRect.x && mx <= m_MaximizeRect.x + m_MaximizeRect.w &&
-						my >= m_MaximizeRect.y && my <= m_MaximizeRect.y + m_MaximizeRect.h) ||
-					(mx >= m_CloseRect.x && mx <= m_CloseRect.x + m_CloseRect.w &&
-						my >= m_CloseRect.y && my <= m_CloseRect.y + m_CloseRect.h)))
+				if (!hitButton && ((mx >= m_MinimizeRect.x && mx <= m_MinimizeRect.x + m_MinimizeRect.w && my >= m_MinimizeRect.y && my <= m_MinimizeRect.y + m_MinimizeRect.h) || (mx >= m_MaximizeRect.x && mx <= m_MaximizeRect.x + m_MaximizeRect.w && my >= m_MaximizeRect.y && my <= m_MaximizeRect.y + m_MaximizeRect.h) || (mx >= m_CloseRect.x && mx <= m_CloseRect.x + m_CloseRect.w && my >= m_CloseRect.y && my <= m_CloseRect.y + m_CloseRect.h)))
 				{
 					hitButton = true;
 				}

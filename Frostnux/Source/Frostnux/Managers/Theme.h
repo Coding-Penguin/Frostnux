@@ -26,9 +26,9 @@ namespace Frostnux
 			switch (s_CurrentTheme)
 			{
 			case Theme::Dark:
-				return { 0.01f, 0.01f, 0.03f };
+				return { 0.01f, 0.01f, 0.02f };
 			case Theme::Light:
-				return { 0.95f, 0.95f, 1.0f };
+				return { 1.0f, 0.95f, 0.9f };
 			case Theme::Cool_Breeze:
 				return { 0.8f, 0.9f, 0.93f };
 			case Theme::Cool_Slate:
@@ -46,7 +46,7 @@ namespace Frostnux
 			case Theme::Dark:
 				return "Dark";
 			case Theme::Light:
-				return "Light";
+				return "Light (Paper)";
 			case Theme::Cool_Breeze:
 				return "Cool Breeze";
 			case Theme::Cool_Slate:

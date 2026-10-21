@@ -18,6 +18,8 @@
 [繁體中文](./README-zh_TW.md)
 [Pусский](./README-ru.md)
 [Magyar](./README-hu.md)
+
+[Website](https://frostnux.pages.dev)
 </div>
 <div align = "center">
 <strong> Forged at zero. Bladed in bits. </strong>

@@ -11,7 +11,7 @@ namespace Frostnux {
 	{
 	public:
 		std::string name = "Solution";
-		std::filesystem::path path;   // .frostnux file path
+		std::filesystem::path path;		// .frostnux file path
 		std::vector<std::unique_ptr<Project>> projects;
 
 		bool Load(const std::filesystem::path& filepath);
