@@ -4,8 +4,8 @@
 #include "PhotoRenderer.h"
 #include "Frostnux/Events/Event.h"
 #include "Frostnux/Events/MouseEvent.h"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "Frostnux/Renderer/Renderer2D.h"
+#include "Frostnux/Core/MouseButtonCodes.h"
 
 namespace Frostnux {
 
@@ -17,15 +17,13 @@ namespace Frostnux {
 		m_Logo.reset(new PhotoRenderer());
 		m_Logo->LoadFromFile("Resources/Images/Frostnux.png");
 
+		nlohmann::json j;
+		std::ifstream file("Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json");
+		file >> j;
+
 		m_Buttons.resize(4);
-		m_Buttons[0].label = "New File";
-		m_Buttons[0].desc = "Create a new source file";
-		m_Buttons[1].label = "Open File...";
-		m_Buttons[1].desc = "Open an existing file";
-		m_Buttons[2].label = "New Project";
-		m_Buttons[2].desc = "Create a new C++ project";
-		m_Buttons[3].label = "Open Project...";
-		m_Buttons[3].desc = "Open a .frostnux or .fxproject";
+		RefreshText();
+		m_LanguageCode = LanguageManager::GetLanguageCode();
 	}
 
 	void WelcomePage::SetCallbacks(
@@ -63,10 +61,14 @@ namespace Frostnux {
 	{
 		Layout(x, y, w, h);
 
-		if (ThemeManager::IsDarkTheme())
-			DrawRect(x, y, w, h, { 0.10f, 0.10f, 0.12f, 1.0f });
-		else
-			DrawRect(x, y, w, h, { 1.0f, 0.95f, 0.95f, 1.0f });
+		if (m_LanguageCode != LanguageManager::GetLanguageCode())
+		{
+			m_LanguageCode = LanguageManager::GetLanguageCode();
+			RefreshText();
+		}
+
+		auto [r, g, b] = ThemeManager::GetBGColor();
+		DrawRect(x, y, w, h, { r, g, b, 1.0f });
 
 		if (m_Logo && m_Logo->IsLoaded())
 		{
@@ -76,11 +78,18 @@ namespace Frostnux {
 			m_Logo->Draw(lx, ly, logoSize, logoSize);
 		}
 
-		std::string title = "Welcome to Frostnux!";
+		nlohmann::json j;
+		std::ifstream file("Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json");
+		file >> j;
+
+		std::string title = j.value("Welcome", "Welcome to Frostnux!");
 		float titleW = TextRenderer::Get().GetTextWidth(title);
 		float tx = x + (w - titleW) / 2.0f;
 		float ty = y + h / 2.0f - 120.0f;
-		TextRenderer::Get().DrawText(title, tx, ty, 1.0f, 1.0f, 1.0f, 1.0f);
+		if (ThemeManager::IsDarkTheme())
+			TextRenderer::Get().DrawTextUTF8(title, tx, ty, 1.0f, 1.0f, 1.0f, 1.0f);
+		else
+			TextRenderer::Get().DrawTextUTF8(title, tx, ty, 0.0f, 0.0f, 0.0f, 1.0f);
 
 		for (const auto& btn : m_Buttons)
 		{
@@ -91,9 +100,9 @@ namespace Frostnux {
 			DrawRect(btn.rect.x, btn.rect.y, btn.rect.w, btn.rect.h, bgColor);
 
 			float textY = btn.rect.y + (btn.rect.h - TextRenderer::Get().GetTextHeight()) / 2.0f - 6.0f;
-			TextRenderer::Get().DrawText(btn.label, btn.rect.x + 16.0f, textY, 0.95f, 0.95f, 0.95f, 1.0f);
+			TextRenderer::Get().DrawTextUTF8(btn.label, btn.rect.x + 16.0f, textY, 0.95f, 0.95f, 0.95f, 1.0f);
 
-			TextRenderer::Get().DrawText(btn.desc, btn.rect.x + 160.0f, textY + 2.0f, 0.55f, 0.55f, 0.60f, 1.0f);
+			TextRenderer::Get().DrawTextUTF8(btn.desc, btn.rect.x + 160.0f, textY + 2.0f, 0.55f, 0.55f, 0.60f, 1.0f);
 		}
 	}
 
@@ -114,7 +123,7 @@ namespace Frostnux {
 		if (event.GetEventType() == EventType::MouseButtonPressed)
 		{
 			auto& me = static_cast<MouseButtonPressedEvent&>(event);
-			if (me.GetMouseButton() != GLFW_MOUSE_BUTTON_LEFT) return false;
+			if (me.GetMouseButton() != FX_MOUSE_BUTTON_LEFT) return false;
 
 			for (auto& btn : m_Buttons)
 			{
@@ -131,16 +140,23 @@ namespace Frostnux {
 
 	void WelcomePage::DrawRect(float x, float y, float w, float h, Color c)
 	{
-		glDisable(GL_TEXTURE_2D);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glColor4f(c.r, c.g, c.b, c.a);
-		glBegin(GL_QUADS);
-		glVertex2f(x, y);
-		glVertex2f(x + w, y);
-		glVertex2f(x + w, y + h);
-		glVertex2f(x, y + h);
-		glEnd();
+		Renderer2D::DrawQuad(x, y, w, h, c.r, c.g, c.b, c.a);
+	}
+
+	void WelcomePage::RefreshText()
+	{
+		nlohmann::json j;
+		std::ifstream file("Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json");
+		file >> j;
+
+		m_Buttons[0].label = j.value("New File", "New File");
+		m_Buttons[0].desc = j.value("New File Desc", "Create a new source file");
+		m_Buttons[1].label = j.value("Open File...", "Open File...");
+		m_Buttons[1].desc = j.value("Open File Desc", "Open an existing file");
+		m_Buttons[2].label = j.value("New Project", "New Project");
+		m_Buttons[2].desc = j.value("New Project Desc", "Create a new C++ project");
+		m_Buttons[3].label = j.value("Open Project...", "Open Project...");
+		m_Buttons[3].desc = j.value("Open Project Desc", "Open a .frostnux or .fxproject");
 	}
 
 }

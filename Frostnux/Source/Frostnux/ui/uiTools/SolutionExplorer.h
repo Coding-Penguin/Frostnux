@@ -24,6 +24,10 @@ namespace Frostnux {
 			m_FileOpenCallback = std::move(callback);
 		}
 
+		static float GetScrollY() { return m_ScrollY; }
+		static void SetScrollY(float y) { m_ScrollY = y; }
+
+		virtual void RefreshText() override;
 	private:
 		enum class NodeKind { SolutionRoot, Project, Folder, File };
 
@@ -48,13 +52,13 @@ namespace Frostnux {
 		PropertiesWindow* m_Properties = nullptr;
 		std::function<void(const std::string&)>	m_FileOpenCallback;
 
-		Node		m_Root;
-		float		m_LineHeight = 0.0f;
-		float		m_ScrollY = 0.0f;
-		float		m_TotalHeight = 0.0f;
-		bool		m_IsDraggingScrollbar = false;
-		float		m_DragStartY = 0.0f;
-		float		m_DragStartScrollY = 0.0f;
+		Node			m_Root;
+		float			m_LineHeight = 0.0f;
+		static float	m_ScrollY;
+		float			m_TotalHeight = 0.0f;
+		bool			m_IsDraggingScrollbar = false;
+		float			m_DragStartY = 0.0f;
+		float			m_DragStartScrollY = 0.0f;
 
 		const Node* m_HoveredNode = nullptr;
 		const Node* m_SelectNode = nullptr;
@@ -70,9 +74,7 @@ namespace Frostnux {
 		std::unique_ptr<PhotoRenderer> m_File_Icon;
 
 		void BuildTree();
-		void InsertFileRecursive(Node& parent,
-			const std::filesystem::path& relPath,
-			const std::filesystem::path& absPath);
+		void InsertFileRecursive(Node& parent, const std::filesystem::path& relPath, const std::filesystem::path& absPath);
 
 		void DrawNode(const Node& node, int depth, float& y, float x, float width);
 		void CalcTreeHeight(const Node& node, float& total) const;

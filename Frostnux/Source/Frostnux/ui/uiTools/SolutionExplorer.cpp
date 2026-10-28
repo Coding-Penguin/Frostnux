@@ -2,15 +2,18 @@
 #include "SolutionExplorer.h"
 #include "TextRenderer.h"
 #include "Frostnux/Core/Log.h"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "Frostnux/Renderer/Renderer2D.h"
 #include "Frostnux/Core/Application.h"
 #include "../uiLayer.h"
 #include "Frostnux/Events/Event.h"
 #include "Frostnux/Events/MouseEvent.h"
 #include "Frostnux/Events/KeyEvent.h"
+#include "PopupMenu.h"
+#include "TextInputDialog.h"
 
 namespace Frostnux {
+
+	float SolutionExplorer::m_ScrollY = 0.0f;
 
 	SolutionExplorer::SolutionExplorer(const std::string& name, Solution* solution, PropertiesWindow* properties)
 		: uiWindow(name), m_Solution(solution), m_Properties(properties)
@@ -83,6 +86,7 @@ namespace Frostnux {
 			Node pNode;
 			pNode.kind = NodeKind::Project;
 			pNode.name = proj->name;
+			pNode.fullPath = proj->Directory().generic_string();
 			pNode.projectIndex = pi;
 			pNode.expanded = true;
 
@@ -106,6 +110,7 @@ namespace Frostnux {
 		auto it = relPath.begin();
 		auto end = relPath.end();
 		Node* cur = &parent;
+		std::filesystem::path curAbs = parent.fullPath;
 
 		while (it != end)
 		{
@@ -123,6 +128,7 @@ namespace Frostnux {
 			}
 
 			std::string folderName = it->string();
+			curAbs /= folderName;
 			Node* found = nullptr;
 			for (auto& c : cur->children)
 			{
@@ -137,6 +143,7 @@ namespace Frostnux {
 				Node f;
 				f.kind = NodeKind::Folder;
 				f.name = folderName;
+				f.fullPath = curAbs.generic_string();
 				f.expanded = true;
 				cur->children.push_back(std::move(f));
 				found = &cur->children.back();
@@ -183,6 +190,119 @@ namespace Frostnux {
 
 		dispatcher.Dispatch<MouseButtonPressedEvent>([this](MouseButtonPressedEvent& e)
 			{
+				if (e.GetMouseButton() == GLFW_MOUSE_BUTTON_RIGHT)
+				{
+					float mx = e.GetMouseX(), my = e.GetMouseY();
+					float contentX = GetX();
+					float contentY = GetY() + 30;
+					float contentW = GetWidth();
+					float contentH = GetHeight() - 30;
+
+					if (mx < contentX || mx > contentX + contentW || my < contentY || my > contentY + contentH)
+						return false;
+
+					m_VisibleNodes.clear();
+					float yOffset = 0.0f;
+					BuildVisibleList(m_Root, 0, contentY, yOffset);
+
+					const Node* clickedNode = nullptr;
+					for (const auto& vn : m_VisibleNodes)
+					{
+						if (my >= vn.y && my <= vn.y + m_LineHeight)
+						{
+							clickedNode = vn.node;
+							break;
+						}
+					}
+
+					if (!clickedNode) return false;
+
+					std::vector<PopupMenu::Item> menuItems;
+
+					if (clickedNode->kind == NodeKind::File)
+					{
+						PopupMenu::Item openItem;
+						openItem.label = "Open";
+						openItem.onClick = [this, path = clickedNode->fullPath]()
+							{
+							if (m_FileOpenCallback) m_FileOpenCallback(path);
+							};
+						menuItems.push_back(openItem);
+
+						PopupMenu::Item deleteItem;
+						deleteItem.label = "Delete";
+						deleteItem.onClick = [this, path = clickedNode->fullPath]()
+							{
+							std::error_code ec;
+							std::filesystem::remove(path, ec);
+							if (!ec) { Refresh(); }
+							};
+						menuItems.push_back(deleteItem);
+					}
+					else if (clickedNode->kind == NodeKind::Folder || clickedNode->kind == NodeKind::Project)
+					{
+						PopupMenu::Item newFileItem;
+						newFileItem.label = "New File...";
+						newFileItem.onClick = [this, dirPath = clickedNode->fullPath]()
+							{
+							TextInputDialog::Get().Open("Create New File", "NewFile.cpp", [this, dirPath](const std::string& name)
+								{
+								std::filesystem::path target = dirPath;
+								target /= name;
+								if (!std::filesystem::exists(target))
+								{
+									Refresh();
+								}
+								});
+							};
+						menuItems.push_back(newFileItem);
+
+						PopupMenu::Item newFolderItem;
+						newFolderItem.label = "New Folder...";
+						newFolderItem.onClick = [this, dirPath = clickedNode->fullPath]()
+							{
+							TextInputDialog::Get().Open("Create New Folder", "NewFolder", [this, dirPath](const std::string& name)
+								{
+								std::filesystem::path target = dirPath;
+								target /= name;
+								if (!std::filesystem::exists(target))
+								{
+									std::filesystem::create_directory(target);
+									Refresh();
+								}
+								});
+							};
+						menuItems.push_back(newFolderItem);
+					}
+					else if (clickedNode->kind == NodeKind::SolutionRoot)
+					{
+						PopupMenu::Item newProjItem;
+						newProjItem.label = "New Project...";
+						newProjItem.onClick = [this]() {
+							TextInputDialog::Get().Open("New Project", "MyProject", [this](const std::string& name)
+								{
+								if (m_Solution)
+								{
+									m_Solution->AddProject(name, ProjectKind::ConsoleApp);
+									m_Solution->Save();
+									Refresh();
+								}
+								else
+								{
+									FX_CORE_WARN("No Solution loaded. Please create one first.");
+								}
+								});
+							};
+						menuItems.push_back(newProjItem);
+					}
+
+					if (!menuItems.empty())
+					{
+						PopupMenu::Get().Open(mx, my, std::move(menuItems));
+					}
+					return true;
+				}
+
 				if (e.GetMouseButton() != GLFW_MOUSE_BUTTON_LEFT) return false;
 
 				float mx = e.GetMouseX(), my = e.GetMouseY();
@@ -343,13 +463,7 @@ namespace Frostnux {
 		{
 			float thumbH = contentH * (contentH / m_TotalHeight);
 			float thumbY = contentY + (m_ScrollY / (m_TotalHeight - contentH)) * (contentH - thumbH);
-			glColor4f(0.5f, 0.5f, 0.5f, 0.8f);
-			glBegin(GL_QUADS);
-			glVertex2f(contentX + contentW - 8, thumbY);
-			glVertex2f(contentX + contentW - 2, thumbY);
-			glVertex2f(contentX + contentW - 2, thumbY + thumbH);
-			glVertex2f(contentX + contentW - 8, thumbY + thumbH);
-			glEnd();
+			Renderer2D::DrawQuad(contentX + contentW - 8, thumbY, 6.0f, thumbH, 0.5f, 0.5f, 0.5f, 0.8f);
 		}
 
 		glDisable(GL_SCISSOR_TEST);
@@ -381,35 +495,22 @@ namespace Frostnux {
 		if (&node == m_HoveredNode)
 		{
 			if (ThemeManager::IsDarkTheme())
-				glColor4f(0.2f, 0.2f, 0.2f, 0.5f);
+				Renderer2D::DrawQuad(x, y, width, m_LineHeight, 0.2f, 0.2f, 0.2f, 0.5f);
 			else
-				glColor4f(0.8f, 0.8f, 0.8f, 0.5f);
-
-			glBegin(GL_QUADS);
-			glVertex2f(x, y);
-			glVertex2f(x + width, y);
-			glVertex2f(x + width, y + m_LineHeight);
-			glVertex2f(x, y + m_LineHeight);
-			glEnd();
+				Renderer2D::DrawQuad(x, y, width, m_LineHeight, 0.8f, 0.8f, 0.8f, 0.5f);
 		}
 
 		if (&node == m_SelectNode)
 		{
-			glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
-			glBegin(GL_QUADS);
-			glVertex2f(x, y);
-			glVertex2f(x + width, y);
-			glVertex2f(x + width, y + m_LineHeight);
-			glVertex2f(x, y + m_LineHeight);
-			glEnd();
+			Renderer2D::DrawQuad(x, y, width, m_LineHeight, 0.5f, 0.5f, 0.5f, 0.5f);
 
-			glColor4f(0.7f, 0.7f, 0.7f, 1.0f);
-			glBegin(GL_LINE_LOOP);
-			glVertex2f(x, y);
-			glVertex2f(x + width, y);
-			glVertex2f(x + width, y + m_LineHeight);
-			glVertex2f(x, y + m_LineHeight);
-			glEnd();
+			float r = 0.7f, g = 0.7f, b = 0.7f, a = 1.0f;
+			float thickness = 1.0f;
+
+			Renderer2D::DrawLine(x, y, x + width, y, thickness, r, g, b, a);
+			Renderer2D::DrawLine(x + width, y, x + width, y + m_LineHeight, thickness, r, g, b, a);
+			Renderer2D::DrawLine(x + width, y + m_LineHeight, x, y + m_LineHeight, thickness, r, g, b, a);
+			Renderer2D::DrawLine(x, y + m_LineHeight, x, y, thickness, r, g, b, a);
 		}
 
 		float iconX = x + indent;
@@ -423,9 +524,9 @@ namespace Frostnux {
 		if (TextRenderer::Get().IsInitialized())
 		{
 			if (ThemeManager::IsDarkTheme())
-				TextRenderer::Get().DrawText(node.name, textX + m_LineHeight, y + 2, 0.9f, 0.9f, 0.9f, 1.0f);
+				TextRenderer::Get().DrawTextUTF8(node.name, textX + m_LineHeight, y + 2, 0.9f, 0.9f, 0.9f, 1.0f);
 			else
-				TextRenderer::Get().DrawText(node.name, textX + m_LineHeight, y + 2, 0.1f, 0.1f, 0.1f, 1.0f);
+				TextRenderer::Get().DrawTextUTF8(node.name, textX + m_LineHeight, y + 2, 0.1f, 0.1f, 0.1f, 1.0f);
 		}
 
 		y += m_LineHeight;
@@ -444,20 +545,14 @@ namespace Frostnux {
 
 		if (expanded)
 		{
-			glBegin(GL_TRIANGLES);
-			glVertex2f(x, y);
-			glVertex2f(x + 10, y);
-			glVertex2f(x + 5, y + 10);
-			glEnd();
+			Renderer2D::DrawTriangle(x, y,x + 10.0f, y,x + 5.0f, y + 10.0f,0.8f, 0.8f, 0.8f, 1.0f);
 			m_Folder_Open_Icon->Draw(x + 20, y - 5, m_LineHeight * 0.7f, m_LineHeight * 0.7f);
 		}
 		else
 		{
-			glBegin(GL_LINE_LOOP);
-			glVertex2f(x, y);
-			glVertex2f(x, y + 10);
-			glVertex2f(x + 7, y + 5);
-			glEnd();
+			Renderer2D::DrawLine(x, y, x, y + 10.0f, 1.0f, 0.8f, 0.8f, 0.8f, 1.0f);
+			Renderer2D::DrawLine(x, y + 10.0f, x + 7.0f, y + 5.0f, 1.0f, 0.8f, 0.8f, 0.8f, 1.0f);
+			Renderer2D::DrawLine(x + 7.0f, y + 5.0f, x, y, 1.0f, 0.8f, 0.8f, 0.8f, 1.0f);
 			m_Folder_Close_Icon->Draw(x + 20, y - 5, m_LineHeight * 0.7f, m_LineHeight * 0.7f);
 		}
 	}
@@ -502,6 +597,10 @@ namespace Frostnux {
 				return false;
 			};
 		walk(m_Root);
+	}
+
+	void SolutionExplorer::RefreshText()
+	{
 	}
 
 }

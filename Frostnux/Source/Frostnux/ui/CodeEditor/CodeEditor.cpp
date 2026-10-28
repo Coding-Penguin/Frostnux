@@ -1161,6 +1161,12 @@ namespace Frostnux {
 		m_CurrentTime = now;
 		m_CursorVisible = (std::fmod(now, 1.0) < 0.5);
 
+		if (ThemeManager::GetCurrentTheme() != m_LastAppliedTheme)
+		{
+			m_LastAppliedTheme = ThemeManager::GetCurrentTheme();
+			UpdateTheme();
+		}
+
 		for (auto& t : m_Tabs)
 		{
 			t->highlighter.update(t->buffer);
@@ -1308,8 +1314,8 @@ namespace Frostnux {
 	{
 		const int curLine = t.selection.active().line;
 		const float y = textY + static_cast<float>(curLine) * m_LineHeight - static_cast<float>(t.scrollY);
-		if (y + m_LineHeight < textY) return;
-		if (y > textY + m_vpH)        return;
+		if (y + m_LineHeight < textY)	return;
+		if (y > textY + m_vpH)			return;
 		m_Renderer->drawRect(textX, y, textW, m_LineHeight, m_Theme.currentLine);
 	}
 
@@ -1324,8 +1330,8 @@ namespace Frostnux {
 		for (int line = s.line; line <= e.line; ++line)
 		{
 			const float y = textY + static_cast<float>(line) * m_LineHeight - static_cast<float>(t.scrollY);
-			if (y + m_LineHeight < textY) continue;
-			if (y > textY + textH)       break;
+			if (y + m_LineHeight < textY)	continue;
+			if (y > textY + textH)			break;
 
 			const int lineLen = static_cast<int>(t.buffer.line(line).size());
 			const int colStart = (line == s.line) ? s.col : 0;
@@ -1423,8 +1429,7 @@ namespace Frostnux {
 
 			const std::u32string num = utf8_to_u32(std::to_string(line + 1));
 			const float w = m_Renderer->measureText(num, m_CharScale);
-			m_Renderer->drawText(num, m_vpX + m_GutterWidth - w - 8.0f, y,
-				m_CharScale, m_Theme.gutterText);
+			m_Renderer->drawText(num, m_vpX + m_GutterWidth - w - 8.0f, y, m_CharScale, m_Theme.gutterText);
 		}
 	}
 
@@ -1434,8 +1439,8 @@ namespace Frostnux {
 		const Position c = t.selection.active();
 		const float y = textY + static_cast<float>(c.line) * m_LineHeight
 			- static_cast<float>(t.scrollY);
-		if (y + m_LineHeight < textY) return;
-		if (y > textY + textH)       return;
+		if (y + m_LineHeight < textY)	return;
+		if (y > textY + textH)			return;
 
 		const float x = textX + colToX(t, c.line, c.col) - static_cast<float>(t.scrollX);
 		m_Renderer->drawRect(x, y, 2.0f, m_LineHeight, m_Theme.cursor);
@@ -3038,6 +3043,51 @@ namespace Frostnux {
 		m_Active = idx;
 		m_Folds.clear();
 		rebuildFolds(*m_Tabs[idx]);
+	}
+
+	void CodeEditor::UpdateTheme()
+	{
+		bool isDark = ThemeManager::IsDarkTheme();
+
+		auto [r, g, b] = ThemeManager::GetBGColor();
+		m_Theme.bg = { r, g, b, 1.0f };
+		m_Theme.currentLine = isDark ? Color{ 1,1,1,0.05f } : Color{ 0,0,0,0.05f };
+		m_Theme.gutterBg = isDark ? Color{ 0.14f, 0.14f, 0.14f, 1 } : Color{ 0.94f, 0.94f, 0.94f, 1 };
+		m_Theme.gutterText = isDark ? Color{ 0.40f, 0.40f, 0.42f, 1 } : Color{ 1.0f, 0.7f, 0.5f, 1 };
+		m_Theme.selection = isDark ? Color{ 0.26f, 0.40f, 0.62f, 1 } : Color{ 0.65f, 0.80f, 0.98f, 1 };
+		m_Theme.tabBg = isDark ? Color{ 0.16f, 0.16f, 0.16f, 1 } : Color{ 1.0f, 0.88f, 0.88f, 1 };
+		m_Theme.tabActive = isDark ? Color{ 0.24f, 0.24f, 0.26f, 1 } : Color{ 1.0f, 0.96f, 0.96f, 1 };
+		m_Theme.scrollTrack = isDark ? Color{ 0.14f, 0.14f, 0.14f, 1 } : Color{ 0.9f, 0.9f, 0.9f, 1 };
+		m_Theme.scrollThumb = isDark ? Color{ 0.30f, 0.30f, 0.32f, 1 } : Color{ 0.6f, 0.6f, 0.6f, 1 };
+
+		if (isDark)
+		{
+			m_Theme.text = { 0.86f, 0.86f, 0.86f, 1 };
+			m_Theme.control = { 0.78f, 0.44f, 0.85f, 1 };
+			m_Theme.keyword = { 0.34f, 0.61f, 1.00f, 1 };
+			m_Theme.type = { 0.30f, 0.79f, 0.78f, 1 };
+			m_Theme.function = { 0.86f, 0.86f, 0.66f, 1 };
+			m_Theme.number = { 0.71f, 0.80f, 0.66f, 1 };
+			m_Theme.string = { 0.81f, 0.43f, 0.36f, 1 };
+			m_Theme.comment = { 0.34f, 0.62f, 0.34f, 1 };
+			m_Theme.preproc = { 0.61f, 0.50f, 0.40f, 1 };
+			m_Theme.macro = { 0.74f, 0.60f, 0.53f, 1 };
+			m_Theme.cursor = { 0.90f, 0.90f, 0.90f, 1 };
+		}
+		else
+		{
+			m_Theme.text = { 0.10f, 0.10f, 0.10f, 1 };
+			m_Theme.control = { 0.50f, 0.00f, 0.50f, 1 };
+			m_Theme.keyword = { 0.00f, 0.00f, 0.80f, 1 };
+			m_Theme.type = { 0.10f, 0.40f, 0.60f, 1 };
+			m_Theme.function = { 0.40f, 0.30f, 0.10f, 1 };
+			m_Theme.number = { 0.10f, 0.30f, 0.10f, 1 };
+			m_Theme.string = { 0.60f, 0.10f, 0.10f, 1 };
+			m_Theme.comment = { 0.00f, 0.50f, 0.00f, 1 };
+			m_Theme.preproc = { 0.40f, 0.40f, 0.40f, 1 };
+			m_Theme.macro = { 0.40f, 0.20f, 0.10f, 1 };
+			m_Theme.cursor = { 0.10f, 0.10f, 0.10f, 1 };
+		}
 	}
 
 }

@@ -73,6 +73,11 @@ namespace Frostnux {
 		}
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, sharedContext);
 		glfwMakeContextCurrent(m_Window);
+		if (!m_Window)
+		{
+			FX_CORE_FATAL("Failed to create GLFW window!");
+			return;
+		}
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		FX_CORE_ASSERT(status, "Could not initialize Glad!");
 		glfwSetWindowUserPointer(m_Window, &m_Data);

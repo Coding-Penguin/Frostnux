@@ -2,22 +2,15 @@
 #include "PropertiesWindow.h"
 #include "Frostnux/Core/Log.h"
 #include "TextRenderer.h"
-#include <glad/glad.h>
 #include "Frostnux/Core/Application.h"
+#include "Frostnux/Renderer/Renderer2D.h"
 
 namespace Frostnux {
 
 	PropertiesWindow::PropertiesWindow(const std::string& name)
 		: uiWindow(name)
 	{
-		m_Properties =
-		{
-			{"Selection", "None"},
-			{"Type", "—"},
-			{"Size", "—"},
-			{"Location", "—"},
-			{"Modified", "—"}
-		};
+		RefreshText();
 	}
 
 	PropertiesWindow::~PropertiesWindow()
@@ -118,16 +111,34 @@ namespace Frostnux {
 		float keyWidth = width * 0.35f;
 		float valueX = x + keyWidth + 10;
 
-		TextRenderer::Get().DrawText(item.key, x, y + 4, 0.7f, 0.7f, 0.8f, 1.0f);
+		TextRenderer::Get().DrawTextUTF8(item.key, x, y + 4, 0.7f, 0.7f, 0.8f, 1.0f);
 
-		TextRenderer::Get().DrawText(item.value, valueX, y + 4, 0.9f, 0.9f, 0.9f, 1.0f);
+		TextRenderer::Get().DrawTextUTF8(item.value, valueX, y + 4, 0.9f, 0.9f, 0.9f, 1.0f);
 
-		glColor4f(0.3f, 0.3f, 0.35f, 1.0f);
-		glLineWidth(1.0f);
-		glBegin(GL_LINES);
-		glVertex2f(x, y + m_ItemHeight - 1);
-		glVertex2f(x + width, y + m_ItemHeight - 1);
-		glEnd();
+		Renderer2D::DrawLine(x, y + m_ItemHeight - 1, x + width, y + m_ItemHeight - 1, 1.0f, 0.3f, 0.3f, 0.35f, 1.0f);
+	}
+
+	void PropertiesWindow::RefreshText()
+	{
+		nlohmann::json j;
+		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
+		std::ifstream file(path);
+		file >> j;
+
+		std::string selection = j.value("Selection", "Selection");
+		std::string type = j.value("Type", "Type");
+		std::string size = j.value("Size", "Size");
+		std::string location = j.value("Location", "Location");
+		std::string modified = j.value("Modified", "Modified");
+
+		m_Properties =
+		{
+			{ selection, "None" },
+			{ type, "—" },
+			{ size, "—" },
+			{ location, "—" },
+			{ modified, "—" }
+		};
 	}
 
 }

@@ -9,7 +9,6 @@
 #include "PhotoRenderer.h"
 #include "TextRenderer.h"
 
-#include "FileExplorer.h"
 #include "SolutionExplorer.h"
 
 #include "MouseCircle.h"

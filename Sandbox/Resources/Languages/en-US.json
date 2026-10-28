@@ -5,10 +5,6 @@
 	"Language": "English",
 	"LanguageCode": "en-US",
 
-	"Community": "Community",
-	"Professional": "Professional",
-	"Enterprise": "Enterprise",
-
 	"File": "File",
 	"Edit": "Edit",
 	"View": "View",
@@ -46,7 +42,6 @@
 	"Saving File...": "Saving File...",
 
 	"SolutionExplorer": "Solution Explorer",
-	"FileExplorer": "File Explorer",
 	"Properties": "Properties",
 	"Notifications": "Notifications",
 	"Output": "Output",
@@ -59,5 +54,23 @@
 	"Symbol name...": "Symbol name...",
 
 	"Theme": "Theme",
-	"LanguageSwitch": "Language"
+	"LanguageSwitch": "Language",
+
+	"Welcome": "Welcome to Frostnux!",
+	"New File": "New File",
+	"New File Desc": "Create a new file",
+	"Open File...": "Open File...",
+	"Open File Desc": "Open an existing file",
+	"New Project": "New Project",
+	"New Project Desc": "Create a new C++ project",
+	"Open Project...": "Open Project...",
+	"Open Project Desc": "Open a .frostnux or .fxproject",
+
+	"Input Tip": "Press Enter to confirm, Esc to cancel.",
+
+	"Selection": "Selection",
+	"Type": "Type",
+	"Size": "Size",
+	"Location": "Location",
+	"Modified": "Modified"
 }

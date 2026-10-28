@@ -112,6 +112,9 @@ namespace Frostnux {
 		Renderer*	m_Renderer = nullptr;
 		EditorTheme	m_Theme;
 
+		void UpdateTheme();
+		Theme m_LastAppliedTheme = Theme::Dark;
+
 		float m_CloseButtonXOffset = 20.0f;
 
 		std::vector<std::unique_ptr<Tab>> m_Tabs;

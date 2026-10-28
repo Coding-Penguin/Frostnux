@@ -24,7 +24,12 @@ namespace Frostnux
 		void DrawMinimizeButton(float x, float y, float w, float h, bool hovered);
 		void DrawMaximizeButton(float x, float y, float w, float h, bool hovered, bool isMaximized);
 		void DrawCloseButton(float x, float y, float w, float h, bool hovered);
+
+		void RefreshText();
 	private:
+		void BuildMenuButtons();
+
+		std::string m_CurrentLangCode;
 		std::unique_ptr<PhotoRenderer> m_Logo;
 		std::vector<std::unique_ptr<uiButton>> m_Buttons;
 

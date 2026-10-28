@@ -57,6 +57,10 @@ namespace Frostnux {
 		ProjectIndex m_ProjectIndex;
 		WelcomePage m_WelcomePage;
 		Solution m_Solution;
+
+		std::string m_CurrentLangCode;
+
+		void RefreshUIText();
 	};
 
 }

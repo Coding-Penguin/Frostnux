@@ -4,8 +4,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <glad/glad.h>
 #include "Frostnux/Core/Log.h"
+#include "Frostnux/Renderer/Renderer2D.h"
 
 namespace Frostnux {
 
@@ -59,43 +59,7 @@ namespace Frostnux {
 	void PhotoRenderer::Draw(float x, float y, float width, float height) const
 	{
 		if (!IsLoaded()) return;
-
-		GLboolean texWasEnabled = glIsEnabled(GL_TEXTURE_2D);
-		GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
-		GLint blendSrc, blendDst;
-		glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
-		glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
-
-		glEnable(GL_TEXTURE_2D);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		glBindTexture(GL_TEXTURE_2D, m_TextureID);
-		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-
-		float verts[] =
-		{
-			// x,		y,			s,		t
-			x,			y,			0.0f,	1.0f,
-			x + width,	y,			1.0f,	1.0f,
-			x + width,	y + height,	1.0f,	0.0f,
-			x,			y + height,	0.0f,	0.0f
-		};
-
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-		glVertexPointer(2, GL_FLOAT, 4 * sizeof(float), verts);
-		glTexCoordPointer(2, GL_FLOAT, 4 * sizeof(float), verts + 2);
-
-		glDrawArrays(GL_QUADS, 0, 4);
-
-		glDisableClientState(GL_VERTEX_ARRAY);
-		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-		if (!texWasEnabled) glDisable(GL_TEXTURE_2D);
-		if (!blendWasEnabled) glDisable(GL_BLEND);
-		glBlendFunc(blendSrc, blendDst);
+		Renderer2D::DrawImageQuad(x, y, width, height, 0.0f, 1.0f, 1.0f, 0.0f, m_TextureID, 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
 }

@@ -88,7 +88,7 @@ namespace Frostnux {
 		if (outputName.empty()) outputName = name;
 
 		json j;
-		j["version"] = s_Version;
+		j["version"] = s_MainVersion;
 		j["name"] = name;
 		j["kind"] = KindToString(kind);
 		j["language"] = language;

@@ -20,10 +20,8 @@ namespace Frostnux {
 
 		bool AddFallback(const std::string& fontPath);
 
-		void DrawText(const std::string& text, float x, float y,
-			float r, float g, float b, float a);
-		void DrawTextUTF32(std::u32string_view text, float x, float y,
-			float r, float g, float b, float a);
+		void DrawTextUTF8(const std::string& text, float x, float y, float r, float g, float b, float a);
+		void DrawTextUTF32(std::u32string_view text, float x, float y, float r, float g, float b, float a);
 
 		float GetTextWidth(const std::string& text) const;
 		float GetTextWidthUTF32(std::u32string_view text) const;
@@ -35,7 +33,7 @@ namespace Frostnux {
 
 		bool IsInitialized() const { return m_Initialized; }
 
-		float GetCharWidth(char c) const;
+		float GetUTF8CharWidth(char c) const;
 		float GetAdvance(unsigned int codepoint) const;
 		float GetLineHeight() const;
 	private:

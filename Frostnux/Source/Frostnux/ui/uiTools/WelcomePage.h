@@ -29,6 +29,7 @@ namespace Frostnux {
 			std::function<void()> onOpenProject
 		);
 
+		void RefreshText();
 	private:
 		struct LinkButton
 		{
@@ -41,6 +42,7 @@ namespace Frostnux {
 
 		std::unique_ptr<PhotoRenderer> m_Logo;
 		std::vector<LinkButton> m_Buttons;
+		std::string m_LanguageCode;
 
 		void Layout(float x, float y, float w, float h);
 		void DrawRect(float x, float y, float w, float h, Color color);

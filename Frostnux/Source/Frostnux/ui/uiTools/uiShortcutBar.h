@@ -47,6 +47,7 @@ namespace Frostnux {
 	private:
 		std::vector<std::unique_ptr<uiButton>> m_Buttons;
 		std::vector<ShortcutGroup> m_Groups;
+		std::string m_CurrentLangCode;
 		float m_BarHeight = 50.0f;
 		float m_ButtonWidth = 40.0f;
 		float m_ButtonHeight = 25.0f;

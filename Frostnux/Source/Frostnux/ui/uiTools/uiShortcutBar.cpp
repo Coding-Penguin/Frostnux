@@ -1,11 +1,10 @@
 #include <fxpch.h>
 #include "uiShortcutBar.h"
 #include "Frostnux/Core/Application.h"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include "Frostnux/Core/Log.h"
 #include "Frostnux/Events/Event.h"
 #include "MouseCircle.h"
+#include "Frostnux/Renderer/Renderer2D.h"
 
 namespace Frostnux {
 
@@ -15,6 +14,8 @@ namespace Frostnux {
 
 	void uiShortcutBar::OnAttach()
 	{
+		m_CurrentLangCode = LanguageManager::GetLanguageCode();
+		RebuildButtons();
 	}
 
 	void uiShortcutBar::OnDetach()
@@ -25,6 +26,13 @@ namespace Frostnux {
 
 	void uiShortcutBar::OnUpdate(float deltaTime)
 	{
+		std::string langCode = LanguageManager::GetLanguageCode();
+		if (m_CurrentLangCode != langCode)
+		{
+			m_CurrentLangCode = langCode;
+			RebuildButtons();
+		}
+
 		for (auto& btn : m_Buttons)
 		{
 			btn->OnTooltipUpdate(deltaTime);
@@ -101,19 +109,14 @@ namespace Frostnux {
 
 		float yStart = m_OffsetY + 10;
 		float yEnd = m_OffsetY + m_BarHeight - 5;
-		glColor4f(0.4f, 0.4f, 0.45f, 1.0f);
-		glLineWidth(1.0f);
-		glBegin(GL_LINES);
-		for (size_t i = 0; i < m_GroupEndX.size() - 1; ++i)
+		for (size_t i = 0; i + 1 < m_GroupEndX.size(); ++i)
 		{
 			if (i < m_Groups.size() && m_Groups[i].hasSeparatorAfter)
 			{
-				float lineX = m_GroupEndX[i] + m_SeparatorMargin / 2;
-				glVertex2f(lineX, yStart);
-				glVertex2f(lineX, yEnd);
+				float lineX = m_GroupEndX[i] + m_SeparatorMargin / 2.0f;
+				Renderer2D::DrawLine(lineX, yStart, lineX, yEnd, 1.0f, 0.4f, 0.4f, 0.45f, 1.0f);
 			}
 		}
-		glEnd();
 
 		for (auto& btn : m_Buttons)
 		{

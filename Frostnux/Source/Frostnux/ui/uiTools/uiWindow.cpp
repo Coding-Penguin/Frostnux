@@ -1,8 +1,7 @@
 #include <fxpch.h>
 #include "uiWindow.h"
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "Frostnux/Renderer/Renderer2D.h"
 #include "Frostnux/Core/Application.h"
 #include "Frostnux/Core/Log.h"
 
@@ -56,12 +55,10 @@ namespace Frostnux {
 
 	void uiWindow::OnAttach()
 	{
-		FX_CORE_TRACE("uiWindow attached.");
 	}
 
 	void uiWindow::OnDetach()
 	{
-		FX_CORE_TRACE("uiWindow detached.");
 	}
 
 	void uiWindow::OnUpdate(float deltaTime)
@@ -72,8 +69,7 @@ namespace Frostnux {
 		DrawContent();
 	}
 
-	static bool IsSegmentIntersectCircle(float x1, float y1, float x2, float y2,
-		float cx, float cy, float radius)
+	static bool IsSegmentIntersectCircle(float x1, float y1, float x2, float y2, float cx, float cy, float radius)
 	{
 		float dx = x2 - x1;
 		float dy = y2 - y1;
@@ -93,19 +89,13 @@ namespace Frostnux {
 		const float defaultColor[3] = { 0.3f, 0.3f, 0.3f };
 		const float highlightColor[3] = { 0.5f, 0.5f, 0.5f };
 
-		glLineWidth(2.0f);
-		glBegin(GL_LINES);
-
 		auto drawSegment = [&](float x1, float y1, float x2, float y2)
 			{
 				bool intersect = IsSegmentIntersectCircle(x1, y1, x2, y2, cx, cy, radius);
 				if (intersect)
-					glColor4f(highlightColor[0], highlightColor[1], highlightColor[2], 0.5f);
+					Renderer2D::DrawLine(x1, y1, x2, y2, 2.0f, highlightColor[0], highlightColor[1], highlightColor[2], 0.5f);
 				else
-					glColor4f(defaultColor[0], defaultColor[1], defaultColor[2], 0.05f);
-
-				glVertex2f(x1, y1);
-				glVertex2f(x2, y2);
+					Renderer2D::DrawLine(x1, y1, x2, y2, 2.0f, defaultColor[0], defaultColor[1], defaultColor[2], 0.05f);
 			};
 
 		for (int i = 0; i < segmentsPerSide; ++i)
@@ -164,29 +154,12 @@ namespace Frostnux {
 		if (width == 0 || height == 0)
 			return;
 
-		glEnable(GL_LINE_SMOOTH);
-		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-
 		glViewport(0, 0, width, height);
-		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT);
-		glPushMatrix();
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, width, height, 0, -1, 1);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
 
 		const int shadowOffset = 5;
 		const int shadowSteps = 7;
 		const float startAlpha = 0.1f;
 		const float endAlpha = 0.0f;
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		for (int i = 0; i < shadowSteps; ++i)
 		{
@@ -194,14 +167,7 @@ namespace Frostnux {
 			float alpha = startAlpha * (1.0f - t) + endAlpha * t;
 			float offset = shadowOffset * (1.0f - t);
 
-			glColor4f(0.0f, 0.0f, 0.0f, alpha);
-			glBegin(GL_POLYGON);
-
-			glVertex2f(m_RectX, m_RectY);
-			glVertex2f(m_RectX + m_RectWidth + offset, m_RectY);
-			glVertex2f(m_RectX + m_RectWidth + offset, m_RectY + m_RectHeight + offset);
-			glVertex2f(m_RectX, m_RectY + m_RectHeight + offset);
-			glEnd();
+			Renderer2D::DrawQuad(m_RectX, m_RectY, m_RectWidth + offset, m_RectHeight + offset, 0.0f, 0.0f, 0.0f, alpha);
 		}
 
 		int segmentsPerSide = std::max(100, (int)(std::max(m_RectWidth, m_RectHeight) / 5.0f));
@@ -211,30 +177,20 @@ namespace Frostnux {
 		int scissorY = (int)(height - (m_RectY + m_RectHeight));
 		int scissorW = (int)m_RectWidth;
 		int scissorH = (int)m_RectHeight;
-		glEnable(GL_SCISSOR_TEST);
-		glScissor(scissorX, scissorY, scissorW, scissorH);
 
 		auto [r, g, b] = ThemeManager::GetBGColor();
-		glColor4f(std::min(r + 0.1f, 1.0f), std::min(g + 0.1f, 1.0f), std::min(b + 0.1f, 1.0f), 0.9f);
-		m_Color[0] = std::min(r + 0.1f, 1.0f);
-		m_Color[1] = std::min(g + 0.1f, 1.0f);
-		m_Color[2] = std::min(b + 0.1f, 1.0f);
+		m_Color[0] = std::min(r + 0.05f, 1.0f);
+		m_Color[1] = std::min(g + 0.05f, 1.0f);
+		m_Color[2] = std::min(b + 0.05f, 1.0f);
 		m_Color[3] = 0.9f;
 
-		glBegin(GL_POLYGON);
-		glVertex2f(m_RectX, m_RectY);
-		glVertex2f(m_RectX + m_RectWidth, m_RectY);
-		glVertex2f(m_RectX + m_RectWidth, m_RectY + m_RectHeight);
-		glVertex2f(m_RectX, m_RectY + m_RectHeight);
-		glEnd();
+		Renderer2D::DrawQuad(m_RectX, m_RectY, m_RectWidth, m_RectHeight, m_Color[0], m_Color[1], m_Color[2], m_Color[3]);
 
-		glColor4f(((m_Color[0] + 0.001f) > 1.0f ? 1.0f : (m_Color[0] + 0.001f)), ((m_Color[1] + 0.001f) > 1.0f ? 1.0f : (m_Color[1] + 0.001f)), ((m_Color[2] + 0.001f) > 1.0f ? 1.0f : (m_Color[2] + 0.001f)), 1.0f);
-		glBegin(GL_QUADS);
-		glVertex2f(m_RectX, m_RectY);
-		glVertex2f(m_RectX + m_RectWidth, m_RectY);
-		glVertex2f(m_RectX + m_RectWidth, m_RectY + 35.0f);
-		glVertex2f(m_RectX, m_RectY + 35.0f);
-		glEnd();
+		float titleR = std::min(m_Color[0] + 0.001f, 1.0f);
+		float titleG = std::min(m_Color[1] + 0.001f, 1.0f);
+		float titleB = std::min(m_Color[2] + 0.001f, 1.0f);
+
+		Renderer2D::DrawQuad(m_RectX, m_RectY, m_RectWidth, 35.0f, titleR, titleG, titleB, 1.0f);
 
 		DrawTitle();
 		DrawResizeGrip();
@@ -244,13 +200,7 @@ namespace Frostnux {
 
 		if (m_CloseButtonHovered)
 		{
-			glColor4f(1.0f, 0.2f, 0.2f, 0.9f);
-			glBegin(GL_QUADS);
-			glVertex2f(closeX, closeY);
-			glVertex2f(closeX + m_CloseButtonSize, closeY);
-			glVertex2f(closeX + m_CloseButtonSize, closeY + m_CloseButtonSize);
-			glVertex2f(closeX, closeY + m_CloseButtonSize);
-			glEnd();
+			Renderer2D::DrawQuad(closeX, closeY, m_CloseButtonSize, m_CloseButtonSize, 1.0f, 0.2f, 0.2f, 0.9f);
 		}
 
 		float crossR, crossG, crossB;
@@ -266,24 +216,14 @@ namespace Frostnux {
 			crossG = 0.0f;
 			crossB = 0.0f;
 		}
-		glColor4f(crossR, crossG, crossB, 1.0f);
-		glLineWidth(2.0f);
-		glBegin(GL_LINES);
-		glVertex2f(closeX + 5, closeY + 5);
-		glVertex2f(closeX + m_CloseButtonSize - 5, closeY + m_CloseButtonSize - 5);
-		glVertex2f(closeX + m_CloseButtonSize - 5, closeY + 5);
-		glVertex2f(closeX + 5, closeY + m_CloseButtonSize - 5);
-		glEnd();
+		Renderer2D::DrawLine(closeX + 5, closeY + 5, closeX + m_CloseButtonSize - 5, closeY + m_CloseButtonSize - 5, 2.0f, crossR, crossG, crossB, 1.0f);
+
+		Renderer2D::DrawLine(closeX + m_CloseButtonSize - 5, closeY + 5, closeX + 5, closeY + m_CloseButtonSize - 5, 2.0f, crossR, crossG, crossB, 1.0f);
 
 		for (auto* btn : m_Buttons)
 		{
 			btn->OnUpdate(m_RectX, m_RectY, m_IsVisible);
 		}
-
-		glDisable(GL_SCISSOR_TEST);
-
-		glPopMatrix();
-		glPopAttrib();
 	}
 
 	ResizeEdge uiWindow::GetResizeEdge(float mx, float my) const
@@ -599,7 +539,7 @@ namespace Frostnux {
 			g = 0.0f;
 			b = 0.0f;
 		}
-		TextRenderer::Get().DrawText(m_name, m_RectX + 12, m_RectY + 8, r, g, b, a);
+		TextRenderer::Get().DrawTextUTF8(m_name, m_RectX + 12, m_RectY + 8, r, g, b, a);
 	}
 
 	bool uiWindow::IsInResizeZone(float mx, float my) const
@@ -665,12 +605,7 @@ namespace Frostnux {
 		float startX = m_RectX + m_RectWidth - gripSize;
 		float startY = m_RectY + m_RectHeight - gripSize;
 
-		glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
-		glBegin(GL_TRIANGLES);
-		glVertex2f(startX, m_RectY + m_RectHeight);
-		glVertex2f(m_RectX + m_RectWidth, startY);
-		glVertex2f(m_RectX + m_RectWidth, m_RectY + m_RectHeight);
-		glEnd();
+		Renderer2D::DrawTriangle(startX, m_RectY + m_RectHeight, m_RectX + m_RectWidth, startY, m_RectX + m_RectWidth, m_RectY + m_RectHeight, 0.5f, 0.5f, 0.5f, 0.5f);
 	}
 
 	void uiWindow::AddButton(uiButton* button)
@@ -812,14 +747,7 @@ namespace Frostnux {
 				break;
 			default: return;
 			}
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glColor4f(0.3f, 0.5f, 0.8f, 0.3f);
-			glBegin(GL_QUADS);
-			glVertex2f(x, y); glVertex2f(x + w, y);
-			glVertex2f(x + w, y + h); glVertex2f(x, y + h);
-			glEnd();
-			glDisable(GL_BLEND);
+			Renderer2D::DrawQuad(x, y, w, h, 0.3f, 0.5f, 0.8f, 0.3f);
 		}
 	}
 
@@ -1115,18 +1043,6 @@ namespace Frostnux {
 		int width = (int)app.GetWindow().GetWidth();
 		int height = (int)app.GetWindow().GetHeight();
 
-		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT);
-		glPushMatrix();
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, width, height, 0, -1, 1);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-
 		float panelW = 300.0f, panelH = 200.0f;
 		float panelX = (s_MainW - panelW) / 2;
 		float panelY = (s_MainH - panelH) / 2;
@@ -1152,25 +1068,19 @@ namespace Frostnux {
 			bool hovered = (mx >= x && mx <= x + btnW && my >= y && my <= y + btnH);
 			if (hovered)
 			{
-				glColor4f(0.4f, 0.6f, 0.9f, 1.0f);
 				s_HighlightedButton = regions[i];
+				Renderer2D::DrawQuad(x, y, btnW, btnH, 0.4f, 0.6f, 0.9f, 1.0f);
 			}
 			else
 			{
-				glColor4f(0.3f, 0.3f, 0.35f, 1.0f);
+				Renderer2D::DrawQuad(x, y, btnW, btnH, 0.3f, 0.3f, 0.35f, 1.0f);
 			}
-			glBegin(GL_QUADS);
-			glVertex2f(x, y);
-			glVertex2f(x + btnW, y);
-			glVertex2f(x + btnW, y + btnH);
-			glVertex2f(x, y + btnH);
-			glEnd();
 
 			float textW = TextRenderer::Get().GetTextWidth(labels[i]);
 			float textH = TextRenderer::Get().GetTextHeight();
 			float textX = x + (btnW - textW) / 2;
 			float textY = y + (btnH - textH) / 2;
-			TextRenderer::Get().DrawText(labels[i], textX, textY, 1.0f, 1.0f, 1.0f, 0.9f);
+			TextRenderer::Get().DrawTextUTF8(labels[i], textX, textY, 1.0f, 1.0f, 1.0f, 0.9f);
 		}
 
 		float x = startX + 1 * (btnW + gap);
@@ -1178,26 +1088,19 @@ namespace Frostnux {
 		bool hovered = (mx >= x && mx <= x + btnW && my >= y && my <= y + btnH);
 		if (hovered)
 		{
-			glColor4f(0.4f, 0.6f, 0.9f, 1.0f);
 			s_HighlightedButton = DockRegion::Bottom;
+			Renderer2D::DrawQuad(x, y, btnW, btnH, 0.4f, 0.6f, 0.9f, 1.0f);
 		}
 		else
 		{
-			glColor4f(0.3f, 0.3f, 0.35f, 1.0f);
+			Renderer2D::DrawQuad(x, y, btnW, btnH, 0.3f, 0.3f, 0.35f, 1.0f);
 		}
-
-		glBegin(GL_QUADS);
-		glVertex2f(x, y);
-		glVertex2f(x + btnW, y);
-		glVertex2f(x + btnW, y + btnH);
-		glVertex2f(x, y + btnH);
-		glEnd();
 
 		float textW = TextRenderer::Get().GetTextWidth(labels[3]);
 		float textH = TextRenderer::Get().GetTextHeight();
 		float textX = x + (btnW - textW) / 2;
 		float textY = y + (btnH - textH) / 2;
-		TextRenderer::Get().DrawText(labels[3], textX, textY, 1.0f, 1.0f, 1.0f, 0.9f);
+		TextRenderer::Get().DrawTextUTF8(labels[3], textX, textY, 1.0f, 1.0f, 1.0f, 0.9f);
 	}
 
 	DockRegion uiWindow::GetButtonAt(float mx, float my)
@@ -1364,19 +1267,9 @@ namespace Frostnux {
 		const float bottomH = hasBottom ? s_BottomHeight : 0.0f;
 		const float centerH = s_MainH - bottomH - (hasBottom ? s_DockSpacing : 0.0f);
 
-		glDisable(GL_TEXTURE_2D);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		auto bar = [](float x, float y, float w, float h, float r, float g, float b, float a)
 			{
-				glColor4f(r, g, b, a);
-				glBegin(GL_QUADS);
-				glVertex2f(x, y);
-				glVertex2f(x + w, y);
-				glVertex2f(x + w, y + h);
-				glVertex2f(x, y + h);
-				glEnd();
+				Renderer2D::DrawQuad(x, y, w, h, r, g, b, a);
 			};
 
 		auto gripDotsV = [&](float cx, float cy, float r, float g, float b, float a)

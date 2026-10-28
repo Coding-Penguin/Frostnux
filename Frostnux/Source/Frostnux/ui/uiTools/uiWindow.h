@@ -101,6 +101,8 @@ namespace Frostnux {
 		static float GetCenterY() { return s_CenterY; }
 		static float GetCenterW() { return s_CenterW; }
 		static float GetCenterH() { return s_CenterH; }
+
+		virtual void RefreshText() {}
 	public:
 		float m_RectX = 100.0f;
 		float m_RectY = 150.0f;
@@ -165,9 +167,9 @@ namespace Frostnux {
 		static bool s_ShowDockPanel;
 		static DockRegion s_HighlightedButton;
 
-		static int   s_DraggingSplitter;
-		static int   s_HoveredSplitter;
-		static bool  s_InitializedDock;
+		static int	s_DraggingSplitter;
+		static int	s_HoveredSplitter;
+		static bool	s_InitializedDock;
 
 		static uiWindow* s_FocusedFloatingWindow;
 

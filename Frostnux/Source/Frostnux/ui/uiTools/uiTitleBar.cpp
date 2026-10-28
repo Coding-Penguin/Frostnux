@@ -11,12 +11,7 @@
 #ifdef FX_PLATFORM_WINDOWS
 #define GLFW_EXPOSE_NATIVE_WIN32
 #endif
-#include <glad/glad.h>
 #include <GLFW/glfw3native.h>
-#include <GLFW/glfw3.h>
-
-#include "Frostnux/Managers/FontManager.h"
-#include "Frostnux/Managers/LicenseManager.h"
 #include "Frostnux/Core/FileDialog.h"
 
 namespace Frostnux
@@ -35,6 +30,14 @@ namespace Frostnux
 		m_Logo->LoadFromFile("Resources/Images/Frostnux.png");
 
 		FX_INFO("Logo loaded: {0}", m_Logo->IsLoaded());
+
+		BuildMenuButtons();
+		m_CurrentLangCode = LanguageManager::GetLanguageCode();
+	}
+
+	void uiTitleBar::BuildMenuButtons()
+	{
+		m_Buttons.clear();
 
 		float x = 90, y = 40;
 		float buttonHeight = 40.0f;
@@ -94,9 +97,9 @@ namespace Frostnux
 					i2.label = sFile;
 					i2.onClick = [editor]()
 						{
-						FX_CORE_INFO("Open File");
-						const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
-						if (!path.empty()) editor->openFile(path);
+							FX_CORE_INFO("Open File");
+							const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
+							if (!path.empty()) editor->openFile(path);
 						};
 					openSub.push_back(i2);
 				}
@@ -168,8 +171,8 @@ namespace Frostnux
 				newProj.label = j.value("NewProject", "New Project");
 				newProj.onClick = []()
 					{
-					const std::string path = SaveFileDialog("Untitled.frostnux", "Frostnux Solution|*.frostnux");
-					if (!path.empty()) uiLayer::Get().CreateNewSolution(path);
+						const std::string path = SaveFileDialog("Untitled.frostnux", "Frostnux Solution|*.frostnux");
+						if (!path.empty()) uiLayer::Get().CreateNewSolution(path);
 					};
 				mainMenu.push_back(std::move(newProj));
 
@@ -212,6 +215,57 @@ namespace Frostnux
 		auto Toolsbtn = std::make_unique<uiButton>(Names[6], x, y, buttonWidth, buttonHeight, ButtonStyles::NoBackgroundOrLine);
 		Toolsbtn->SetCallback([j, x, y, buttonHeight]() mutable
 			{
+				std::vector<PopupMenu::Item> themesSub;
+
+				auto addThemeItem = [&](Theme theme, const char* label, const char* shortcut)
+					{
+						PopupMenu::Item item;
+						item.label = label;
+						item.shortcut = shortcut;
+						item.onClick = [theme]() { ThemeManager::SetTheme(theme); };
+						themesSub.push_back(std::move(item));
+					};
+
+				addThemeItem(Theme::Dark, "Dark", "");
+				addThemeItem(Theme::Light, "Light", "");
+				addThemeItem(Theme::Cool_Breeze, "Cool Breeze", "");
+				addThemeItem(Theme::Icy_Mint, "Icy Mint", "");
+				addThemeItem(Theme::Cool_Slate, "Cool Slate", "");
+				addThemeItem(Theme::Moonlight, "Moonlight", "");
+
+				std::vector<PopupMenu::Item> mainMenu;
+
+				PopupMenu::Item itemTheme;
+				itemTheme.label = j.value("Theme", "Theme");
+				itemTheme.submenu = std::move(themesSub);
+				mainMenu.push_back(std::move(itemTheme));
+
+				std::vector<PopupMenu::Item> languagesSub;
+
+				auto addLanguageItem = [&](LanguageType language, const char* label, const char* shortcut)
+					{
+						PopupMenu::Item item;
+						item.label = label;
+						item.shortcut = shortcut;
+						item.onClick = [language]()
+							{
+								LanguageManager::SetLanguage(language);
+							};
+						languagesSub.push_back(std::move(item));
+					};
+
+				addLanguageItem(LanguageType::en_US, "English", "");
+				addLanguageItem(LanguageType::zh_CN, "简体中文", "");
+				addLanguageItem(LanguageType::zh_TW, "繁體中文", "");
+				addLanguageItem(LanguageType::ru_RU, "Русский", "");
+				addLanguageItem(LanguageType::hu_HU, "Magyar", "");
+
+				PopupMenu::Item itemLanguage;
+				itemLanguage.label = j.value("LanguageSwitch", "Language");
+				itemLanguage.submenu = std::move(languagesSub);
+				mainMenu.push_back(std::move(itemLanguage));
+
+				PopupMenu::Get().Open(x, y + buttonHeight, std::move(mainMenu));
 			});
 		m_Buttons.push_back(std::move(Toolsbtn));
 		x += buttonWidth + 10;
@@ -251,6 +305,13 @@ namespace Frostnux
 
 	void uiTitleBar::OnUpdate(float deltaTime)
 	{
+		std::string langCode = LanguageManager::GetLanguageCode();
+		if (m_CurrentLangCode != langCode)
+		{
+			m_CurrentLangCode = langCode;
+			BuildMenuButtons();
+		}
+
 		auto& app = Application::Get();
 		float width = static_cast<float>(app.GetWindow().GetWidth());
 		auto [r, g, b] = ThemeManager::GetBGColor();
@@ -260,27 +321,15 @@ namespace Frostnux
 		nlohmann::json j;
 		file >> j;
 
-		glColor4f(std::min(r + 0.01f, 1.0f), std::min(g + 0.01f, 1.0f), std::min(b + 0.03f, 1.0f), 1.0f);
-		glBegin(GL_QUADS);
-		glVertex2f(0.0f, 40.0f);
-		glVertex2f(width, 40.0f);
-		glVertex2f(width, 0.0f);
-		glVertex2f(0.0f, 0.0f);
-		glEnd();
+		Renderer2D::DrawQuad(0.0f, 0.0f, width, 40.0f, std::min(r + 0.01f, 1.0f), std::min(g + 0.01f, 1.0f), std::min(b + 0.03f, 1.0f), 1.0f);
 
 		if (m_Logo && m_Logo->IsLoaded())
 		{
 			m_Logo->Draw(5, 5, 80, 80);
 		}
 
-		std::string version = s_Version + " - " + j.value(LicenseManager::GetLicenseName(), LicenseManager::GetLicenseName());
-		if (ChannelManager::GetChannel() == Channel::Preview)
-			version += " [" + j.value("Preview", "Preview") + "]";
-		else
-			version += " [" + j.value("Stable", "Stable") + "]";
-
 		float VersionX, VersionY;
-		VersionX = width / 2.0f - TextRenderer::Get().GetTextWidth(version) / 2.0f;
+		VersionX = width / 2.0f - TextRenderer::Get().GetTextWidth(s_DetailedVersion) / 2.0f;
 		VersionY = (40.0f - TextRenderer::Get().GetTextHeight()) / 2.0f;
 		float color = 0.0f;
 		if (ThemeManager::IsDarkTheme())
@@ -291,14 +340,13 @@ namespace Frostnux
 		{
 			color = 0.0f;
 		}
-		TextRenderer::Get().DrawText(version, VersionX, VersionY, color, color, color, 1.0f);
+		TextRenderer::Get().DrawTextUTF8(s_DetailedVersion, VersionX, VersionY, color, color, color, 1.0f);
 
 		for (auto& btn : m_Buttons)
 		{
 			btn->OnUpdate(0, 0, true);
 		}
 
-		// Draw Separate Line
 		color = 0.0f;
 		if (ThemeManager::IsDarkTheme())
 		{
@@ -308,11 +356,7 @@ namespace Frostnux
 		{
 			color = 0.1f;
 		}
-		glColor4f(color, color, color, 0.8f);
-		glBegin(GL_LINES);
-		glVertex2f(m_SeparateLineX, m_SeparateLineY + 5);
-		glVertex2f(m_SeparateLineX, m_SeparateLineY + 30);
-		glEnd();
+		Renderer2D::DrawLine(m_SeparateLineX, m_SeparateLineY + 5.0f, m_SeparateLineX, m_SeparateLineY + 30.0f, 1.0f, color, color, color, 0.8f);
 
 		UpdateWindowButtonsPosition(width);
 
@@ -464,36 +508,23 @@ namespace Frostnux
 		if (hovered)
 		{
 			if (ThemeManager::IsDarkTheme())
-				glColor4f(0.3f, 0.3f, 0.3f, 1.0f);
+				Renderer2D::DrawQuad(x, y, w, h, 0.3f, 0.3f, 0.3f, 1.0f);
 			else
-				glColor4f(0.7f, 0.7f, 0.7f, 1.0f);
+				Renderer2D::DrawQuad(x, y, w, h, 0.7f, 0.7f, 0.7f, 1.0f);
 		}
 		else
 		{
-			glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
+			Renderer2D::DrawQuad(x, y, w, h, 0.0f, 0.0f, 0.0f, 0.0f);
 		}
-
-		glBegin(GL_QUADS);
-		glVertex2f(x, y);
-		glVertex2f(x + w, y);
-		glVertex2f(x + w, y + h);
-		glVertex2f(x, y + h);
-		glEnd();
 
 		float lineY = y + h / 2;
 		float left = x + w * 0.25f;
 		float right = x + w * 0.75f;
 
 		if (ThemeManager::IsDarkTheme())
-			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			Renderer2D::DrawLine(left, lineY, right, lineY, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 		else
-			glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-
-		glLineWidth(2.0f);
-		glBegin(GL_LINES);
-		glVertex2f(left, lineY);
-		glVertex2f(right, lineY);
-		glEnd();
+			Renderer2D::DrawLine(left, lineY, right, lineY, 2.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
 	void uiTitleBar::DrawMaximizeButton(float x, float y, float w, float h, bool hovered, bool isMaximized)
@@ -501,36 +532,17 @@ namespace Frostnux
 		if (hovered)
 		{
 			if (ThemeManager::IsDarkTheme())
-				glColor4f(0.3f, 0.3f, 0.3f, 1.0f);
+				Renderer2D::DrawQuad(x, y, w, h, 0.3f, 0.3f, 0.3f, 1.0f);
 			else
-				glColor4f(0.7f, 0.7f, 0.7f, 1.0f);
-		}
-		else
-		{
-			glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
+				Renderer2D::DrawQuad(x, y, w, h, 0.7f, 0.7f, 0.7f, 1.0f);
 		}
 
-		glBegin(GL_QUADS);
-		glVertex2f(x, y); glVertex2f(x + w, y);
-		glVertex2f(x + w, y + h); glVertex2f(x, y + h);
-		glEnd();
-
-		if (ThemeManager::IsDarkTheme())
-			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-		else
-			glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-
-		glLineWidth(2.0f);
+		float c = ThemeManager::IsDarkTheme() ? 1.0f : 0.0f;
 
 		float margin;
-		if (isMaximized)
-		{
-			margin = w * 0.27f;
-		}
-		else
-		{
-			margin = w * 0.25f;
-		}
+		if (isMaximized)	margin = w * 0.27f;
+		else				margin = w * 0.25f;
+
 		float left = x + margin;
 		float right = x + w - margin;
 		float top = y + margin;
@@ -545,51 +557,34 @@ namespace Frostnux
 			float outerW = right - left;
 			float outerH = bottom - top;
 
-			glBegin(GL_LINES);
-
-			glVertex2f(outerX, outerY);
-			glVertex2f(outerX + outerW, outerY);
-
-			glVertex2f(outerX + outerW, outerY);
-			glVertex2f(outerX + outerW, outerY + outerH);
-			glEnd();
+			Renderer2D::DrawLine(outerX, outerY, outerX + outerW, outerY, 2.0f, c, c, c, 1.0f);
+			Renderer2D::DrawLine(outerX + outerW, outerY, outerX + outerW, outerY + outerH, 2.0f, c, c, c, 1.0f);
 
 			float offsetInnerX = -3.4f;
 			float offsetInnerY = 3.4f;
 			float innerX = outerX + offsetInnerX;
 			float innerY = outerY + offsetInnerY;
 
-			glBegin(GL_LINE_LOOP);
-			glVertex2f(innerX, innerY);
-			glVertex2f(innerX + outerW, innerY);
-			glVertex2f(innerX + outerW, innerY + outerH);
-			glVertex2f(innerX, innerY + outerH);
-			glEnd();
+			Renderer2D::DrawLine(innerX, innerY, innerX + outerW, innerY, 2.0f, c, c, c, 1.0f);
+			Renderer2D::DrawLine(innerX + outerW, innerY, innerX + outerW, innerY + outerH, 2.0f, c, c, c, 1.0f);
+			Renderer2D::DrawLine(innerX + outerW, innerY + outerH, innerX, innerY + outerH, 2.0f, c, c, c, 1.0f);
+			Renderer2D::DrawLine(innerX, innerY + outerH, innerX, innerY, 2.0f, c, c, c, 1.0f);
 		}
 		else
 		{
-			glBegin(GL_LINE_LOOP);
-			glVertex2f(left, top);
-			glVertex2f(right, top);
-			glVertex2f(right, bottom);
-			glVertex2f(left, bottom);
-			glEnd();
+			Renderer2D::DrawLine(left, top, right, top, 2.0f, c, c, c, 1.0f);
+			Renderer2D::DrawLine(right, top, right, bottom, 2.0f, c, c, c, 1.0f);
+			Renderer2D::DrawLine(right, bottom, left, bottom, 2.0f, c, c, c, 1.0f);
+			Renderer2D::DrawLine(left, bottom, left, top, 2.0f, c, c, c, 1.0f);
 		}
 	}
 
 	void uiTitleBar::DrawCloseButton(float x, float y, float w, float h, bool hovered)
 	{
 		if (hovered)
-			glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
-		else
-			glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-
-		glBegin(GL_QUADS);
-		glVertex2f(x, y);
-		glVertex2f(x + w, y);
-		glVertex2f(x + w, y + h);
-		glVertex2f(x, y + h);
-		glEnd();
+		{
+			Renderer2D::DrawQuad(x, y, w, h, 1.0f, 0.0f, 0.0f, 1.0f);
+		}
 
 		float margin = w * 0.25f;
 		float left = x + margin;
@@ -597,18 +592,15 @@ namespace Frostnux
 		float top = y + margin;
 		float bottom = y + h - margin;
 
-		if (ThemeManager::IsDarkTheme())
-			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-		else
-			glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+		float c = ThemeManager::IsDarkTheme() ? 1.0f : 0.0f;
 
-		glLineWidth(2.0f);
-		glBegin(GL_LINES);
-		glVertex2f(left, top);
-		glVertex2f(right, bottom);
-		glVertex2f(right, top);
-		glVertex2f(left, bottom);
-		glEnd();
+		Renderer2D::DrawLine(left, top, right, bottom, 2.0f, c, c, c, 1.0f);
+		Renderer2D::DrawLine(right, top, left, bottom, 2.0f, c, c, c, 1.0f);
+	}
+
+	void uiTitleBar::RefreshText()
+	{
+		BuildMenuButtons();
 	}
 
 }

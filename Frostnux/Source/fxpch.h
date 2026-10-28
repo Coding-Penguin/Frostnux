@@ -20,6 +20,7 @@
 #include <chrono>
 #include <format>
 #include <locale>
+#include <cmath>
 #include <array>
 #include <stack>
 #include <queue>
@@ -30,8 +31,8 @@
 #include <set>
 
 #include "Frostnux/Managers/SettingsManager.h"
+#include "Frostnux/Managers/FontManager.h"
 #include "Frostnux/Managers/Language.h"
-#include "Frostnux/Managers/Channel.h"
 #include "Frostnux/Managers/Theme.h"
 #include "Frostnux/Core/Core.h"
 #include "Frostnux/Core/Log.h"

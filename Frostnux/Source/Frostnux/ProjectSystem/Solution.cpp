@@ -62,7 +62,7 @@ namespace Frostnux {
 		}
 
 		json j;
-		j["version"] = s_Version;
+		j["version"] = s_MainVersion;
 		j["name"] = name;
 
 		std::vector<std::string> rels;

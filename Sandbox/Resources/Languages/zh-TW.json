@@ -5,10 +5,6 @@
 	"Language": "繁體中文",
 	"LanguageCode": "zh-TW",
 
-	"Community": "社區版",
-	"Professional": "專業版",
-	"Enterprise": "企業版",
-
 	"File": "文件",
 	"Edit": "編輯",
 	"View": "查看",
@@ -45,7 +41,6 @@
 	"Saving File...": "正在保存文件...",
 
 	"SolutionExplorer": "解決方案資源管理器",
-	"FileExplorer": "文件資源管理器",
 	"Properties": "屬性",
 	"Notifications": "通知",
 	"Output": "輸出",
@@ -58,5 +53,23 @@
 	"Symbol name...": "符號名稱...",
 
 	"Theme": "主題",
-	"LanguageSwitch": "語言"
+	"LanguageSwitch": "語言",
+
+	"Welcome": "歡迎來到 霜砧!",
+	"New File": "新文件",
+	"New File Desc": "創建一個新文件",
+	"Open File...": "打開文件...",
+	"Open File Desc": "打開一個現有文件",
+	"New Project": "新項目",
+	"New Project Desc": "創建一個新 C++ 項目",
+	"Open Project...": "打開項目...",
+	"Open Project Desc": "打開一個 .frostnux 或 .fxproject",
+
+	"Input Tip": "按回車鍵確認，Esc鍵取消。",
+
+	"Selection": "選擇",
+	"Type": "類型",
+	"Size": "大小",
+	"Location": "位置",
+	"Modified": "修改"
 }

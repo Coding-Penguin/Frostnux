@@ -2,7 +2,7 @@
 #include "SettingsManager.h"
 #include "Frostnux/Core/Log.h"
 #include "Frostnux/Core/Application.h"
-#include "Frostnux/ui/uiTools/FileExplorer.h"
+#include "Frostnux/ui/uiTools/SolutionExplorer.h"
 #include "Frostnux/ui/CodeEditor/Highlighter.h"
 
 namespace Frostnux {
@@ -30,7 +30,6 @@ namespace Frostnux {
 			file >> j;
 			m_Settings.languageIndex = j.value("languageIndex", 1);
 			m_Settings.themeIndex = j.value("themeIndex", 3);
-			m_Settings.channelIndex = j.value("channelIndex", 0);
 			m_Settings.fontSize = j.value("fontSize", 24);
 			s_FontSize = m_Settings.fontSize;
 			m_Settings.recentFiles = j.value("recentFiles", std::vector<std::string>{});
@@ -39,23 +38,19 @@ namespace Frostnux {
 			m_Settings.WindowWidth = j.value("WindowWidth", 1920);
 			m_Settings.WindowHeight = j.value("WindowHeight", 1080);
 			m_Settings.IsMaximize = j.value("IsMaximize", false);
-
-			m_Settings.fileExplorerExpandedState = j["fileExplorerExpandedState"].get<std::unordered_map<std::string, bool>>();
-			m_Settings.fileExplorerScrollY = j.value("fileExplorerScrollY", 0.0f);
+			m_Settings.solutionExplorerScrollY = j.value("solutionExplorerScrollY", 0.0f);
 		}
 		catch (const std::exception& e)
 		{
 			FX_CORE_ERROR("Failed to parse settings JSON: {}", e.what());
 		}
 
-		FileExplorer::SetScrollY(m_Settings.fileExplorerScrollY);
-		FileExplorer::SetExpandedState(m_Settings.fileExplorerExpandedState);
+		SolutionExplorer::SetScrollY(m_Settings.solutionExplorerScrollY);
 	}
 
 	void SettingsManager::Save()
 	{
 		m_Settings.fontSize = s_FontSize;
-		m_Settings.channelIndex = (int)ChannelManager::GetChannel();
 		m_Settings.languageIndex = (int)LanguageManager::GetCurrentLanguage();
 		m_Settings.themeIndex = (int)ThemeManager::GetCurrentTheme();
 		if (Application::HasInstance())
@@ -65,13 +60,11 @@ namespace Frostnux {
 			m_Settings.WindowWidth = window.GetWidth();
 			m_Settings.WindowHeight = window.GetHeight();
 		}
-		m_Settings.fileExplorerScrollY = FileExplorer::GetScrollY();
-		m_Settings.fileExplorerExpandedState = FileExplorer::GetExpandedState();
+		m_Settings.solutionExplorerScrollY = SolutionExplorer::GetScrollY();
 		m_Settings.tokenIndex = EditorTheme::GetTokenCount();
 
 		nlohmann::json j;
 		j["themeIndex"] = m_Settings.themeIndex;
-		j["channelIndex"] = m_Settings.channelIndex;
 		j["languageIndex"] = m_Settings.languageIndex;
 		j["fontSize"] = m_Settings.fontSize;
 		j["recentFiles"] = m_Settings.recentFiles;
@@ -79,8 +72,7 @@ namespace Frostnux {
 		j["tokenIndex"] = m_Settings.tokenIndex;
 		j["WindowWidth"] = m_Settings.WindowWidth;
 		j["WindowHeight"] = m_Settings.WindowHeight;
-		j["fileExplorerExpandedState"] = m_Settings.fileExplorerExpandedState;
-		j["fileExplorerScrollY"] = m_Settings.fileExplorerScrollY;
+		j["solutionExplorerScrollY"] = m_Settings.solutionExplorerScrollY;
 		j["IsMaximize"] = m_Settings.IsMaximize;
 
 		std::ofstream file(m_Path);

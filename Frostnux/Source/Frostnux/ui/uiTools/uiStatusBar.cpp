@@ -1,11 +1,10 @@
 #include <fxpch.h>
 #include "uiStatusBar.h"
-#include <glad/glad.h>
+#include "Frostnux/Renderer/Renderer2D.h"
 #include "Frostnux/Core/Application.h"
 #include "Frostnux/Core/Log.h"
 #include "TextRenderer.h"
 #include "Frostnux/Managers/Theme.h"
-#include "Frostnux/Managers/Channel.h"
 
 namespace Frostnux
 {
@@ -37,23 +36,8 @@ namespace Frostnux
 		if (width == 0 || height == 0)
 			return;
 
-		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT);
-		glPushMatrix();
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, width, height, 0, -1, 1);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-
 		DrawProgress();
 		DrawText();
-
-		glPopMatrix();
-		glPopAttrib();
 	}
 
 	bool uiStatusBar::OnEvent(Event &event)
@@ -90,7 +74,7 @@ namespace Frostnux
 		}
 
 		float leftX = 10.0f;
-		TextRenderer::Get().DrawText(m_StatusText, leftX, textY, r, g, b, 1.0f);
+		TextRenderer::Get().DrawTextUTF8(m_StatusText, leftX, textY, r, g, b, 1.0f);
 		
 		float rightTextOffset = 10.0f;
 		GLFWwindow* win = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
@@ -102,12 +86,7 @@ namespace Frostnux
 			float startX = width - 5.0f - gripSize;
 			float startY = textY + m_Height - gripSize;
 
-			glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-			glBegin(GL_TRIANGLES);
-			glVertex2f(startX + 2.5f, textY + m_Height - 15.0f);
-			glVertex2f(width - 5, startY - 10.0f);
-			glVertex2f(width - 5, textY + m_Height - 15.0f);
-			glEnd();
+			Renderer2D::DrawTriangle(startX + 2.5f, textY + m_Height - 15.0f, width - 5.0f, startY - 10.0f, width - 5.0f, textY + m_Height - 15.0f, 0.5f, 0.5f, 0.5f, 1.0f);
 		}
 	}
 
@@ -133,27 +112,15 @@ namespace Frostnux
 
 		if (ThemeManager::IsDarkTheme())
 		{
-			glColor4f(0.3f, 0.3f, 0.35f, 0.7f);
+			Renderer2D::DrawQuad(leftX, barY, barWidth, barHeight, 0.3f, 0.3f, 0.35f, 0.7f);
 		}
 		else
 		{
-			glColor4f(0.7f, 0.7f, 0.75f, 0.7f);
+			Renderer2D::DrawQuad(leftX, barY, barWidth, barHeight, 0.7f, 0.7f, 0.75f, 0.7f);
 		}
-		glBegin(GL_QUADS);
-		glVertex2f(leftX, barY);
-		glVertex2f(leftX + barWidth, barY);
-		glVertex2f(leftX + barWidth, barY + barHeight);
-		glVertex2f(leftX, barY + barHeight);
-		glEnd();
 
 		float fillWidth = barWidth * m_Progress;
-		glColor4f(0.2f, 0.5f, 0.95f, 1.0f);
-		glBegin(GL_QUADS);
-		glVertex2f(leftX, barY);
-		glVertex2f(leftX + fillWidth, barY);
-		glVertex2f(leftX + fillWidth, barY + barHeight);
-		glVertex2f(leftX, barY + barHeight);
-		glEnd();
+		Renderer2D::DrawQuad(leftX, barY, fillWidth, barHeight, 0.2f, 0.5f, 0.95f, 1.0f);
 	}
 
 }

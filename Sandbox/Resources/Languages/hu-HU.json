@@ -5,10 +5,6 @@
 	"Language": "Hungarian",
 	"LanguageCode": "hu-HU",
 
-	"Community": "Közösségi kiadás",
-	"Professional": "Professzionális változat",
-	"Enterprise": "Vállalati változat",
-
 	"File": "Fájl",
 	"Edit": "Szerkesztés",
 	"View": "Megtekintés",
@@ -46,7 +42,6 @@
 	"Saving File...": "Fájl mentése folyamatban...",
 
 	"SolutionExplorer": "Megoldáskeverő",
-	"FileExplorer": "Fájloszkóztár",
 	"Properties": "Tulajdonság",
 	"Notifications": "Értesítések",
 	"Output": "Kimenet",
@@ -58,6 +53,24 @@
 	"Line number...": "Sorszám...",
 	"Symbol name...": "Szimbólum neve...",
 
-	"Theme": "",
-	"LanguageSwitch": ""
+	"Theme": "Téma",
+	"LanguageSwitch": "Nyelv",
+
+	"Welcome": "Üdvözöljük a Dérüllő!",
+	"New File": "Új fájl",
+	"New File Desc": "Új fájlt létrehozni",
+	"Open File...": "Fájl megnyitása",
+	"Open File Desc": "Meglévő fájl megnyitása",
+	"New Project": "Új projekt",
+	"New Project Desc": "Új C++ projekt létrehozása",
+	"Open Project...": "Projekt megnyitása",
+	"Open Project Desc": "Nyisd meg a .frostnux vagy .fxproject fájlt",
+
+	"Input Tip": "Nyomja meg az Enter billentyűt a megerősítéshez, az Esc billentyűt a visszalépéshez.",
+
+	"Selection": "Választás",
+	"Type": "Típus",
+	"Size": "méret",
+	"Location": "Hely",
+	"Modified": "Módosított"
 }

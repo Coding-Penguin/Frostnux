@@ -3,6 +3,7 @@
 #include "Frostnux/Events/MouseEvent.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "Frostnux/Renderer/Renderer2D.h"
 
 namespace Frostnux
 {
@@ -22,19 +23,8 @@ namespace Frostnux
 
 	void MouseCircle::OnUpdate(float deltaTime)
 	{
-		glColor4f(0.5f, 0.5f, 0.5f, 0.005f);
-
-		glBegin(GL_TRIANGLE_FAN);
-		glVertex2f(mx, my);
-		int segments = 1024; // Number of segments to approximate the circle
-		for (int i = 0; i <= segments; ++i)
-		{
-			double angle = 2.0 * 3.141592653589793238462643383 * i / segments;
-			float x = mx + cos(angle) * m_Radius;
-			float y = my + sin(angle) * m_Radius;
-			glVertex2f(x, y);
-		}
-		glEnd();
+		(void)deltaTime;
+		Renderer2D::DrawCircle(mx, my, m_Radius, 0.5f, 0.5f, 0.5f, 0.005f);
 	}
 
 	bool MouseCircle::OnEvent(Event& event)

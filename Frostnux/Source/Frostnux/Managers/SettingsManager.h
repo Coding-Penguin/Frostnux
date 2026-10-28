@@ -11,13 +11,11 @@ namespace Frostnux {
 		std::vector<std::string> recentFiles;
 		std::vector<std::string> openFiles;
 		std::vector<int> tokenIndex;
-		std::unordered_map<std::string, bool> fileExplorerExpandedState;
 
 		int languageIndex = 1;
 		int themeIndex = 3;
-		int channelIndex = 0;
 		int fontSize = 24;
-		float fileExplorerScrollY = 0.0f;
+		float solutionExplorerScrollY = 0.0f;
 		unsigned int WindowWidth = 1920, WindowHeight = 1080;
 		bool IsMaximize = false;
 	};

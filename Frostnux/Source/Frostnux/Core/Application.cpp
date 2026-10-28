@@ -19,7 +19,6 @@
 
 #include "Input.h"
 #include "Frostnux/Managers/SettingsManager.h"
-#include "Frostnux/Managers/LicenseManager.h"
 
 namespace Frostnux {
 
@@ -48,16 +47,6 @@ namespace Frostnux {
 		{
 			ThemeManager::SetTheme((Theme)settings.themeIndex);
 		}
-		if (settings.channelIndex < 0 || settings.channelIndex > 1)
-		{
-			FX_CORE_WARN("Invalid channel index in settings: {}. Defaulting to Stable channel.", settings.channelIndex);
-			ChannelManager::SetChannel(Channel::Stable);
-			SettingsManager::Get().Save();
-		}
-		else
-		{
-			ChannelManager::SetChannel((Channel)settings.channelIndex);
-		}
 		if (settings.languageIndex < 0 || settings.languageIndex >= LanguageManager::GetLanguageCount())
 		{
 			FX_CORE_WARN("Invalid language index in settings: {}. Defaulting to English (US).", settings.languageIndex);
@@ -69,23 +58,17 @@ namespace Frostnux {
 			LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
 		}
 		
-		FX_CORE_INFO("Frostnux is running on channel: {}, theme: {}, language: {}, License: {}, version: {}",
-			((ChannelManager::GetChannel() == Channel::Stable) ? "Stable" : "Preview"),
+		FX_CORE_INFO("Frostnux is running on theme: {}, language: {}, version: {}",
 			ThemeManager::GetThemeName(),
 			LanguageManager::GetLanguageName(),
-			LicenseManager::GetLicenseName(),
-			s_Version);
+			s_DetailedVersion);
 
 		std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
 		std::ifstream file(path);
 		nlohmann::json j;
 		file >> j;
 		std::string Name = j.value("Name", "Frostnux");
-		std::string WindowName = Name + " - " + s_Version + " - " + j.value(LicenseManager::GetLicenseName(), LicenseManager::GetLicenseName());
-		if (ChannelManager::GetChannel() == Channel::Preview)
-		{
-			WindowName += " [" + j.value("Preview", "Preview") + "]";
-		}
+		std::string WindowName = Name + " - " + s_MainVersion;
 		float width = settings.WindowWidth, height = settings.WindowHeight;
 		if (width <= 0 || height <= 0)
 		{
@@ -197,40 +180,6 @@ namespace Frostnux {
 				size_t idx = closedIndices[i - 1];
 
 				m_Windows.erase(m_Windows.begin() + idx);
-			}
-
-			// Settings
-			auto& settings = SettingsManager::Get().GetSettings();
-			SettingsManager::Get().Load();
-			if (settings.themeIndex < 0 || settings.themeIndex >= ThemeManager::GetThemeCount())
-			{
-				FX_CORE_WARN("Invalid theme index in settings: {}. Defaulting to Dark theme.", settings.themeIndex);
-				ThemeManager::SetTheme(Theme::Dark);
-				SettingsManager::Get().Save();
-			}
-			else
-			{
-				ThemeManager::SetTheme((Theme)settings.themeIndex);
-			}
-			if (settings.channelIndex < 0 || settings.channelIndex > 1)
-			{
-				FX_CORE_WARN("Invalid channel index in settings: {}. Defaulting to Stable channel.", settings.channelIndex);
-				ChannelManager::SetChannel(Channel::Stable);
-				SettingsManager::Get().Save();
-			}
-			else
-			{
-				ChannelManager::SetChannel((Channel)settings.channelIndex);
-			}
-			if (settings.languageIndex < 0 || settings.languageIndex >= LanguageManager::GetLanguageCount())
-			{
-				FX_CORE_WARN("Invalid language index in settings: {}. Defaulting to English.", settings.languageIndex);
-				LanguageManager::SetLanguage(LanguageType::en_US);
-				SettingsManager::Get().Save();
-			}
-			else
-			{
-				LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
 			}
 		} while (m_Running && !m_MainWindow->ShouldClose());
 

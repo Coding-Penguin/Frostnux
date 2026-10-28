@@ -18,6 +18,7 @@ namespace Frostnux {
 		virtual void OnUpdate(float deltaTime) override;
 		virtual bool OnEvent(Event& event) override;
 
+		virtual void RefreshText() override;
 	private:
 		struct PropertyItem
 		{

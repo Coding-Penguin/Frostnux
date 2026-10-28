@@ -5,10 +5,6 @@
 	"Language": "Русский",
 	"LanguageCode": "ru-RU",
 
-	"Community": "Сообщественная версия",
-	"Professional": "Профессиональная версия",
-	"Enterprise": "Корпоративная версия",
-
 	"File": "Файл",
 	"Edit": "Редактировать",
 	"View": "Вид",
@@ -46,7 +42,6 @@
 	"Saving File...": "Сохранение файла...",
 
 	"SolutionExplorer": "Обозреватель решений",
-	"FileExplorer": "Проводник файлов",
 	"Properties": "Свойства",
 	"Notifications": "Уведомления",
 	"Output": "Вывод",
@@ -58,6 +53,24 @@
 	"Line number...": "Номер строки...",
 	"Symbol name...": "Имя символа...",
 
-	"Theme": "",
-	"LanguageSwitch": ""
+	"Theme": "Тема",
+	"LanguageSwitch": "Язык",
+
+	"Welcome": "Добро пожаловать на Остров!",
+	"New File": "Новый файл",
+	"New File Desc": "Создать новый файл",
+	"Open File...": "Открыть файл...",
+	"Open File Desc": "Открыть существующий файл",
+	"New Project": "Новый проект",
+	"New Project Desc": "Создать новый C++ проект",
+	"Open Project...": "Открыть проект...",
+	"Open Project Desc": "Открыть файл .frostnux или .fxproject",
+
+	"Input Tip": "Нажмите Enter для подтверждения, Esc для отмены.",
+
+	"Selection": "Выбор",
+	"Type": "Тип",
+	"Size": "Размер",
+	"Location": "Локация",
+	"Modified": "Измененный"
 }
