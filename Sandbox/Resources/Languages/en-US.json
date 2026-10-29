@@ -64,7 +64,7 @@
 	"New Project": "New Project",
 	"New Project Desc": "Create a new C++ project",
 	"Open Project...": "Open Project...",
-	"Open Project Desc": "Open a .frostnux or .fxproject",
+	"Open Project Desc": "Open a .frostnux file",
 
 	"Input Tip": "Press Enter to confirm, Esc to cancel.",
 
@@ -72,5 +72,10 @@
 	"Type": "Type",
 	"Size": "Size",
 	"Location": "Location",
-	"Modified": "Modified"
+	"Modified": "Modified",
+
+	"Dark": "Dark",
+	"Paper": "Paper",
+	"Iron": "Iron",
+	"Frost": "Frost"
 }

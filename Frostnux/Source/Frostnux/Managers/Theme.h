@@ -6,13 +6,11 @@ namespace Frostnux
 	enum class Theme
 	{
 		// Light
-		Light = 0,
-		Cool_Breeze,
-		Icy_Mint,
+		Paper = 0,
+		Frost,
 		// Dark
 		Dark,
-		Cool_Slate,
-		Moonlight
+		Iron
 	};
 
 	class ThemeManager
@@ -20,23 +18,19 @@ namespace Frostnux
 	public:
 		static Theme GetCurrentTheme() { return s_CurrentTheme; }
 		static void SetTheme(Theme theme) { s_CurrentTheme = theme; }
-		static bool IsDarkTheme() { return (s_CurrentTheme == Theme::Dark || s_CurrentTheme == Theme::Cool_Slate || s_CurrentTheme == Theme::Moonlight); }
+		static bool IsDarkTheme() { return (s_CurrentTheme == Theme::Dark || s_CurrentTheme == Theme::Iron); }
 		static std::tuple<float, float, float> GetBGColor()
 		{
 			switch (s_CurrentTheme)
 			{
 			case Theme::Dark:
 				return { 0.01f, 0.01f, 0.02f };
-			case Theme::Light:
-				return { 1.0f, 0.95f, 0.9f };
-			case Theme::Cool_Breeze:
-				return { 0.8f, 0.9f, 0.93f };
-			case Theme::Cool_Slate:
-				return { 0.1f, 0.13f, 0.15f };
-			case Theme::Icy_Mint:
-				return { 0.8f, 0.9f, 0.85f };
-			case Theme::Moonlight:
-				return { 0.05f, 0.1f, 0.15f };
+			case Theme::Paper:
+				return { 1.0f, 0.97f, 0.93f };
+			case Theme::Frost:
+				return { 0.87f, 0.87f, 0.9f };
+			case Theme::Iron:
+				return { 0.01f, 0.03f, 0.07f };
 			}
 		}
 		static std::string GetThemeName()
@@ -45,19 +39,15 @@ namespace Frostnux
 			{
 			case Theme::Dark:
 				return "Dark";
-			case Theme::Light:
-				return "Light (Paper)";
-			case Theme::Cool_Breeze:
-				return "Cool Breeze";
-			case Theme::Cool_Slate:
-				return "Cool Slate";
-			case Theme::Icy_Mint:
-				return "Icy Mint";
-			case Theme::Moonlight:
-				return "Moonlight";
+			case Theme::Paper:
+				return "Paper";
+			case Theme::Frost:
+				return "Frost";
+			case Theme::Iron:
+				return "Iron";
 			}
 		}
-		static int GetThemeCount() { return 6; }
+		static int GetThemeCount() { return 4; }
 	private:
 		ThemeManager() = default;
 

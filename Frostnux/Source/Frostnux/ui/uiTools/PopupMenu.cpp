@@ -1,14 +1,13 @@
 #include <fxpch.h>
 #include "PopupMenu.h"
 #include "TextRenderer.h"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include "Frostnux/Core/Application.h"
 #include "Frostnux/Core/Log.h"
 #include "Frostnux/Events/Event.h"
 #include "Frostnux/Events/MouseEvent.h"
 #include "Frostnux/Events/KeyEvent.h"
 #include "Frostnux/Renderer/Renderer2D.h"
+#include "../CodeEditor/CodeEditor.h"
 
 namespace Frostnux {
 
@@ -225,12 +224,70 @@ namespace Frostnux {
 		return false;
 	}
 
+	//void PopupMenu::Draw()
+	//{
+	//	if (!m_Open) return;
+
+	//	Renderer2D::DrawQuad(m_X - 1, m_Y - 1, m_W + 2, m_H + 2, 0.35f, 0.35f, 0.40f, 1.0f);
+	//	Renderer2D::DrawQuad(m_X, m_Y, m_W, m_H, 0.16f, 0.16f, 0.18f, 0.98f);
+
+	//	float y = m_Y + 2.0f;
+	//	for (int i = 0; i < static_cast<int>(m_Items.size()); ++i)
+	//	{
+	//		const auto& it = m_Items[i];
+
+	//		if (it.separator)
+	//		{
+	//			Renderer2D::DrawQuad(m_X + 6, y + kSepH * 0.5f - 0.5f, m_W - 12, 1.0f, 0.35f, 0.35f, 0.40f, 1.0f);
+	//			y += kSepH;
+	//			continue;
+	//		}
+
+	//		if (i == m_Hovered && it.enabled && !it.isHeader)
+	//		{
+	//			Renderer2D::DrawQuad(m_X + 2, y, m_W - 4, kRowH, 0.22f, 0.36f, 0.55f, 1.0f);
+	//		}
+
+	//		float cr = 0.90f, cg = 0.90f, cb = 0.90f;
+	//		if (it.isHeader) { cr = 0.55f; cg = 0.55f; cb = 0.55f; }
+	//		else if (!it.enabled) { cr = 0.45f; cg = 0.45f; cb = 0.45f; }
+
+	//		TextRenderer::Get().DrawTextUTF8(it.label, m_X + kPadX, y + 4.0f, cr, cg, cb, 1.0f);
+
+	//		if (!it.shortcut.empty())
+	//		{
+	//			const float sw = TextRenderer::Get().GetTextWidth(it.shortcut);
+	//			TextRenderer::Get().DrawTextUTF8(it.shortcut, m_X + m_W - sw - kPadX - (it.submenu.empty() ? 0.0f : 14.0f), y + 4.0f, 0.55f, 0.55f, 0.60f, 1.0f);
+	//		}
+
+	//		if (!it.submenu.empty())
+	//		{
+	//			Renderer2D::DrawTriangle(m_X + m_W - 12, y + kRowH * 0.5f - 4.0f, m_X + m_W - 12, y + kRowH * 0.5f + 4.0f, m_X + m_W - 6, y + kRowH * 0.5f, 0.75f, 0.75f, 0.80f, 1.0f);
+	//		}
+
+	//		y += kRowH;
+	//	}
+
+	//	if (m_Submenu && m_Submenu->IsOpen())
+	//		m_Submenu->Draw();
+	//}
+
 	void PopupMenu::Draw()
 	{
 		if (!m_Open) return;
 
-		Renderer2D::DrawQuad(m_X - 1, m_Y - 1, m_W + 2, m_H + 2, 0.35f, 0.35f, 0.40f, 1.0f);
-		Renderer2D::DrawQuad(m_X, m_Y, m_W, m_H, 0.16f, 0.16f, 0.18f, 0.98f);
+		bool isDark = ThemeManager::IsDarkTheme();
+
+		Color bgColor = isDark ? Color{ 0.16f, 0.16f, 0.18f, 0.98f } : Color{ 0.95f, 0.95f, 0.97f, 0.98f };
+		Color borderColor = isDark ? Color{ 0.35f, 0.35f, 0.40f, 1.0f } : Color{ 0.70f, 0.70f, 0.75f, 1.0f };
+		Color hoverColor = isDark ? Color{ 0.22f, 0.36f, 0.55f, 1.0f } : Color{ 0.65f, 0.80f, 0.95f, 1.0f };
+
+		Color textNormal = isDark ? Color{ 0.90f, 0.90f, 0.90f, 1.0f } : Color{ 0.10f, 0.10f, 0.10f, 1.0f };
+		Color textDim = isDark ? Color{ 0.55f, 0.55f, 0.60f, 1.0f } : Color{ 0.45f, 0.45f, 0.45f, 1.0f };
+		Color textDisabled = isDark ? Color{ 0.45f, 0.45f, 0.45f, 1.0f } : Color{ 0.65f, 0.65f, 0.65f, 1.0f };
+
+		Renderer2D::DrawQuad(m_X - 1, m_Y - 1, m_W + 2, m_H + 2, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+		Renderer2D::DrawQuad(m_X, m_Y, m_W, m_H, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 
 		float y = m_Y + 2.0f;
 		for (int i = 0; i < static_cast<int>(m_Items.size()); ++i)
@@ -239,31 +296,31 @@ namespace Frostnux {
 
 			if (it.separator)
 			{
-				Renderer2D::DrawQuad(m_X + 6, y + kSepH * 0.5f - 0.5f, m_W - 12, 1.0f, 0.35f, 0.35f, 0.40f, 1.0f);
+				Renderer2D::DrawQuad(m_X + 6, y + kSepH * 0.5f - 0.5f, m_W - 12, 1.0f, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
 				y += kSepH;
 				continue;
 			}
 
 			if (i == m_Hovered && it.enabled && !it.isHeader)
 			{
-				Renderer2D::DrawQuad(m_X + 2, y, m_W - 4, kRowH, 0.22f, 0.36f, 0.55f, 1.0f);
+				Renderer2D::DrawQuad(m_X + 2, y, m_W - 4, kRowH, hoverColor.r, hoverColor.g, hoverColor.b, hoverColor.a);
 			}
 
-			float cr = 0.90f, cg = 0.90f, cb = 0.90f;
-			if (it.isHeader) { cr = 0.55f; cg = 0.55f; cb = 0.55f; }
-			else if (!it.enabled) { cr = 0.45f; cg = 0.45f; cb = 0.45f; }
+			Color c = textNormal;
+			if (it.isHeader) c = textDim;
+			else if (!it.enabled) c = textDisabled;
 
-			TextRenderer::Get().DrawTextUTF8(it.label, m_X + kPadX, y + 4.0f, cr, cg, cb, 1.0f);
+			TextRenderer::Get().DrawTextUTF8(it.label, m_X + kPadX, y + 4.0f, c.r, c.g, c.b, c.a);
 
 			if (!it.shortcut.empty())
 			{
 				const float sw = TextRenderer::Get().GetTextWidth(it.shortcut);
-				TextRenderer::Get().DrawTextUTF8(it.shortcut, m_X + m_W - sw - kPadX - (it.submenu.empty() ? 0.0f : 14.0f), y + 4.0f, 0.55f, 0.55f, 0.60f, 1.0f);
+				TextRenderer::Get().DrawTextUTF8(it.shortcut, m_X + m_W - sw - kPadX - (it.submenu.empty() ? 0.0f : 14.0f), y + 4.0f, textDim.r, textDim.g, textDim.b, textDim.a);
 			}
 
 			if (!it.submenu.empty())
 			{
-				Renderer2D::DrawTriangle(m_X + m_W - 12, y + kRowH * 0.5f - 4.0f, m_X + m_W - 12, y + kRowH * 0.5f + 4.0f, m_X + m_W - 6, y + kRowH * 0.5f, 0.75f, 0.75f, 0.80f, 1.0f);
+				Renderer2D::DrawTriangle(m_X + m_W - 12, y + kRowH * 0.5f - 4.0f, m_X + m_W - 12, y + kRowH * 0.5f + 4.0f, m_X + m_W - 6, y + kRowH * 0.5f, textDim.r, textDim.g, textDim.b, 1.0f);
 			}
 
 			y += kRowH;

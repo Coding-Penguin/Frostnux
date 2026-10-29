@@ -42,7 +42,6 @@ namespace Frostnux {
 		return distSq <= radius * radius;
 	}
 
-
 	void uiButton::Draw(float parentX, float parentY) const
 	{
 		float absX = parentX + m_X;
@@ -50,11 +49,20 @@ namespace Frostnux {
 
 		float r = m_Color[0], g = m_Color[1], b = m_Color[2];
 
+		if (m_UseThemeColor)
+		{
+			if (ThemeManager::IsDarkTheme())
+				r = g = b = 0.10f;
+			else
+				r = g = b = 0.90f;
+		}
+
 		if (m_Hovered)
 		{
-			r = std::min(r + 0.05f, 1.0f);
-			g = std::min(g + 0.05f, 1.0f);
-			b = std::min(b + 0.05f, 1.0f);
+			float delta = ThemeManager::IsDarkTheme() ? 0.05f : -0.05f;
+			r = std::clamp(r + delta, 0.0f, 1.0f);
+			g = std::clamp(g + delta, 0.0f, 1.0f);
+			b = std::clamp(b + delta, 0.0f, 1.0f);
 		}
 
 		if (m_ButtonStyle != ButtonStyles::NoBackgroundOrLine)
@@ -272,11 +280,16 @@ namespace Frostnux {
 
 		if (tooltipY < 0) tooltipY = absY + m_Height + 5;
 
-		Renderer2D::DrawQuad(tooltipX, tooltipY, tooltipW, tooltipH, 0.1f, 0.1f, 0.1f, 0.7f);
+		const bool isDark = ThemeManager::IsDarkTheme();
+		if (isDark)
+			Renderer2D::DrawQuad(tooltipX, tooltipY, tooltipW, tooltipH, 0.10f, 0.10f, 0.10f, 0.85f);
+		else
+			Renderer2D::DrawQuad(tooltipX, tooltipY, tooltipW, tooltipH, 0.98f, 0.98f, 0.98f, 0.95f);
 
+		float textCol = isDark ? 1.0f : 0.05f;
 		float textX = tooltipX + padding;
 		float textY = tooltipY + (tooltipH - textHeight) / 2;
-		TextRenderer::Get().DrawTextUTF8(m_Tooltip, textX, textY, 1.0f, 1.0f, 1.0f, 0.9f);
+		TextRenderer::Get().DrawTextUTF8(m_Tooltip, textX, textY, textCol, textCol, textCol, 0.9f);
 	}
 
 }

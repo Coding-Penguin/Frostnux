@@ -29,7 +29,7 @@ namespace Frostnux {
 			nlohmann::json j;
 			file >> j;
 			m_Settings.languageIndex = j.value("languageIndex", 1);
-			m_Settings.themeIndex = j.value("themeIndex", 3);
+			m_Settings.themeIndex = j.value("themeIndex", 0);
 			m_Settings.fontSize = j.value("fontSize", 24);
 			s_FontSize = m_Settings.fontSize;
 			m_Settings.recentFiles = j.value("recentFiles", std::vector<std::string>{});
@@ -39,6 +39,28 @@ namespace Frostnux {
 			m_Settings.WindowHeight = j.value("WindowHeight", 1080);
 			m_Settings.IsMaximize = j.value("IsMaximize", false);
 			m_Settings.solutionExplorerScrollY = j.value("solutionExplorerScrollY", 0.0f);
+
+
+			if (m_Settings.themeIndex < 0 || m_Settings.themeIndex >= ThemeManager::GetThemeCount())
+			{
+				FX_CORE_WARN("Invalid theme index in settings: {}. Defaulting to Dark theme.", m_Settings.themeIndex);
+				ThemeManager::SetTheme(Theme::Dark);
+				SettingsManager::Get().Save();
+			}
+			else
+			{
+				ThemeManager::SetTheme((Theme)m_Settings.themeIndex);
+			}
+			if (m_Settings.languageIndex < 0 || m_Settings.languageIndex >= LanguageManager::GetLanguageCount())
+			{
+				FX_CORE_WARN("Invalid language index in settings: {}. Defaulting to English (US).", m_Settings.languageIndex);
+				LanguageManager::SetLanguage(LanguageType::en_US);
+				SettingsManager::Get().Save();
+			}
+			else
+			{
+				LanguageManager::SetLanguage((LanguageType)m_Settings.languageIndex);
+			}
 		}
 		catch (const std::exception& e)
 		{

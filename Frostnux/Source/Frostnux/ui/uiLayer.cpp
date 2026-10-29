@@ -169,10 +169,11 @@ namespace Frostnux
 		m_SolutionExplorer = new SolutionExplorer(j.value("SolutionExplorer", "Solution Explorer"), &m_Solution, properties);
 
 		m_SolutionExplorer->SetFileOpenCallback([this](const std::string &path)
-												{
+			{
 				auto* tab = m_Editor.openFile(path);
 				if (tab) tab->invalidateHighlight();
-				FX_CORE_INFO("Open File: {}", path); });
+				FX_CORE_INFO("Open File: {}", path);
+			});
 		auto *notifications = new uiWindow(j.value("Notifications", "Notifications"));
 
 		m_Windows.push_back(m_SolutionExplorer);

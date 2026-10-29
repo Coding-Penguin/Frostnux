@@ -111,11 +111,21 @@ namespace Frostnux {
 		float keyWidth = width * 0.35f;
 		float valueX = x + keyWidth + 10;
 
-		TextRenderer::Get().DrawTextUTF8(item.key, x, y + 4, 0.7f, 0.7f, 0.8f, 1.0f);
 
-		TextRenderer::Get().DrawTextUTF8(item.value, valueX, y + 4, 0.9f, 0.9f, 0.9f, 1.0f);
+		if (ThemeManager::IsDarkTheme())
+		{
+			TextRenderer::Get().DrawTextUTF8(item.key, x, y + 4, 0.7f, 0.7f, 0.8f, 1.0f);
+			TextRenderer::Get().DrawTextUTF8(item.value, valueX, y + 4, 0.9f, 0.9f, 0.9f, 1.0f);
 
-		Renderer2D::DrawLine(x, y + m_ItemHeight - 1, x + width, y + m_ItemHeight - 1, 1.0f, 0.3f, 0.3f, 0.35f, 1.0f);
+			Renderer2D::DrawLine(x, y + m_ItemHeight - 1, x + width, y + m_ItemHeight - 1, 1.0f, 0.3f, 0.3f, 0.35f, 1.0f);
+		}
+		else
+		{
+			TextRenderer::Get().DrawTextUTF8(item.key, x, y + 4, 0.3f, 0.3f, 0.35f, 1.0f);
+			TextRenderer::Get().DrawTextUTF8(item.value, valueX, y + 4, 0.1f, 0.1f, 0.1f, 1.0f);
+
+			Renderer2D::DrawLine(x, y + m_ItemHeight - 1, x + width, y + m_ItemHeight - 1, 1.0f, 0.7f, 0.7f, 0.75f, 1.0f);
+		}
 	}
 
 	void PropertiesWindow::RefreshText()

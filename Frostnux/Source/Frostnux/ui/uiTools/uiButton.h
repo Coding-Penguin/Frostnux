@@ -25,7 +25,7 @@ namespace Frostnux {
 
 		void SetCallback(std::function<void()> callback) { m_Callback = callback; }
 		void SetText(const std::string& text) { m_Text = text; }
-		void SetColor(float r, float g, float b, float a) { m_Color[0] = r; m_Color[1] = g; m_Color[2] = b; m_Color[3] = a; }
+		void SetColor(float r, float g, float b, float a) { m_Color[0] = r; m_Color[1] = g; m_Color[2] = b; m_Color[3] = a; m_UseThemeColor = false; }
 
 		void SetPosition(float x, float y) { m_X = x; m_Y = y; }
 
@@ -50,6 +50,8 @@ namespace Frostnux {
 		bool m_Hovered = false;
 		std::function<void()> m_Callback;
 		ButtonStyles m_ButtonStyle;
+
+		bool m_UseThemeColor = true;
 
 		void Draw(float parentX, float parentY) const;
 		bool IsPointInside(float px, float py, float parentX, float parentY) const;

@@ -63,7 +63,7 @@
 	"New Project": "新项目",
 	"New Project Desc": "创建一个新 C++ 项目",
 	"Open Project...": "打开项目...",
-	"Open Project Desc": "打开一个 .frostnux 或 .fxproject",
+	"Open Project Desc": "打开一个 .frostnux 文件",
 
 	"Input Tip": "按回车键确认，Esc键取消。",
 
@@ -71,5 +71,10 @@
 	"Type": "类型",
 	"Size": "大小",
 	"Location": "位置",
-	"Modified": "修改"
+	"Modified": "修改",
+
+	"Dark": "深色",
+	"Paper": "纸面",
+	"Iron": "钢铁",
+	"Frost": "冰霜"
 }

@@ -217,21 +217,23 @@ namespace Frostnux
 			{
 				std::vector<PopupMenu::Item> themesSub;
 
-				auto addThemeItem = [&](Theme theme, const char* label, const char* shortcut)
+				auto addThemeItem = [&](Theme theme, const std::string& label, const char* shortcut)
 					{
 						PopupMenu::Item item;
 						item.label = label;
 						item.shortcut = shortcut;
-						item.onClick = [theme]() { ThemeManager::SetTheme(theme); };
+						item.onClick = [theme]()
+							{
+								ThemeManager::SetTheme(theme);
+								SettingsManager::Get().Save();
+							};
 						themesSub.push_back(std::move(item));
 					};
 
-				addThemeItem(Theme::Dark, "Dark", "");
-				addThemeItem(Theme::Light, "Light", "");
-				addThemeItem(Theme::Cool_Breeze, "Cool Breeze", "");
-				addThemeItem(Theme::Icy_Mint, "Icy Mint", "");
-				addThemeItem(Theme::Cool_Slate, "Cool Slate", "");
-				addThemeItem(Theme::Moonlight, "Moonlight", "");
+				addThemeItem(Theme::Dark, j.value("Dark", "Dark"), "");
+				addThemeItem(Theme::Paper, j.value("Paper", "Paper"), "");
+				addThemeItem(Theme::Iron, j.value("Iron", "Iron"), "");
+				addThemeItem(Theme::Frost, j.value("Frost", "Frost"), "");
 
 				std::vector<PopupMenu::Item> mainMenu;
 
@@ -250,6 +252,7 @@ namespace Frostnux
 						item.onClick = [language]()
 							{
 								LanguageManager::SetLanguage(language);
+								SettingsManager::Get().Save();
 							};
 						languagesSub.push_back(std::move(item));
 					};

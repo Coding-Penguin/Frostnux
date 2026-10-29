@@ -37,26 +37,6 @@ namespace Frostnux {
 		FX_CORE_INFO("Initilized log!");
 
 		SettingsManager::Get().Load();
-		if (settings.themeIndex < 0 || settings.themeIndex >= ThemeManager::GetThemeCount())
-		{
-			FX_CORE_WARN("Invalid theme index in settings: {}. Defaulting to Dark theme.", settings.themeIndex);
-			ThemeManager::SetTheme(Theme::Dark);
-			SettingsManager::Get().Save();
-		}
-		else
-		{
-			ThemeManager::SetTheme((Theme)settings.themeIndex);
-		}
-		if (settings.languageIndex < 0 || settings.languageIndex >= LanguageManager::GetLanguageCount())
-		{
-			FX_CORE_WARN("Invalid language index in settings: {}. Defaulting to English (US).", settings.languageIndex);
-			LanguageManager::SetLanguage(LanguageType::en_US);
-			SettingsManager::Get().Save();
-		}
-		else
-		{
-			LanguageManager::SetLanguage((LanguageType)settings.languageIndex);
-		}
 		
 		FX_CORE_INFO("Frostnux is running on theme: {}, language: {}, version: {}",
 			ThemeManager::GetThemeName(),

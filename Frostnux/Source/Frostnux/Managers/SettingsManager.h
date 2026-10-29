@@ -13,7 +13,7 @@ namespace Frostnux {
 		std::vector<int> tokenIndex;
 
 		int languageIndex = 1;
-		int themeIndex = 3;
+		int themeIndex = 0;
 		int fontSize = 24;
 		float solutionExplorerScrollY = 0.0f;
 		unsigned int WindowWidth = 1920, WindowHeight = 1080;

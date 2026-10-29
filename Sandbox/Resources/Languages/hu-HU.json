@@ -64,7 +64,7 @@
 	"New Project": "Új projekt",
 	"New Project Desc": "Új C++ projekt létrehozása",
 	"Open Project...": "Projekt megnyitása",
-	"Open Project Desc": "Nyisd meg a .frostnux vagy .fxproject fájlt",
+	"Open Project Desc": "Nyisd meg a .frostnux fájlt",
 
 	"Input Tip": "Nyomja meg az Enter billentyűt a megerősítéshez, az Esc billentyűt a visszalépéshez.",
 
@@ -72,5 +72,10 @@
 	"Type": "Típus",
 	"Size": "méret",
 	"Location": "Hely",
-	"Modified": "Módosított"
+	"Modified": "Módosított",
+
+	"Dark": "Sötét",
+	"Paper": "Papír",
+	"Iron": "Fémes",
+	"Frost": "Fagypor"
 }

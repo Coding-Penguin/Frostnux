@@ -91,18 +91,36 @@ namespace Frostnux {
 		else
 			TextRenderer::Get().DrawTextUTF8(title, tx, ty, 0.0f, 0.0f, 0.0f, 1.0f);
 
+		bool isDark = ThemeManager::IsDarkTheme();
+
 		for (const auto& btn : m_Buttons)
 		{
-			Color bgColor = btn.hovered ? Color{ 0.22f, 0.36f, 0.55f, 1.0f } : Color{ 0.15f, 0.15f, 0.17f, 1.0f };
+			Color bgColor;
+			Color borderColor;
+			Color labelColor;
+			Color descColor;
 
-			DrawRect(btn.rect.x - 1, btn.rect.y - 1, btn.rect.w + 2, btn.rect.h + 2, { 0.35f, 0.35f, 0.40f, 1.0f });
+			if (isDark)
+			{
+				bgColor = btn.hovered ? Color{ 0.22f, 0.36f, 0.55f, 1.0f } : Color{ 0.15f, 0.15f, 0.17f, 1.0f };
+				borderColor = { 0.35f, 0.35f, 0.40f, 1.0f };
+				labelColor = { 0.95f, 0.95f, 0.95f, 1.0f };
+				descColor = { 0.55f, 0.55f, 0.60f, 1.0f };
+			}
+			else
+			{
+				bgColor = btn.hovered ? Color{ 0.65f, 0.80f, 0.95f, 1.0f } : Color{ 0.95f, 0.95f, 0.97f, 1.0f };
+				borderColor = { 0.70f, 0.70f, 0.75f, 1.0f };
+				labelColor = { 0.10f, 0.10f, 0.10f, 1.0f };
+				descColor = { 0.40f, 0.40f, 0.45f, 1.0f };
+			}
 
+			DrawRect(btn.rect.x - 1, btn.rect.y - 1, btn.rect.w + 2, btn.rect.h + 2, borderColor);
 			DrawRect(btn.rect.x, btn.rect.y, btn.rect.w, btn.rect.h, bgColor);
 
 			float textY = btn.rect.y + (btn.rect.h - TextRenderer::Get().GetTextHeight()) / 2.0f - 6.0f;
-			TextRenderer::Get().DrawTextUTF8(btn.label, btn.rect.x + 16.0f, textY, 0.95f, 0.95f, 0.95f, 1.0f);
-
-			TextRenderer::Get().DrawTextUTF8(btn.desc, btn.rect.x + 160.0f, textY + 2.0f, 0.55f, 0.55f, 0.60f, 1.0f);
+			TextRenderer::Get().DrawTextUTF8(btn.label, btn.rect.x + 16.0f, textY, labelColor.r, labelColor.g, labelColor.b, labelColor.a);
+			TextRenderer::Get().DrawTextUTF8(btn.desc, btn.rect.x + 160.0f, textY + 2.0f, descColor.r, descColor.g, descColor.b, descColor.a);
 		}
 	}
 
