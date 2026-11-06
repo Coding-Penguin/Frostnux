@@ -57,10 +57,6 @@
 	"LanguageSwitch": "Language",
 
 	"Welcome": "Welcome to Frostnux!",
-	"New File": "New File",
-	"New File Desc": "Create a new file",
-	"Open File...": "Open File...",
-	"Open File Desc": "Open an existing file",
 	"New Project": "New Project",
 	"New Project Desc": "Create a new C++ project",
 	"Open Project...": "Open Project...",

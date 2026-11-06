@@ -7,15 +7,15 @@
 #include <GLFW/glfw3.h>
 #include "Frostnux/Managers/SettingsManager.h"
 #include "Frostnux/Core/FileDialog.h"
-#include "Frostnux/BuildSystem/Process.h"
 #include "uiTools/TextInputDialog.h"
 #include "Frostnux/Renderer/Renderer2D.h"
+#include "Frostnux/BuildSystem/ProcessRunner.h"
 
 namespace Frostnux
 {
 
 	GLRenderer uiLayer::m_EditorRenderer;
-	CodeEditor uiLayer::m_Editor{&m_EditorRenderer};
+	CodeEditor uiLayer::m_Editor { &m_EditorRenderer };
 
 	uiLayer &uiLayer::Get()
 	{
@@ -76,7 +76,6 @@ namespace Frostnux
 		auto baseDir = fs::path(path).parent_path() / m_Solution.name;
 		std::error_code ec;
 		fs::create_directories(baseDir / "src", ec);
-		fs::create_directories(baseDir / "include", ec);
 
 		auto mainPath = baseDir / "src" / "main.cpp";
 
@@ -164,9 +163,9 @@ namespace Frostnux
 
 		uiWindow::InitDockSystem(0.0f, 130.0f, width, height - 130.0f - 35.0f);
 
-		auto *properties = new PropertiesWindow(j.value("Properties", "Properties"));
+		m_Properties = new PropertiesWindow(j.value("Properties", "Properties"));
 
-		m_SolutionExplorer = new SolutionExplorer(j.value("SolutionExplorer", "Solution Explorer"), &m_Solution, properties);
+		m_SolutionExplorer = new SolutionExplorer(j.value("SolutionExplorer", "Solution Explorer"), &m_Solution, m_Properties);
 
 		m_SolutionExplorer->SetFileOpenCallback([this](const std::string &path)
 			{
@@ -174,13 +173,16 @@ namespace Frostnux
 				if (tab) tab->invalidateHighlight();
 				FX_CORE_INFO("Open File: {}", path);
 			});
+		m_OutputPanel = new OutputPanel(j.value("Output", "Output"));
+		m_Windows.push_back(m_OutputPanel);
+		uiWindow::DockWindow(m_OutputPanel, DockRegion::Bottom);
 		auto *notifications = new uiWindow(j.value("Notifications", "Notifications"));
 
 		m_Windows.push_back(m_SolutionExplorer);
-		m_Windows.push_back(properties);
+		m_Windows.push_back(m_Properties);
 
 		uiWindow::DockWindow(m_SolutionExplorer, DockRegion::Left);
-		uiWindow::DockWindow(properties, DockRegion::Right);
+		uiWindow::DockWindow(m_Properties, DockRegion::Right);
 
 		for (auto *win : m_Windows)
 		{
@@ -215,7 +217,9 @@ namespace Frostnux
 			glfwSetClipboardString(win, s.c_str());
 		});
 		m_Editor.SetSaveAsDialog([]() -> std::string
-			{ return SaveFileDialog("untitled.cpp", "C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*"); });
+			{
+				return SaveFileDialog("untitled.cpp", "C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
+			});
 		m_Editor.SetCtrlStateGetter([]() -> bool
 			{
 				auto* win = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
@@ -229,16 +233,6 @@ namespace Frostnux
 
 		m_WelcomePage.OnAttach();
 		m_WelcomePage.SetCallbacks(
-			[this]()
-			{
-				m_Editor.newFile("Untitled.cpp");
-			},
-			[this]()
-			{
-				const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
-				if (!path.empty())
-					m_Editor.openFile(path);
-			},
 			[this]()
 			{
 				const std::string path = SaveFileDialog("Untitled.frostnux", "Frostnux Solution|*.frostnux");
@@ -427,6 +421,21 @@ namespace Frostnux
 
 	bool uiLayer::OnEvent(Event &event)
 	{
+		if (event.GetEventType() == EventType::KeyPressed)
+		{
+			KeyPressedEvent& e = (KeyPressedEvent&)event;
+			if (e.GetKeyCode() == FX_KEY_F7) // Compile
+			{
+				BuildStartupProject();
+				return true;
+			}
+			if (e.GetKeyCode() == FX_KEY_F5) // Run
+			{
+				RunLastBuild();
+				return true;
+			}
+		}
+
 		if (PopupMenu::Get().HandleEvent(&event))
 			return true;
 		if (TextInputDialog::Get().OnEvent(event))
@@ -537,6 +546,90 @@ namespace Frostnux
 		{
 			m_StatusBar->SetStatusText(j.value("Ready", "Ready"));
 		}
+	}
+
+	void uiLayer::BuildStartupProject()
+	{
+		if (!m_OutputPanel) return;
+
+		Project* proj = m_Solution.GetStartupProject();
+		if (!proj)
+		{
+			m_OutputPanel->AppendLine("[Build] Error: No startup project found.");
+			return;
+		}
+
+		m_OutputPanel->Clear();
+		m_OutputPanel->AppendLine("[Build] Building Project: " + proj->name + " (" + proj->activeConfig + ")");
+
+		proj->ScanSources();
+
+		std::string sourceFiles;
+		for (const auto& src : proj->sources)
+		{
+			auto fullPath = proj->Directory() / src;
+			sourceFiles += "\"" + fullPath.string() + "\" ";
+		}
+
+		if (sourceFiles.empty())
+		{
+			m_OutputPanel->AppendLine("[Build] Error: No sources in project.");
+			return;
+		}
+
+		std::filesystem::path outDir = proj->Directory() / "bin" / proj->activeConfig;
+		std::filesystem::create_directories(outDir);
+		std::string exePath = (outDir / (proj->name + ".exe")).string();
+		m_LastBuiltExe = exePath;
+
+		std::filesystem::path rootDir = std::filesystem::current_path();
+
+		std::filesystem::path gppPath = rootDir / "Resources" / "Compilers" / "bin" / "g++.exe";
+
+		std::filesystem::path libexecPath = rootDir / "Resources" / "Compilers" / "libexec" / "gcc" / "x86_64-w64-mingw32" / "15.2.0";
+
+		std::string cmd = "\"" + gppPath.string() + "\" ";
+		cmd += "-B \"" + libexecPath.string() + "\" ";
+		cmd += "-std=c++20 -g -Wall -o \"" + exePath + "\" " + sourceFiles;
+
+		const ProjectConfig* cfg = proj->ActiveConfig();
+		if (cfg)
+		{
+			for (const auto& inc : cfg->includeDirs)
+				cmd += " -I\"" + (proj->Directory() / inc).string() + "\"";
+			for (const auto& def : cfg->defines)
+				cmd += " -D" + def;
+		}
+
+		m_OutputPanel->AppendLine("[Build] Command: " + cmd);
+
+		ProcessRunner::Run(cmd, proj->Directory().string(),
+			[this](const std::string& line) { m_OutputPanel->AppendLine(line); },
+			[this](int exitCode)
+			{
+				if (exitCode == 0) m_OutputPanel->AppendLine("[Build] Success!");
+				else m_OutputPanel->AppendLine("[Build] Failed with code: " + std::to_string(exitCode));
+			}
+		);
+	}
+
+	void uiLayer::RunLastBuild()
+	{
+		if (m_LastBuiltExe.empty() || !std::filesystem::exists(m_LastBuiltExe))
+		{
+			m_OutputPanel->AppendLine("[Run] Error: No executable found. Build first (F7).");
+			return;
+		}
+
+		m_OutputPanel->AppendLine("[Run] Starting " + m_LastBuiltExe + "...\n");
+
+		ProcessRunner::Run("\"" + m_LastBuiltExe + "\"", "",
+			[this](const std::string& line) { m_OutputPanel->AppendLine(line); },
+			[this](int exitCode)
+			{
+				m_OutputPanel->AppendLine("\n[Run] Program exited with code: " + std::to_string(exitCode));
+			}
+		);
 	}
 
 }

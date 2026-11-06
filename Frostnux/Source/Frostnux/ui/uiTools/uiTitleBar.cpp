@@ -73,35 +73,34 @@ namespace Frostnux
 				auto sSaveAs = j.value("SaveAs", "Save As");
 				auto sSaveAll = j.value("SaveAllFiles", "Save All Files");
 
+				uiLayer& uiLayerInstance = uiLayer::Get();
+
 				std::vector<PopupMenu::Item> newSub;
 				{
 					PopupMenu::Item i1;
 					i1.label = sProject;
-					i1.onClick = [editor]() { FX_CORE_INFO("New Project"); };
+					i1.onClick = [&uiLayerInstance]()
+						{
+							FX_CORE_INFO("New Project");
+							const std::string path = SaveFileDialog("Untitled.frostnux", "Frostnux Solution|*.frostnux");
+							if (!path.empty())
+								uiLayerInstance.CreateNewSolution(path);
+						};
 					newSub.push_back(i1);
-
-					PopupMenu::Item i2;
-					i2.label = sFile;
-					i2.onClick = [editor]() { FX_CORE_INFO("New File"); editor->newFile("Untitled.cpp"); };
-					newSub.push_back(i2);
 				}
 
 				std::vector<PopupMenu::Item> openSub;
 				{
 					PopupMenu::Item i1;
 					i1.label = sProject;
-					i1.onClick = [editor]() { FX_CORE_INFO("Open Project"); };
-					openSub.push_back(i1);
-
-					PopupMenu::Item i2;
-					i2.label = sFile;
-					i2.onClick = [editor]()
+					i1.onClick = [&uiLayerInstance]()
 						{
-							FX_CORE_INFO("Open File");
-							const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp;*.c|All Files|*.*");
-							if (!path.empty()) editor->openFile(path);
+							FX_CORE_INFO("Open Project");
+							const std::string path = OpenFileDialog("Frostnux Solution|*.frostnux");
+							if (!path.empty())
+								uiLayerInstance.LoadSolution(path);
 						};
-					openSub.push_back(i2);
+					openSub.push_back(i1);
 				}
 
 				std::vector<PopupMenu::Item> mainMenu;

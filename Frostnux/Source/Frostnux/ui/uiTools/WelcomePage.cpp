@@ -21,21 +21,15 @@ namespace Frostnux {
 		std::ifstream file("Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json");
 		file >> j;
 
-		m_Buttons.resize(4);
+		m_Buttons.resize(2);
 		RefreshText();
 		m_LanguageCode = LanguageManager::GetLanguageCode();
 	}
 
-	void WelcomePage::SetCallbacks(
-		std::function<void()> onNewFile,
-		std::function<void()> onOpenFile,
-		std::function<void()> onNewProject,
-		std::function<void()> onOpenProject)
+	void WelcomePage::SetCallbacks(std::function<void()> onNewProject, std::function<void()> onOpenProject)
 	{
-		m_Buttons[0].onClick = onNewFile;
-		m_Buttons[1].onClick = onOpenFile;
-		m_Buttons[2].onClick = onNewProject;
-		m_Buttons[3].onClick = onOpenProject;
+		m_Buttons[0].onClick = onNewProject;
+		m_Buttons[1].onClick = onOpenProject;
 	}
 
 	void WelcomePage::Layout(float x, float y, float w, float h)
@@ -167,14 +161,10 @@ namespace Frostnux {
 		std::ifstream file("Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json");
 		file >> j;
 
-		m_Buttons[0].label = j.value("New File", "New File");
-		m_Buttons[0].desc = j.value("New File Desc", "Create a new source file");
-		m_Buttons[1].label = j.value("Open File...", "Open File...");
-		m_Buttons[1].desc = j.value("Open File Desc", "Open an existing file");
-		m_Buttons[2].label = j.value("New Project", "New Project");
-		m_Buttons[2].desc = j.value("New Project Desc", "Create a new C++ project");
-		m_Buttons[3].label = j.value("Open Project...", "Open Project...");
-		m_Buttons[3].desc = j.value("Open Project Desc", "Open a .frostnux or .fxproject");
+		m_Buttons[0].label = j.value("New Project", "New Project");
+		m_Buttons[0].desc = j.value("New Project Desc", "Create a new C++ project");
+		m_Buttons[1].label = j.value("Open Project...", "Open Project...");
+		m_Buttons[1].desc = j.value("Open Project Desc", "Open a .frostnux or .fxproject");
 	}
 
 }

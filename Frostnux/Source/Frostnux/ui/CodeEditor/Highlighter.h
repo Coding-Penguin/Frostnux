@@ -21,7 +21,7 @@ namespace Frostnux {
 
 	struct EditorTheme
 	{
-		Color bg { 0.118f, 0.118f, 0.118f, 1 };
+		Color bg { 1.0f, 1.0f, 1.0f, 1 };
 		Color text { 0.86f, 0.86f, 0.86f, 1 };
 
 		Color control { 0.78f, 0.44f, 0.85f, 1 };

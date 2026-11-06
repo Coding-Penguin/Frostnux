@@ -57,10 +57,6 @@
 	"LanguageSwitch": "Язык",
 
 	"Welcome": "Добро пожаловать на Остров!",
-	"New File": "Новый файл",
-	"New File Desc": "Создать новый файл",
-	"Open File...": "Открыть файл...",
-	"Open File Desc": "Открыть существующий файл",
 	"New Project": "Новый проект",
 	"New Project Desc": "Создать новый C++ проект",
 	"Open Project...": "Открыть проект...",

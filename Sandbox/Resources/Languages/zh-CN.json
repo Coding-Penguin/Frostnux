@@ -56,10 +56,6 @@
 	"LanguageSwitch": "语言",
 
 	"Welcome": "欢迎来到 霜砧!",
-	"New File": "新文件",
-	"New File Desc": "创建一个新文件",
-	"Open File...": "打开文件...",
-	"Open File Desc": "打开一个现有文件",
 	"New Project": "新项目",
 	"New Project Desc": "创建一个新 C++ 项目",
 	"Open Project...": "打开项目...",

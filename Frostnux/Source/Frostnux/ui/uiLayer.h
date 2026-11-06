@@ -1,16 +1,11 @@
 #pragma once
 #include "Frostnux/Core/Layer.h"
-#include "uiTools/uiStatusBar.h"
-#include "uiTools/uiShortcutBar.h"
-#include "uiTools/PropertiesWindow.h"
 #include "CodeEditor/ProjectIndex.h"
 #include "CodeEditor/CodeEditor.h"
 #include "CodeEditor/GLRenderer.h"
 #include "Frostnux/Managers/FontManager.h"
 #include "Frostnux/ProjectSystem/Solution.h"
-#include "uiTools/PopupMenu.h"
-#include "uiTools/WelcomePage.h"
-#include "uiTools/SolutionExplorer.h"
+#include "uiTools/ui.h"
 
 #include <vector>
 
@@ -51,15 +46,20 @@ namespace Frostnux {
 		uiStatusBar* m_StatusBar = nullptr;
 		uiShortcutBar* m_ShortcutBar = nullptr;
 		SolutionExplorer* m_SolutionExplorer = nullptr;
+		PropertiesWindow* m_Properties = nullptr;
 
 		static GLRenderer m_EditorRenderer;
 		static CodeEditor m_Editor;
 		ProjectIndex m_ProjectIndex;
 		WelcomePage m_WelcomePage;
 		Solution m_Solution;
+		OutputPanel* m_OutputPanel = nullptr;
 
 		std::string m_CurrentLangCode;
+		std::string m_LastBuiltExe;
 
+		void BuildStartupProject();
+		void RunLastBuild();
 		void RefreshUIText();
 	};
 

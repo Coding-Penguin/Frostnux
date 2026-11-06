@@ -57,10 +57,6 @@
 	"LanguageSwitch": "Nyelv",
 
 	"Welcome": "Üdvözöljük a Dérüllő!",
-	"New File": "Új fájl",
-	"New File Desc": "Új fájlt létrehozni",
-	"Open File...": "Fájl megnyitása",
-	"Open File Desc": "Meglévő fájl megnyitása",
 	"New Project": "Új projekt",
 	"New Project Desc": "Új C++ projekt létrehozása",
 	"Open Project...": "Projekt megnyitása",

@@ -22,12 +22,7 @@ namespace Frostnux {
 
 		bool OnEvent(Event& event);
 
-		void SetCallbacks(
-			std::function<void()> onNewFile,
-			std::function<void()> onOpenFile,
-			std::function<void()> onNewProject,
-			std::function<void()> onOpenProject
-		);
+		void SetCallbacks(std::function<void()> onNewProject, std::function<void()> onOpenProject);
 
 		void RefreshText();
 	private:

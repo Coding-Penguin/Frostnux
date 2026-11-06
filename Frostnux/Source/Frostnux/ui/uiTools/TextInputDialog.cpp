@@ -103,39 +103,6 @@ namespace Frostnux {
 		return true;
 	}
 
-	//void TextInputDialog::Draw()
-	//{
-	//	if (!m_IsOpen) return;
-
-	//	auto& app = Application::Get();
-	//	float winW = (float)app.GetWindow().GetWidth();
-	//	float winH = (float)app.GetWindow().GetHeight();
-	//	Renderer2D::DrawQuad(0.0f, 0.0f, winW, winH, 0.0f, 0.0f, 0.0f, 0.4f);
-
-	//	nlohmann::json j;
-	//	std::string path = "Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json";
-	//	std::ifstream file(path);
-	//	j << file;
-
-	//	Renderer2D::DrawQuad(m_X - 2, m_Y - 2, m_W + 4, m_H + 4, 0.35f, 0.35f, 0.40f, 1.0f);
-	//	Renderer2D::DrawQuad(m_X, m_Y, m_W, m_H, 0.16f, 0.16f, 0.18f, 1.0f);
-
-	//	TextRenderer::Get().DrawTextUTF8(m_Title, m_X + 20, m_Y + 20, 0.9f, 0.9f, 0.9f, 1.0f);
-
-	//	float inputY = m_Y + 60;
-	//	Renderer2D::DrawQuad(m_X + 20, inputY, m_W - 40, 30.0f, 0.1f, 0.1f, 0.1f, 1.0f);
-
-	//	TextRenderer::Get().DrawTextUTF8(m_Text, m_X + 25, inputY + 8, 1.0f, 1.0f, 1.0f, 1.0f);
-
-	//	float caretX = m_X + 25 + TextRenderer::Get().GetTextWidth(m_Text.substr(0, m_Caret));
-	//	if (std::fmod(glfwGetTime(), 1.0) < 0.5)
-	//	{
-	//		Renderer2D::DrawQuad(caretX, inputY + 6.0f, 2.0f, 20.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-	//	}
-
-	//	TextRenderer::Get().DrawTextUTF8(j.value("Input Tip", "Press Enter to confirm, Esc to cancel."), m_X + 20, m_Y + 110, 0.5f, 0.5f, 0.5f, 1.0f);
-	//}
-
 	void TextInputDialog::Draw()
 	{
 		if (!m_IsOpen) return;

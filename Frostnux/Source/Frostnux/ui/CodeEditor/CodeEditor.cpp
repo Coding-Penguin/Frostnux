@@ -696,9 +696,13 @@ namespace Frostnux {
 		const bool structural = text.find(U'\n') != std::u32string_view::npos || ed.removed.find(U'\n') != std::u32string::npos;
 
 		if (structural)
-			t.highlighter.markDirtyToEnd(std::min(from.line, after.line));
+		{
+			t.highlighter.markAllDirty();
+		}
 		else
+		{
 			t.highlighter.markDirty(from.line, after.line);
+		}
 
 		t.markSymbolsDirty(m_CurrentTime);
 	}
@@ -1016,8 +1020,8 @@ namespace Frostnux {
 
 		const int endLine = from.line + static_cast<int>(ed.removed.size()) + 1;
 		const bool structural = ed.removed.find(U'\n') != std::u32string::npos || ed.inserted.find(U'\n') != std::u32string::npos;
-		
-		if (structural)	t.highlighter.markDirtyToEnd(from.line);
+
+		if (structural)	t.highlighter.markAllDirty();
 		else			t.highlighter.markDirty(from.line, endLine);
 	}
 
@@ -1039,7 +1043,8 @@ namespace Frostnux {
 		t.longestDirty = true;
 
 		const bool structural = ed.removed.find(U'\n') != std::u32string::npos || ed.inserted.find(U'\n') != std::u32string::npos;
-		if (structural)	t.highlighter.markDirtyToEnd(from.line);
+
+		if (structural)	t.highlighter.markAllDirty();
 		else			t.highlighter.markDirty(from.line, after.line);
 	}
 
@@ -1368,26 +1373,33 @@ namespace Frostnux {
 			const float y = textY + static_cast<float>(row) * m_LineHeight - static_cast<float>(t.scrollY);
 			float x = textX - static_cast<float>(t.scrollX);
 
-			const auto&	tokens = t.highlighter.tokens(line);
-			const auto	text = t.buffer.line(line);
+			const auto& tokens = t.highlighter.tokens(line);
+			const auto text = t.buffer.line(line);
+			const int textLen = static_cast<int>(text.size());
 
 			int cursor = 0;
 			for (const auto& tok : tokens)
 			{
-				if (tok.start > cursor)
+				int s = std::clamp(tok.start, 0, textLen);
+				int e = std::clamp(tok.end, s, textLen);
+				if (e <= s) continue;
+
+				if (s > cursor)
 				{
-					const auto chunk = text.substr(cursor, tok.start - static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(cursor));
+					const auto chunk = text.substr(cursor, s - cursor);
 					m_Renderer->drawText(chunk, x, y, m_CharScale, m_Theme.text);
 					x += m_Renderer->measureText(chunk, m_CharScale);
 				}
-				const auto chunk = text.substr(tok.start, static_cast<std::basic_string_view<char32_t, std::char_traits<char32_t>>::size_type>(tok.end) - tok.start);
+				const auto chunk = text.substr(s, e - s);
 				m_Renderer->drawText(chunk, x, y, m_CharScale, m_Theme.of(tok.type), m_Theme.fontOf(tok.type));
 				x += m_Renderer->measureText(chunk, m_CharScale);
-				cursor = tok.end;
+				cursor = e;
 			}
 
-			if (cursor < static_cast<int>(text.size()))
+			if (cursor < textLen)
+			{
 				m_Renderer->drawText(text.substr(cursor), x, y, m_CharScale, m_Theme.text);
+			}
 		}
 	}
 
@@ -3049,44 +3061,63 @@ namespace Frostnux {
 	{
 		bool isDark = ThemeManager::IsDarkTheme();
 
-		auto [r, g, b] = ThemeManager::GetBGColor();
-		m_Theme.bg = { r, g, b, 1.0f };
-		m_Theme.currentLine = isDark ? Color{ 1,1,1,0.05f } : Color{ 0,0,0,0.05f };
-		m_Theme.gutterBg = isDark ? Color{ 0.14f, 0.14f, 0.14f, 1 } : Color{ 0.94f, 0.94f, 0.94f, 1 };
-		m_Theme.gutterText = isDark ? Color{ 0.40f, 0.40f, 0.42f, 1 } : Color{ 1.0f, 0.7f, 0.5f, 1 };
-		m_Theme.selection = isDark ? Color{ 0.26f, 0.40f, 0.62f, 1 } : Color{ 0.65f, 0.80f, 0.98f, 1 };
-		m_Theme.tabBg = isDark ? Color{ 0.16f, 0.16f, 0.16f, 1 } : Color{ 1.0f, 0.88f, 0.88f, 1 };
-		m_Theme.tabActive = isDark ? Color{ 0.24f, 0.24f, 0.26f, 1 } : Color{ 1.0f, 0.96f, 0.96f, 1 };
-		m_Theme.scrollTrack = isDark ? Color{ 0.14f, 0.14f, 0.14f, 1 } : Color{ 0.9f, 0.9f, 0.9f, 1 };
-		m_Theme.scrollThumb = isDark ? Color{ 0.30f, 0.30f, 0.32f, 1 } : Color{ 0.6f, 0.6f, 0.6f, 1 };
-
-		if (isDark)
+		if (ThemeManager::IsDarkTheme())
 		{
-			m_Theme.text = { 0.86f, 0.86f, 0.86f, 1 };
-			m_Theme.control = { 0.78f, 0.44f, 0.85f, 1 };
-			m_Theme.keyword = { 0.34f, 0.61f, 1.00f, 1 };
-			m_Theme.type = { 0.30f, 0.79f, 0.78f, 1 };
-			m_Theme.function = { 0.86f, 0.86f, 0.66f, 1 };
-			m_Theme.number = { 0.71f, 0.80f, 0.66f, 1 };
-			m_Theme.string = { 0.81f, 0.43f, 0.36f, 1 };
-			m_Theme.comment = { 0.34f, 0.62f, 0.34f, 1 };
-			m_Theme.preproc = { 0.61f, 0.50f, 0.40f, 1 };
-			m_Theme.macro = { 0.74f, 0.60f, 0.53f, 1 };
-			m_Theme.cursor = { 0.90f, 0.90f, 0.90f, 1 };
+			// ================= Dark =================
+			m_Theme.bg = { 0.118f, 0.118f, 0.118f, 1.0f };
+			m_Theme.text = { 0.830f, 0.830f, 0.830f, 1.0f };
+
+			m_Theme.control = { 0.780f, 0.440f, 0.850f, 1.0f };
+			m_Theme.keyword = { 0.340f, 0.610f, 1.000f, 1.0f };
+			m_Theme.type = { 0.300f, 0.790f, 0.780f, 1.0f };
+			m_Theme.function = { 0.860f, 0.860f, 0.660f, 1.0f };
+			m_Theme.number = { 0.710f, 0.800f, 0.660f, 1.0f };
+			m_Theme.string = { 0.810f, 0.430f, 0.360f, 1.0f };
+			m_Theme.comment = { 0.340f, 0.620f, 0.340f, 1.0f };
+			m_Theme.preproc = { 0.610f, 0.500f, 0.400f, 1.0f };
+			m_Theme.macro = { 0.740f, 0.600f, 0.530f, 1.0f };
+
+			m_Theme.cursor = { 0.900f, 0.900f, 0.900f, 1.0f };
+			m_Theme.selection = { 0.150f, 0.310f, 0.470f, 1.0f };
+			m_Theme.currentLine = { 1.000f, 1.000f, 1.000f, 0.05f };
+
+			m_Theme.gutterBg = { 0.118f, 0.118f, 0.118f, 1.0f };
+			m_Theme.gutterText = { 0.500f, 0.500f, 0.500f, 1.0f };
+
+			m_Theme.tabBg = { 0.150f, 0.150f, 0.150f, 1.0f };
+			m_Theme.tabActive = { 0.118f, 0.118f, 0.118f, 1.0f };
+
+			m_Theme.scrollTrack = { 0.118f, 0.118f, 0.118f, 1.0f };
+			m_Theme.scrollThumb = { 0.300f, 0.300f, 0.300f, 1.0f };
 		}
 		else
 		{
-			m_Theme.text = { 0.10f, 0.10f, 0.10f, 1 };
-			m_Theme.control = { 0.50f, 0.00f, 0.50f, 1 };
-			m_Theme.keyword = { 0.00f, 0.00f, 0.80f, 1 };
-			m_Theme.type = { 0.10f, 0.40f, 0.60f, 1 };
-			m_Theme.function = { 0.40f, 0.30f, 0.10f, 1 };
-			m_Theme.number = { 0.10f, 0.30f, 0.10f, 1 };
-			m_Theme.string = { 0.60f, 0.10f, 0.10f, 1 };
-			m_Theme.comment = { 0.00f, 0.50f, 0.00f, 1 };
-			m_Theme.preproc = { 0.40f, 0.40f, 0.40f, 1 };
-			m_Theme.macro = { 0.40f, 0.20f, 0.10f, 1 };
-			m_Theme.cursor = { 0.10f, 0.10f, 0.10f, 1 };
+			// ================= Light =================
+			m_Theme.bg = { 1.000f, 1.000f, 1.000f, 1.0f };
+			m_Theme.text = { 0.150f, 0.150f, 0.150f, 1.0f };
+
+			m_Theme.control = { 0.500f, 0.000f, 0.500f, 1.0f };
+			m_Theme.keyword = { 0.000f, 0.000f, 0.800f, 1.0f };
+			m_Theme.type = { 0.100f, 0.400f, 0.600f, 1.0f };
+			m_Theme.function = { 0.400f, 0.300f, 0.100f, 1.0f };
+			m_Theme.number = { 0.100f, 0.300f, 0.100f, 1.0f };
+			m_Theme.string = { 0.600f, 0.100f, 0.100f, 1.0f };
+			m_Theme.comment = { 0.000f, 0.500f, 0.000f, 1.0f };
+			m_Theme.preproc = { 0.400f, 0.400f, 0.400f, 1.0f };
+			m_Theme.macro = { 0.400f, 0.200f, 0.100f, 1.0f };
+
+			m_Theme.cursor = { 0.000f, 0.000f, 0.000f, 1.0f };
+			m_Theme.selection = { 0.680f, 0.840f, 1.000f, 1.0f };
+			m_Theme.currentLine = { 0.000f, 0.000f, 0.000f, 0.04f };
+
+			m_Theme.gutterBg = { 0.960f, 0.960f, 0.960f, 1.0f };
+			m_Theme.gutterText = { 0.200f, 0.200f, 0.200f, 1.0f };
+
+			m_Theme.tabBg = { 0.930f, 0.930f, 0.930f, 1.0f };
+			m_Theme.tabActive = { 1.000f, 1.000f, 1.000f, 1.0f };
+
+			m_Theme.scrollTrack = { 0.960f, 0.960f, 0.960f, 1.0f };
+			m_Theme.scrollThumb = { 0.600f, 0.600f, 0.600f, 1.0f };
 		}
 	}
 

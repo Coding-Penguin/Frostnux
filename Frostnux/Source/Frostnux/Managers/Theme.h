@@ -5,12 +5,12 @@ namespace Frostnux
 
 	enum class Theme
 	{
-		// Light
-		Paper = 0,
-		Frost,
 		// Dark
-		Dark,
-		Iron
+		Dark = 0,
+		Iron,
+		// Light
+		Paper,
+		Frost
 	};
 
 	class ThemeManager

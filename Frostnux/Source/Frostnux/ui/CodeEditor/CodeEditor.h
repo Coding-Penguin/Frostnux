@@ -36,7 +36,7 @@ namespace Frostnux {
 	class CodeEditor
 	{
 	public:
-		explicit CodeEditor(Renderer* r) : m_Renderer(r) {}
+		explicit CodeEditor(Renderer* r) : m_Renderer(r) { UpdateTheme(); }
 		~CodeEditor() = default;
 
 		CodeEditor(const CodeEditor&) = delete;
@@ -356,10 +356,10 @@ namespace Frostnux {
 		std::vector<FoldRegion> m_Folds;
 
 		void toggleFoldAt(Tab& t, int line);
-		[[nodiscard]] bool isLineHidden(const Tab& t, int line) const;
-		[[nodiscard]] int  lineToVisualRow(const Tab& t, int line) const;
-		[[nodiscard]] int  visualRowToLine(const Tab& t, int row) const;
-		[[nodiscard]] int  visualRowCount(const Tab& t) const;
+		[[nodiscard]] bool	isLineHidden(const Tab& t, int line) const;
+		[[nodiscard]] int	lineToVisualRow(const Tab& t, int line) const;
+		[[nodiscard]] int	visualRowToLine(const Tab& t, int row) const;
+		[[nodiscard]] int	visualRowCount(const Tab& t) const;
 
 		void jumpToPosition(Tab& t, Position target, bool recordHistory);
 

@@ -224,54 +224,6 @@ namespace Frostnux {
 		return false;
 	}
 
-	//void PopupMenu::Draw()
-	//{
-	//	if (!m_Open) return;
-
-	//	Renderer2D::DrawQuad(m_X - 1, m_Y - 1, m_W + 2, m_H + 2, 0.35f, 0.35f, 0.40f, 1.0f);
-	//	Renderer2D::DrawQuad(m_X, m_Y, m_W, m_H, 0.16f, 0.16f, 0.18f, 0.98f);
-
-	//	float y = m_Y + 2.0f;
-	//	for (int i = 0; i < static_cast<int>(m_Items.size()); ++i)
-	//	{
-	//		const auto& it = m_Items[i];
-
-	//		if (it.separator)
-	//		{
-	//			Renderer2D::DrawQuad(m_X + 6, y + kSepH * 0.5f - 0.5f, m_W - 12, 1.0f, 0.35f, 0.35f, 0.40f, 1.0f);
-	//			y += kSepH;
-	//			continue;
-	//		}
-
-	//		if (i == m_Hovered && it.enabled && !it.isHeader)
-	//		{
-	//			Renderer2D::DrawQuad(m_X + 2, y, m_W - 4, kRowH, 0.22f, 0.36f, 0.55f, 1.0f);
-	//		}
-
-	//		float cr = 0.90f, cg = 0.90f, cb = 0.90f;
-	//		if (it.isHeader) { cr = 0.55f; cg = 0.55f; cb = 0.55f; }
-	//		else if (!it.enabled) { cr = 0.45f; cg = 0.45f; cb = 0.45f; }
-
-	//		TextRenderer::Get().DrawTextUTF8(it.label, m_X + kPadX, y + 4.0f, cr, cg, cb, 1.0f);
-
-	//		if (!it.shortcut.empty())
-	//		{
-	//			const float sw = TextRenderer::Get().GetTextWidth(it.shortcut);
-	//			TextRenderer::Get().DrawTextUTF8(it.shortcut, m_X + m_W - sw - kPadX - (it.submenu.empty() ? 0.0f : 14.0f), y + 4.0f, 0.55f, 0.55f, 0.60f, 1.0f);
-	//		}
-
-	//		if (!it.submenu.empty())
-	//		{
-	//			Renderer2D::DrawTriangle(m_X + m_W - 12, y + kRowH * 0.5f - 4.0f, m_X + m_W - 12, y + kRowH * 0.5f + 4.0f, m_X + m_W - 6, y + kRowH * 0.5f, 0.75f, 0.75f, 0.80f, 1.0f);
-	//		}
-
-	//		y += kRowH;
-	//	}
-
-	//	if (m_Submenu && m_Submenu->IsOpen())
-	//		m_Submenu->Draw();
-	//}
-
 	void PopupMenu::Draw()
 	{
 		if (!m_Open) return;

@@ -10,6 +10,7 @@
 #include "Frostnux/Events/KeyEvent.h"
 #include "PopupMenu.h"
 #include "TextInputDialog.h"
+#include "Frostnux/Core/FileDialog.h"
 
 namespace Frostnux {
 
@@ -65,6 +66,45 @@ namespace Frostnux {
 		BuildTree();
 	}
 
+	//void SolutionExplorer::BuildTree()
+	//{
+	//	m_Root = Node{};
+	//	m_Root.kind = NodeKind::SolutionRoot;
+
+	//	if (!m_Solution)
+	//	{
+	//		m_Root.name = "(no solution)";
+	//		return;
+	//	}
+
+	//	m_Root.name = m_Solution->name.empty() ? "Solution" : m_Solution->name;
+	//	m_Root.expanded = true;
+
+	//	for (int pi = 0; pi < static_cast<int>(m_Solution->projects.size()); ++pi)
+	//	{
+	//		auto* proj = m_Solution->projects[pi].get();
+
+	//		Node pNode;
+	//		pNode.kind = NodeKind::Project;
+	//		pNode.name = proj->name;
+	//		pNode.fullPath = proj->Directory().generic_string();
+	//		pNode.projectIndex = pi;
+	//		pNode.expanded = true;
+
+	//		auto files = proj->ResolveSources();
+	//		auto base = proj->Directory();
+
+	//		for (auto& f : files)
+	//		{
+	//			std::error_code ec;
+	//			auto rel = std::filesystem::relative(f, base, ec);
+	//			if (ec) rel = f.filename();
+	//			InsertFileRecursive(pNode, rel, f);
+	//		}
+
+	//		m_Root.children.push_back(std::move(pNode));
+	//	}
+	//}
 	void SolutionExplorer::BuildTree()
 	{
 		m_Root = Node{};
@@ -85,22 +125,19 @@ namespace Frostnux {
 
 			Node pNode;
 			pNode.kind = NodeKind::Project;
-			pNode.name = proj->name;
+			pNode.name = (proj->name == m_Solution->startupProjectName) ? ("[Startup] " + proj->name) : proj->name;
 			pNode.fullPath = proj->Directory().generic_string();
 			pNode.projectIndex = pi;
 			pNode.expanded = true;
 
-			auto files = proj->ResolveSources();
+			proj->ScanSources();
 			auto base = proj->Directory();
-
-			for (auto& f : files)
+			for (auto& f : proj->sources)
 			{
 				std::error_code ec;
-				auto rel = std::filesystem::relative(f, base, ec);
-				if (ec) rel = f.filename();
-				InsertFileRecursive(pNode, rel, f);
+				auto absPath = base / f;
+				InsertFileRecursive(pNode, absPath.lexically_relative(base), absPath);
 			}
-
 			m_Root.children.push_back(std::move(pNode));
 		}
 	}
@@ -190,118 +227,137 @@ namespace Frostnux {
 
 		dispatcher.Dispatch<MouseButtonPressedEvent>([this](MouseButtonPressedEvent& e)
 			{
-				if (e.GetMouseButton() == GLFW_MOUSE_BUTTON_RIGHT)
+			if (e.GetMouseButton() == GLFW_MOUSE_BUTTON_RIGHT)
+			{
+				float mx = e.GetMouseX(), my = e.GetMouseY();
+				float contentX = GetX();
+				float contentY = GetY() + 30;
+				float contentW = GetWidth();
+				float contentH = GetHeight() - 30;
+
+				if (mx < contentX || mx > contentX + contentW || my < contentY || my > contentY + contentH)
+					return false;
+
+				nlohmann::json j;
+				std::ifstream file("Resources/Languages/" + LanguageManager::GetLanguageCode() + ".json");
+				file >> j;
+
+				m_VisibleNodes.clear();
+				float yOffset = 0.0f;
+				BuildVisibleList(m_Root, 0, contentY, yOffset);
+
+				const Node* clickedNode = nullptr;
+				for (const auto& vn : m_VisibleNodes)
 				{
-					float mx = e.GetMouseX(), my = e.GetMouseY();
-					float contentX = GetX();
-					float contentY = GetY() + 30;
-					float contentW = GetWidth();
-					float contentH = GetHeight() - 30;
-
-					if (mx < contentX || mx > contentX + contentW || my < contentY || my > contentY + contentH)
-						return false;
-
-					m_VisibleNodes.clear();
-					float yOffset = 0.0f;
-					BuildVisibleList(m_Root, 0, contentY, yOffset);
-
-					const Node* clickedNode = nullptr;
-					for (const auto& vn : m_VisibleNodes)
+					if (my >= vn.y && my <= vn.y + m_LineHeight)
 					{
-						if (my >= vn.y && my <= vn.y + m_LineHeight)
-						{
-							clickedNode = vn.node;
-							break;
-						}
+						clickedNode = vn.node;
+						break;
 					}
-
-					if (!clickedNode) return false;
-
-					std::vector<PopupMenu::Item> menuItems;
-
-					if (clickedNode->kind == NodeKind::File)
-					{
-						PopupMenu::Item openItem;
-						openItem.label = "Open";
-						openItem.onClick = [this, path = clickedNode->fullPath]()
-							{
-							if (m_FileOpenCallback) m_FileOpenCallback(path);
-							};
-						menuItems.push_back(openItem);
-
-						PopupMenu::Item deleteItem;
-						deleteItem.label = "Delete";
-						deleteItem.onClick = [this, path = clickedNode->fullPath]()
-							{
-							std::error_code ec;
-							std::filesystem::remove(path, ec);
-							if (!ec) { Refresh(); }
-							};
-						menuItems.push_back(deleteItem);
-					}
-					else if (clickedNode->kind == NodeKind::Folder || clickedNode->kind == NodeKind::Project)
-					{
-						PopupMenu::Item newFileItem;
-						newFileItem.label = "New File...";
-						newFileItem.onClick = [this, dirPath = clickedNode->fullPath]()
-							{
-							TextInputDialog::Get().Open("Create New File", "NewFile.cpp", [this, dirPath](const std::string& name)
-								{
-								std::filesystem::path target = dirPath;
-								target /= name;
-								if (!std::filesystem::exists(target))
-								{
-									Refresh();
-								}
-								});
-							};
-						menuItems.push_back(newFileItem);
-
-						PopupMenu::Item newFolderItem;
-						newFolderItem.label = "New Folder...";
-						newFolderItem.onClick = [this, dirPath = clickedNode->fullPath]()
-							{
-							TextInputDialog::Get().Open("Create New Folder", "NewFolder", [this, dirPath](const std::string& name)
-								{
-								std::filesystem::path target = dirPath;
-								target /= name;
-								if (!std::filesystem::exists(target))
-								{
-									std::filesystem::create_directory(target);
-									Refresh();
-								}
-								});
-							};
-						menuItems.push_back(newFolderItem);
-					}
-					else if (clickedNode->kind == NodeKind::SolutionRoot)
-					{
-						PopupMenu::Item newProjItem;
-						newProjItem.label = "New Project...";
-						newProjItem.onClick = [this]() {
-							TextInputDialog::Get().Open("New Project", "MyProject", [this](const std::string& name)
-								{
-								if (m_Solution)
-								{
-									m_Solution->AddProject(name, ProjectKind::ConsoleApp);
-									m_Solution->Save();
-									Refresh();
-								}
-								else
-								{
-									FX_CORE_WARN("No Solution loaded. Please create one first.");
-								}
-								});
-							};
-						menuItems.push_back(newProjItem);
-					}
-
-					if (!menuItems.empty())
-					{
-						PopupMenu::Get().Open(mx, my, std::move(menuItems));
-					}
-					return true;
 				}
+				if (!clickedNode) return false;
+
+				std::vector<PopupMenu::Item> menuItems;
+
+				if (clickedNode->kind == NodeKind::File)
+				{
+					PopupMenu::Item openItem; openItem.label = j.value("Open", "Open");
+					openItem.onClick = [this, path = clickedNode->fullPath]()
+						{
+						if (m_FileOpenCallback) m_FileOpenCallback(path);
+						};
+					menuItems.push_back(openItem);
+
+					PopupMenu::Item deleteItem; deleteItem.label = "Delete";
+					deleteItem.onClick = [this, path = clickedNode->fullPath]()
+						{
+						std::error_code ec;
+						std::filesystem::remove(path, ec);
+						if (!ec) { Refresh(); }
+						};
+					menuItems.push_back(deleteItem);
+				}
+				else if (clickedNode->kind == NodeKind::Project || clickedNode->kind == NodeKind::Folder)
+				{
+					bool isProject = (clickedNode->kind == NodeKind::Project);
+					std::string dirPath = clickedNode->fullPath;
+					int projIdx = clickedNode->projectIndex;
+
+					PopupMenu::Item newFileItem; newFileItem.label = j.value("New File...", "New File...");
+					newFileItem.onClick = [this, dirPath, isProject, projIdx]()
+						{
+						TextInputDialog::Get().Open("Create New File", "main.cpp", [this, dirPath, isProject, projIdx](const std::string& name)
+							{
+							std::filesystem::path target = dirPath;
+							target /= name;
+							if (!std::filesystem::exists(target))
+							{
+								if (isProject && m_Solution)
+								{
+									auto* proj = m_Solution->projects[projIdx].get();
+									proj->ScanSources();
+									m_Solution->Save();
+								}
+								Refresh();
+							}
+							});
+						};
+					menuItems.push_back(newFileItem);
+
+					if (isProject)
+					{
+						PopupMenu::Item addExisting; addExisting.label = "Add Existing File...";
+						addExisting.onClick = [this, dirPath, projIdx]()
+							{
+							const std::string path = OpenFileDialog("C++ Files|*.cpp;*.h;*.hpp|All Files|*.*");
+							if (!path.empty() && m_Solution)
+							{
+								auto* proj = m_Solution->projects[projIdx].get();
+								proj->ScanSources();
+								m_Solution->Save();
+								Refresh();
+							}
+							};
+						menuItems.push_back(addExisting);
+
+						PopupMenu::Item setStartup; setStartup.label = "Set as Startup Project";
+						setStartup.onClick = [this, name = clickedNode->name, projIdx]()
+							{
+							if (m_Solution)
+							{
+								std::string realName = m_Solution->projects[projIdx]->name;
+								m_Solution->startupProjectName = realName;
+								m_Solution->Save();
+								Refresh();
+							}
+							};
+						menuItems.push_back(setStartup);
+					}
+				}
+				else if (clickedNode->kind == NodeKind::SolutionRoot)
+				{
+					PopupMenu::Item newProjItem; newProjItem.label = j.value("New Project...", "New Project...");
+					newProjItem.onClick = [this]()
+						{
+						TextInputDialog::Get().Open("New Project", "Project", [this](const std::string& name)
+							{
+							if (m_Solution)
+							{
+								m_Solution->AddProject(name, ProjectKind::ConsoleApp);
+								m_Solution->Save();
+								Refresh();
+							}
+							});
+						};
+					menuItems.push_back(newProjItem);
+				}
+
+				if (!menuItems.empty())
+				{
+					PopupMenu::Get().Open(mx, my, std::move(menuItems));
+				}
+				return true;
+			}
 
 				if (e.GetMouseButton() != GLFW_MOUSE_BUTTON_LEFT) return false;
 
